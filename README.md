@@ -2,7 +2,7 @@
 
 This project is a demonstration of the concept of Meta Prompt, which involves generating a language model prompt using another language model. The demo showcases how a language model can be used to generate high-quality prompts for another language model.
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/eNFUq2AjKCk" frameborder="0" allowfullscreen></iframe>
+[![maxresdefault](https://github.com/yaleh/meta-prompt/assets/1132466/ec8ff6f1-5de2-4a3d-85e0-013155177a71)](https://www.youtube.com/watch?v=eNFUq2AjKCk)
 
 ## Overview
 
