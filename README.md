@@ -112,4 +112,7 @@ This project is licensed under the MIT License. Please see the [LICENSE](LICENSE
 For any questions or feedback regarding this project, please feel free to reach out to Yale Huang at calvino.huang@gmail.com.
 
 ---
-*Note: This README serves as a general guideline for setting up and using the Meta Prompt demo. Make sure to update it with more specific information if necessary.*
+
+**Acknowledgements:**
+
+I would like to express my gratitude to my colleagues at [Wiz.AI](https://www.wiz.ai/) for their support and contributions.
