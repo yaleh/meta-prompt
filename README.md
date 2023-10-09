@@ -10,8 +10,8 @@ The demo utilizes OpenAI's language models and provides a user interface for int
 
 To use this demo, please follow these steps:
 
-1. Clone the repository: `git clone https://github.com/your-username/meta-prompt-demo.git`
-2. Change into the project directory: `cd meta-prompt-demo`
+1. Clone the repository: `git clone https://github.com/yaleh/meta-prompt.git`
+2. Change into the project directory: `cd meta-prompt`
 3. Install the required dependencies: `pip install -r requirements.txt`
 
 Please note that you need to have Python and pip installed on your system.
@@ -21,7 +21,7 @@ Please note that you need to have Python and pip installed on your system.
 To run the demo, execute the following command:
 
 ```
-python main.py --api_key YOUR_API_KEY
+python meta_prompt.py --api_key YOUR_API_KEY
 ```
 
 Replace `YOUR_API_KEY` with your OpenAI API key. Other optional parameters can be specified as well, such as proxy settings, model name, API base URL, maximum message length, sharing option, and advanced mode. Please refer to the command-line argument options in the script for more details.
