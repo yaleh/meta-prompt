@@ -30,6 +30,26 @@ Replace `YOUR_API_KEY` with your OpenAI API key. Other optional parameters can b
 
 Once the demo is running, you can interact with the chatbot through the user interface provided. Enter prompts, execute model calls, compare outputs, and explore the functionality of the Meta Prompt concept.
 
+To perform the demo on the web, follow these steps:
+
+1. Fill in the user prompt in the "Testing User Prompt" section with a prompt suitable for training/testing.
+2. Fill in the expected output in the "Expected Output" section to specify the desired response from the model.
+3. Set the "Optimize Iterations" parameter. It is recommended to start with 1 iteration and gradually increase it later.
+4. Click on "Optimize Prompts" or "Single Step Optimize" to optimize (generate) the prompt.
+5. After generating the "New System Prompt," click "Run New" to validate it using the "New System Prompt" and "Testing User Prompt."
+6. If the "New Output" is better than the "Current Output," click "Accept New Prompt" to copy the "New System Prompt" and "New Output" to the "Current System Prompt" and "Current Output," respectively, as a basis for further optimization.
+7. Adjust the "Optimize Iterations" and optimize again.
+
+Usually, simple questions (such as arithmetic operations) require around 3 iterations of optimization, while complex problems may require more than 10 iterations.
+
+### Settings
+
+It is recommended to use GPT-4 as the Generating LLM Model for running the meta prompt. GPT-3.5 may not reliably generate the expected results for most questions.
+
+You can use either GPT-4 or GPT-3.5 as the Testing LLM Model, similar to when using GPT/ChatGPT in regular scenarios.
+
+If you have access to ChatGPT and want to save costs on GPT-4 API usage, you can also manually execute the meta-prompt by clicking "Merge Meta System Prompt." This will generate a complete prompt, including the meta-prompt and the current example, that can be used with ChatGPT. However, note that if further iterations are required, you need to manually copy the newly generated system prompt to the Current System Prompt and click "Run Current" to update the Current Output.
+
 ## Examples
 
 ### Arithmetic
