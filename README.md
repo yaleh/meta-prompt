@@ -8,6 +8,10 @@ This project is a demonstration of the concept of Meta Prompt, which involves ge
 
 The demo utilizes OpenAI's language models and provides a user interface for interacting with the chatbot. It allows users to input prompts, execute model calls, compare outputs, and optimize prompts based on desired criteria.
 
+## Try it out!
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yaleh/meta-prompt/blob/main/meta_prompt.ipynb)
+
 ## Installation
 
 To use this demo, please follow these steps:
