@@ -35,7 +35,7 @@ class ChatbotApp:
             ['Prompt']
         )
     def launch(self, *args, **kwargs):
-        self.ui.launch(args, kwargs)
+        self.ui.launch(*args, **kwargs)
     
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -45,10 +45,11 @@ def parse_args():
                         help="Launch app with sharing option")
     parser.add_argument("--advanced_mode", action='store_true', default=False,
                         help="Enable advanced mode")
+    parser.add_argument("--server_name", type=str, default="127.0.0.1", help="Server name or IP address")
  
     return parser.parse_args()
 
 if __name__ == "__main__":
     args = parse_args()
     app = ChatbotApp(args)
-    app.ui.queue().launch(share=args.share)
+    app.launch(share=args.share, server_name=args.server_name)
