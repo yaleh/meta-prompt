@@ -24,9 +24,14 @@ from prompt_ui import PromptUI
 
 class ChatbotApp:
     def __init__(self, args):
-        os.environ["OPENAI_API_KEY"] = args.api_key
+        if args.api_key:
+            os.environ["OPENAI_API_KEY"] = args.api_key
+
+        if args.openai_api_base:
+            os.environ["OPENAI_API_BASE"] = args.openai_api_base
+
         if args.proxy:
-            openai.proxy = eval(args.proxy)
+            os.environ["OPENAI_PROXY"] = args.proxy
 
         self.prompt_ui = PromptUI(advanced_mode=args.advanced_mode)
 
@@ -46,6 +51,7 @@ def parse_args():
     parser.add_argument("--advanced_mode", action='store_true', default=False,
                         help="Enable advanced mode")
     parser.add_argument("--server_name", type=str, default="127.0.0.1", help="Server name or IP address")
+    parser.add_argument("--openai_api_base", type=str, default=None, help="OpenAI API base URL")
  
     return parser.parse_args()
 

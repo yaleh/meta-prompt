@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Set the environment variables
 ENV API_KEY=""
 ENV PROXY=""
+ENV OPENAI_API_BASE=""
 ENV OTHER_ARGS="--advanced_mode"
 ENV ADVANCED_MODE="true"
 ENV SERVER_NAME="0.0.0.0"
@@ -21,4 +22,4 @@ ENV SERVER_NAME="0.0.0.0"
 EXPOSE 7860
 
 # Run the script when the container launches
-CMD /usr/local/bin/python3 meta_prompt.py --api_key=${API_KEY} --proxy=${PROXY} --server_name=${SERVER_NAME} ${OTHER_ARGS}
+CMD /usr/local/bin/python3 meta_prompt.py --api_key=${API_KEY} --proxy=${PROXY} --openai_api_base=${OPENAI_API_BASE} --server_name=${SERVER_NAME} ${OTHER_ARGS}
