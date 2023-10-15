@@ -56,6 +56,35 @@ You can use either GPT-4 or GPT-3.5 as the Testing LLM Model, similar to when us
 
 If you have access to ChatGPT and want to save costs on GPT-4 API usage, you can also manually execute the meta-prompt by clicking "Merge Meta System Prompt." This will generate a complete prompt, including the meta-prompt and the current example, that can be used with ChatGPT. However, note that if further iterations are required, you need to manually copy the newly generated system prompt to the Current System Prompt and click "Run Current" to update the Current Output.
 
+## Running Docker Image
+
+To perform the demo using Docker, make sure you have Docker installed on your system, and then follow these steps:
+
+1. Pull the Meta Prompt Docker image by running the following command:
+
+```
+docker pull yaleh/meta-prompt
+```
+
+2. Run the Docker container with the following command:
+
+```
+docker run -d --name meta-prompt-container -p 7860:7860 -e API_KEY=YOUR_API_KEY -e OTHER_ARGS="--advanced_mode" -e OPENAI_API_BASE=https://openai.lrfz.com/v1 yaleh/meta-prompt
+```
+
+Replace `YOUR_API_KEY` with your OpenAI API key. You can modify other environment variables if needed.
+3. You can now access the Meta Prompt demo by opening your web browser and visiting `http://localhost:7860`.
+
+To stop and remove the Meta Prompt container, run the following commands:
+
+```
+docker stop meta-prompt-container
+docker rm meta-prompt-container
+```
+
+Usually, simple questions (such as arithmetic operations) require around 3 iterations of optimization, while complex problems may require more than 10 iterations.
+```
+
 ## Examples
 
 ### Arithmetic
