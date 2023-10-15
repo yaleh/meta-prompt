@@ -83,7 +83,6 @@ docker rm meta-prompt-container
 ```
 
 Usually, simple questions (such as arithmetic operations) require around 3 iterations of optimization, while complex problems may require more than 10 iterations.
-```
 
 ## Examples
 
