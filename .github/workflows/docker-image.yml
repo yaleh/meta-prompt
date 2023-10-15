@@ -37,5 +37,5 @@ jobs:
           push: true
           tags: |
             yaleh/meta-prompt:${{ github.sha }}
-            yaleh/meta-prompt:latest
+            ${{ github.ref == 'refs/heads/main' && 'yaleh/meta-prompt:latest' || '' }}
     
