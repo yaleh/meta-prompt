@@ -214,5 +214,6 @@ Check and recommend modifying the Prompt template as follows to produce output c
 
 ----
 
-Now, provide the PROMPT_TEMPLATE, USER_MESSAGE, EXPECTED_GPT_MESSAGE, and GPT_MESSAGE for review.
+Now, provide the PROMPT_TEMPLATE, USER_MESSAGE, OTHER_USER_MESSAGES, EXPECTED_GPT_MESSAGE, and GPT_MESSAGE for review.
+
 '''
