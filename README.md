@@ -14,8 +14,10 @@ The demo utilizes OpenAI's language models and provides a user interface for int
 
 ## Try it out!
 
-[![Open meta_prompt.ipynb In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yaleh/meta-prompt/blob/main/meta_prompt.ipynb)
-[![Open langgraph_meta_prompt.ipynb In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yaleh/meta-prompt/blob/main/langgraph_meta_prompt.ipynb)
+| Name                   | Colab Notebook                                                                                                                       |
+|------------------------|----------------------------------------------------------------------------------------------------------------------------|
+| Meta Prompt            | [![Open meta_prompt.ipynb In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yaleh/meta-prompt/blob/main/meta_prompt.ipynb)            |
+| LangGraph Meta Prompt  | [![Open langgraph_meta_prompt.ipynb In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yaleh/meta-prompt/blob/main/langgraph_meta_prompt.ipynb)  |
 
 ## Installation
 
