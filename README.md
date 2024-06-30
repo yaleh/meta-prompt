@@ -8,11 +8,14 @@ This project is a demonstration of the concept of Meta Prompt, which involves ge
 
 The demo utilizes OpenAI's language models and provides a user interface for interacting with the chatbot. It allows users to input prompts, execute model calls, compare outputs, and optimize prompts based on desired criteria.
 
-**New Update (2023/10/15):** A new working mode called `Other User Prompts` has been added. In the prompt optimization process, similar compatible prompts to the original user prompt are referenced to significantly reduce iteration cycles.
+**(2023/10/15)** A new working mode called `Other User Prompts` has been added. In the prompt optimization process, similar compatible prompts to the original user prompt are referenced to significantly reduce iteration cycles.
+
+**(2024/06/30)** The `langgraph_meta_prompt.ipynb` file, committed on 06/30/2024, introduces a sophisticated framework for generating and refining system messages for AI assistants. Powered by LangGraph, this notebook can generate high-quality prompts with much more models, including `claude-3.5-sonnet:beta`, `llama-3-70b-instruct`, and quite some with 70B+ parameters. The notebook also introduced a new approach to converge the system messages automatically.
 
 ## Try it out!
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yaleh/meta-prompt/blob/main/meta_prompt.ipynb)
+[![Open meta_prompt.ipynb In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yaleh/meta-prompt/blob/main/meta_prompt.ipynb)
+[![Open langgraph_meta_prompt.ipynb In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yaleh/meta-prompt/blob/main/langgraph_meta_prompt.ipynb)
 
 ## Installation
 
