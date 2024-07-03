@@ -20,7 +20,7 @@ import os
 import openai
 
 import gradio as gr
-from prompt_ui import PromptUI
+from demo.prompt_ui import PromptUI
 
 class ChatbotApp:
     def __init__(self, args):

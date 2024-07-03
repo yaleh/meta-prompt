@@ -1,0 +1,234 @@
+User Message,Expected Output,Acceptance Criteria
+How do I reverse a list in Python?,Use the `[::-1]` slicing technique or the `list.reverse()` method.,"Similar in meaning, text length and style."
+(2+8)*3,"(2+8)*3
+= 10*3
+= 30
+","
+* Exactly text match.
+* Acceptable differences:
+  * Extra or missing spaces.
+  * Extra or missing line breaks at the beginning or end of the output.
+"
+"Here is the GDP data in billions of US dollars (USD) for these years:
+
+Germany:
+
+2015: $3,368.29 billion
+2016: $3,467.79 billion
+2017: $3,677.83 billion
+2018: $3,946.00 billion
+2019: $3,845.03 billion
+France:
+
+2015: $2,423.47 billion
+2016: $2,465.12 billion
+2017: $2,582.49 billion
+2018: $2,787.86 billion
+2019: $2,715.52 billion
+United Kingdom:
+
+2015: $2,860.58 billion
+2016: $2,650.90 billion
+2017: $2,622.43 billion
+2018: $2,828.87 billion
+2019: $2,829.21 billion
+Italy:
+
+2015: $1,815.72 billion
+2016: $1,852.50 billion
+2017: $1,937.80 billion
+2018: $2,073.90 billion
+2019: $1,988.14 billion
+Spain:
+
+2015: $1,199.74 billion
+2016: $1,235.95 billion
+2017: $1,313.13 billion
+2018: $1,426.19 billion
+2019: $1,430.38 billion
+","Year,Germany,France,United Kingdom,Italy,Spain
+2016-2015,2.96%,1.71%,-7.35%,2.02%,3.04%
+2017-2016,5.08%,4.78%,-1.07%,4.61%,6.23%
+2018-2017,7.48%,7.99%,7.89%,7.10%,8.58%
+2019-2018,-2.56%,-2.59%,0.01%,-4.11%,0.30%
+","
+* Strict text matching of the header row and first column(year).
+* Acceptable differences:
+  * Differences in digital/percentage values in the table, even significant ones.
+  * Extra or missing spaces.
+  * Extra or missing line breaks.
+"
+"Gene sequence: ATGGCCATGGCGCCCAGAACTGAGATCAATAGTACCCGTATTAACGGGTGA
+Species: Escherichia coli","{
+  ""Gene Sequence Analysis Results"": {
+    ""Basic Information"": {
+      ""Sequence Length"": 54,
+      ""GC Content"": ""51.85%""
+    },
+    ""Nucleotide Composition"": {
+      ""A"": {""Count"": 12, ""Percentage"": ""22.22%""},
+      ""T"": {""Count"": 11, ""Percentage"": ""20.37%""},
+      ""G"": {""Count"": 16, ""Percentage"": ""29.63%""},
+      ""C"": {""Count"": 15, ""Percentage"": ""27.78%""}
+    },
+    ""Codon Analysis"": {
+      ""Start Codon"": ""ATG"",
+      ""Stop Codon"": ""TGA"",
+      ""Codon Table"": [
+        {""Codon"": ""ATG"", ""Amino Acid"": ""Methionine"", ""Position"": 1},
+        {""Codon"": ""GCC"", ""Amino Acid"": ""Alanine"", ""Position"": 2},
+        {""Codon"": ""ATG"", ""Amino Acid"": ""Methionine"", ""Position"": 3},
+        // ... other codons ...
+        {""Codon"": ""TGA"", ""Amino Acid"": ""Stop Codon"", ""Position"": 18}
+      ]
+    },
+    ""Potential Function Prediction"": {
+      ""Protein Length"": 17,
+      ""Possible Functional Domains"": [
+        {""Domain Name"": ""ABC Transporter"", ""Start Position"": 5, ""End Position"": 15, ""Confidence"": ""75%""},
+        {""Domain Name"": ""Membrane Protein"", ""Start Position"": 1, ""End Position"": 17, ""Confidence"": ""60%""}
+      ],
+      ""Secondary Structure Prediction"": {
+        ""α-helix"": [""2-8"", ""12-16""],
+        ""β-sheet"": [""9-11""],
+        ""Random Coil"": [""1"", ""17""]
+      }
+    },
+    ""Homology Analysis"": {
+      ""Most Similar Sequences"": [
+        {
+          ""Gene Name"": ""abcT"",
+          ""Species"": ""Salmonella enterica"",
+          ""Similarity"": ""89%"",
+          ""E-value"": ""3e-25""
+        },
+        {
+          ""Gene Name"": ""yojI"",
+          ""Species"": ""Escherichia coli"",
+          ""Similarity"": ""95%"",
+          ""E-value"": ""1e-30""
+        }
+      ]
+    },
+    ""Mutation Analysis"": {
+      ""SNP Sites"": [
+        {""Position"": 27, ""Wild Type"": ""A"", ""Mutant"": ""G"", ""Amino Acid Change"": ""Glutamine->Arginine""},
+        {""Position"": 42, ""Wild Type"": ""C"", ""Mutant"": ""T"", ""Amino Acid Change"": ""None (Synonymous Mutation)""}
+      ]
+    }
+  }
+}","* Consistent with Expected Output:
+  * Formats of all JSON sections
+  * Data types of all JSON fields
+  * Top layer sections
+* Acceptable differences:
+  * Extra or missing spaces
+  * Extra or missing line breaks at the beginning or end of the output
+  * Differences in JSON field values
+  * JSON wrapped in backquotes"
+今天下午3点，在北京国家会议中心，阿里巴巴集团董事局主席马云宣布将投资100亿元人民币用于农村电商发展。这一决定受到了与会代表的热烈欢迎，大家认为这将为中国农村经济带来新的机遇。,"{
+  ""文本分析结果"": {
+    ""情感分析"": {
+      ""整体情感"": ""积极"",
+      ""情感得分"": 0.82,
+      ""情感细分"": {
+        ""乐观"": 0.75,
+        ""兴奋"": 0.60,
+        ""期待"": 0.85
+      }
+    },
+    ""实体识别"": [
+      {""实体"": ""北京"", ""类型"": ""地点"", ""起始位置"": 7, ""结束位置"": 9},
+      {""实体"": ""国家会议中心"", ""类型"": ""地点"", ""起始位置"": 9, ""结束位置"": 15},
+      {""实体"": ""阿里巴巴集团"", ""类型"": ""组织"", ""起始位置"": 16, ""结束位置"": 22},
+      {""实体"": ""马云"", ""类型"": ""人物"", ""起始位置"": 26, ""结束位置"": 28},
+      {""实体"": ""100亿元"", ""类型"": ""金额"", ""起始位置"": 32, ""结束位置"": 37},
+      {""实体"": ""人民币"", ""类型"": ""货币"", ""起始位置"": 37, ""结束位置"": 40},
+      {""实体"": ""中国"", ""类型"": ""地点"", ""起始位置"": 71, ""结束位置"": 73}
+    ],
+    ""关键词提取"": [
+      {""关键词"": ""农村电商"", ""权重"": 0.95},
+      {""关键词"": ""马云"", ""权重"": 0.85},
+      {""关键词"": ""投资"", ""权重"": 0.80},
+      {""关键词"": ""阿里巴巴"", ""权重"": 0.75},
+      {""关键词"": ""经济机遇"", ""权重"": 0.70}
+    ]
+  }
+}","* Consistent with Expected Output:
+  * Formats of all JSON sections
+  * Data types of all JSON fields
+  * Top layer sections
+* Acceptable differences:
+  * Differences in digital values in the table.
+  * Extra or missing spaces.
+  * Extra or missing line breaks at the beginning or end of the output.
+  * Differences in JSON field values
+  * Differences in section/item orders.
+  * JSON wrapped in backquotes."
+Low-noise amplifier,"A '''low-noise amplifier''' ('''LNA''') is an electronic component that amplifies a very low-power [[signal]] without significantly degrading its [[signal-to-noise ratio]] (SNR). Any [[electronic amplifier]] will increase the power of both the signal and the [[Noise (electronics)|noise]] present at its input, but the amplifier will also introduce some additional noise. LNAs are designed to minimize that additional noise, by choosing special components, operating points, and [[Circuit topology (electrical)|circuit topologies]]. Minimizing additional noise must balance with other design goals such as [[power gain]] and [[impedance matching]].
+
+LNAs are found in [[Radio|radio communications]] systems, [[Amateur Radio]] stations, medical instruments and [[electronic test equipment]]. A typical LNA may supply a power gain of 100 (20&nbsp;[[decibels]] (dB)) while decreasing the SNR by less than a factor of two (a 3&nbsp;dB [[noise figure]] (NF)). Although LNAs are primarily concerned with weak signals that are just above the [[noise floor]], they must also consider the presence of larger signals that cause [[intermodulation distortion]].","* Consistent with Expected Output:
+  * Language
+  * Text length
+  * Text style
+  * Text structures
+* Cover all the major content of Expected Output.
+* Acceptable differences:
+  * Minor format differences.
+  * Expression differences.
+  * Numerical differences.
+  * Additional content in Actual Output.
+  * Missing minor content in Actual Output."
+What is the meaning of life?,"[
+  {""persona"": ""Philosopher"", ""prompt"": ""Explore the concept of life's meaning through the lens of existentialism and purpose-driven existence.""},
+  {""persona"": ""Scientist"", ""prompt"": ""Examine the biological and evolutionary perspectives on the function and significance of life.""},
+  {""persona"": ""Child"", ""prompt"": ""Imagine you're explaining to a curious 7-year-old what makes life special and important.""}
+]","* Consistent with Expected Output:
+  * Formats of all JSON sections
+  * Data types and formats of all JSON fields
+  * Top layer sections
+* Acceptable differences:
+  * Differences in field values
+  * Extra or missing spaces
+  * Extra or missing line breaks at the beginning or end of the output
+  * JSON wrapped in backquotes"
+"<?php
+$username = $_POST['username'];
+$password = $_POST['password'];
+
+$query = ""SELECT * FROM users WHERE username = '$username' AND password = '$password'"";
+$result = mysqli_query($connection, $query);
+
+if (mysqli_num_rows($result) > 0) {
+    echo ""Login successful"";
+} else {
+    echo ""Login failed"";
+}
+?>","security_analysis:
+  vulnerabilities:
+    - type: SQL Injection
+      severity: Critical
+      description: Unsanitized user input directly used in SQL query
+      mitigation: Use prepared statements or parameterized queries
+    - type: Password Storage
+      severity: High
+      description: Passwords stored in plain text
+      mitigation: Use password hashing (e.g., bcrypt) before storage
+  additional_issues:
+    - Lack of input validation
+    - No CSRF protection
+    - Potential for timing attacks in login logic
+  overall_risk_score: 9.5/10
+  recommended_actions:
+    - Implement proper input sanitization
+    - Use secure password hashing algorithms
+    - Add CSRF tokens to forms
+    - Consider using a secure authentication library","* Consistent with Expected Output:
+  * Formats of all YAML sections
+  * Data types and formats of all YAML fields
+  * Top layer sections
+* Acceptable differences:
+  * Differences in field values
+  * Extra or missing spaces
+  * Extra or missing line breaks at the beginning or end of the output
+  * YAML wrapped in backquotes"

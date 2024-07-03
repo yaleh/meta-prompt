@@ -24,7 +24,7 @@ from langchain.schema import HumanMessage, SystemMessage
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-from default_meta_prompts import *
+from demo.default_meta_prompts import *
 
 gpt_models_not_legacy = [
     "gpt-4",

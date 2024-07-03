@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 from unittest.mock import patch
 
 # Assuming the necessary imports are made for the classes and functions used in meta_prompt_graph.py
-from meta_prompt_graph import MetaPromptGraph, AgentState
+from meta_prompt import AgentState, MetaPromptGraph
 
 from langchain_openai import ChatOpenAI
 
