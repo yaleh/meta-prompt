@@ -11,8 +11,8 @@ from langchain_openai import ChatOpenAI
 
 class TestMetaPromptGraph(unittest.TestCase):
     def setUp(self):
-        # Mocking the BaseLanguageModel and ChatPromptTemplate for testing
-        logging.basicConfig(level=logging.DEBUG)
+        # logging.basicConfig(level=logging.DEBUG)
+        pass
 
     def test_prompt_node(self):
         llms = {
@@ -79,17 +79,15 @@ class TestMetaPromptGraph(unittest.TestCase):
         assert updated_state.accepted == True
 
     def test_workflow_execution(self):
-        # MODEL_NAME = "google/gemma-2-9b-it"
         MODEL_NAME = "anthropic/claude-3.5-sonnet:haiku"
+        # MODEL_NAME = "meta-llama/llama-3-70b-instruct"
+        # MODEL_NAME = "deepseek/deepseek-chat"
+        # MODEL_NAME = "google/gemma-2-9b-it"
+        # MODEL_NAME = "recursal/eagle-7b"
+        # MODEL_NAME = "meta-llama/llama-3-8b-instruct"
         llm = ChatOpenAI(model_name=MODEL_NAME)
 
-        node_names = MetaPromptGraph.get_node_names()
-        llms = {
-        }
-        for node_name in node_names:
-            llms[node_name] = llm
-
-        meta_prompt_graph = MetaPromptGraph(llms=llms, verbose=True)
+        meta_prompt_graph = MetaPromptGraph(llms=llm)
         input_state = AgentState(
             user_message="How do I reverse a list in Python?",
             expected_output="Use the `[::-1]` slicing technique or the `list.reverse()` method.",
@@ -105,6 +103,58 @@ class TestMetaPromptGraph(unittest.TestCase):
             "The best system message should not be None"
         if 'best_system_message' in output_state and output_state['best_system_message'] is not None:
             print(output_state['best_system_message'])
+
+        # try another similar user message with the generated system message
+        user_message = "How can I create a list of numbers in Python?"
+        messages = [("system", output_state['best_system_message']), 
+                    ("human", user_message)]
+        result = llm.invoke(messages)
+
+        # assert attr 'content' in result
+        assert hasattr(result, 'content'), \
+            "The result should have the attribute 'content'"
+        print(result.content)
+
+    def test_workflow_execution_with_llms(self):
+        optimizer_llm = ChatOpenAI(model_name="anthropic/claude-3.5-sonnet:haiku", temperature=0.5)
+        executor_llm = ChatOpenAI(model_name="meta-llama/llama-3-8b-instruct", temperature=0.01)
+
+        llms = {
+            MetaPromptGraph.NODE_PROMPT_INITIAL_DEVELOPER: optimizer_llm,
+            MetaPromptGraph.NODE_PROMPT_DEVELOPER: optimizer_llm,
+            MetaPromptGraph.NODE_PROMPT_EXECUTOR: executor_llm,
+            MetaPromptGraph.NODE_OUTPUT_HISTORY_ANALYZER: optimizer_llm,
+            MetaPromptGraph.NODE_PROMPT_ANALYZER: optimizer_llm,
+            MetaPromptGraph.NODE_PROMPT_SUGGESTER: optimizer_llm
+        }
+
+        meta_prompt_graph = MetaPromptGraph(llms=llms)
+        input_state = AgentState(
+            user_message="How do I reverse a list in Python?",
+            expected_output="Use the `[::-1]` slicing technique or the `list.reverse()` method.",
+            acceptance_criteria="Similar in meaning, text length and style."
+            )
+        output_state = meta_prompt_graph(input_state, recursion_limit=25)
+
+        pprint.pp(output_state)
+        # if output_state has key 'best_system_message', print it
+        assert 'best_system_message' in output_state, \
+            "The output state should contain the key 'best_system_message'"
+        assert output_state['best_system_message'] is not None, \
+            "The best system message should not be None"
+        if 'best_system_message' in output_state and output_state['best_system_message'] is not None:
+            print(output_state['best_system_message'])
+
+        # try another similar user message with the generated system message
+        user_message = "How can I create a list of numbers in Python?"
+        messages = [("system", output_state['best_system_message']), 
+                    ("human", user_message)]
+        result = executor_llm.invoke(messages)
+
+        # assert attr 'content' in result
+        assert hasattr(result, 'content'), \
+            "The result should have the attribute 'content'"
+        print(result.content)
 
 if __name__ == '__main__':
     unittest.main()

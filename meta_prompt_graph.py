@@ -265,7 +265,7 @@ Analysis:
         ]
 
     def __init__(self,
-                 llms: Dict[str, BaseLanguageModel] = {},
+                 llms: Union[BaseLanguageModel, Dict[str, BaseLanguageModel]] = {},
                  prompts: Dict[str, ChatPromptTemplate] = {},
                  verbose = False):
         self.logger = logging.getLogger(__name__)
@@ -274,7 +274,10 @@ Analysis:
         else:
             self.logger.setLevel(logging.INFO)
 
-        self.llms: Dict[str, BaseLanguageModel] = llms
+        if isinstance(llms, BaseLanguageModel):
+            self.llms: Dict[str, BaseLanguageModel] = {node: llms for node in self.get_node_names()}
+        else:
+            self.llms: Dict[str, BaseLanguageModel] = llms
         self.prompt_templates: Dict[str, ChatPromptTemplate] = self.DEFAULT_PROMPT_TEMPLATES.copy()
         self.prompt_templates.update(prompts)
 
@@ -363,7 +366,7 @@ Analysis:
 
         self.logger.debug("Invoking %s with prompt: %s", node, pprint.pformat(prompt))
         response = self.llms[node].invoke(self.prompt_templates[node].format_messages(**state.model_dump()))
-        self.logger.debug("Response: %s", pprint.pformat(response.content))
+        self.logger.debug("Response: %s", response.content)
         
         setattr(state, target_attribute, response.content)
         return state
@@ -384,7 +387,7 @@ Analysis:
                           self.NODE_OUTPUT_HISTORY_ANALYZER, 
                           pprint.pformat(prompt))
         response = self.llms[self.NODE_OUTPUT_HISTORY_ANALYZER].invoke(prompt)
-        self.logger.debug("Response: %s", pprint.pformat(response.content))
+        self.logger.debug("Response: %s", response.content)
 
         analysis = response.content
 
@@ -408,7 +411,7 @@ Analysis:
                           self.NODE_PROMPT_ANALYZER,
                           pprint.pformat(prompt))
         response = self.llms[self.NODE_PROMPT_ANALYZER].invoke(prompt)
-        self.logger.debug("Response: %s", pprint.pformat(response.content))
+        self.logger.debug("Response: %s", response.content)
 
         state.analysis = response.content
         state.accepted = "Accept: Yes" in response.content
