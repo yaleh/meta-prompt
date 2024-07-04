@@ -188,10 +188,12 @@ What is the meaning of life?,"[
   * Data types and formats of all JSON fields
   * Top layer sections
 * Acceptable differences:
-  * Differences in field values
+  * Different personas or prompts
+  * Different numbers of personas
   * Extra or missing spaces
   * Extra or missing line breaks at the beginning or end of the output
-  * JSON wrapped in backquotes"
+* Unacceptable:
+  * Showing the personas in Expected Output in System Message"
 "<?php
 $username = $_POST['username'];
 $password = $_POST['password'];

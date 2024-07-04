@@ -164,23 +164,9 @@ If both outputs are equally similar to the expected output, output the following
         ]),
         NODE_PROMPT_ANALYZER: ChatPromptTemplate.from_messages([
             ("system", """
-You are a text comparing program. You compare the following output texts and provide a
-detailed analysis according to `Acceptance Criteria`. Then you decide whether `Actual Output`
-is acceptable.
-
-# Expected Output
-
-```
-{expected_output}
-```
-
-# Actual Output
-
-```
-{output}
-```
-
-----
+You are a text comparing program. You compare the following output texts,
+analysis the System Message and provide a detailed analysis according to
+`Acceptance Criteria`. Then you decide whether `Actual Output` is acceptable.
 
 Provide your analysis in the following format:
 
@@ -199,6 +185,25 @@ Provide your analysis in the following format:
 
 ```
 {acceptance_criteria}
+```
+"""),
+            ("human", """
+# System Message
+
+```
+{system_message}
+```
+
+# Expected Output
+
+```
+{expected_output}
+```
+
+# Actual Output
+
+```
+{output}
 ```
 """)
         ]),
@@ -281,42 +286,34 @@ Analysis:
         self.prompt_templates: Dict[str, ChatPromptTemplate] = self.DEFAULT_PROMPT_TEMPLATES.copy()
         self.prompt_templates.update(prompts)
 
-        # create workflow
-        self.workflow = StateGraph(AgentState)
+    def _create_workflow(self, including_initial_developer: bool = True) -> StateGraph:
+        workflow = StateGraph(AgentState)
+            
+        workflow.add_node(self.NODE_PROMPT_DEVELOPER,
+                          lambda x: self._prompt_node(
+                              self.NODE_PROMPT_DEVELOPER,
+                              "system_message",
+                              x))
+        workflow.add_node(self.NODE_PROMPT_EXECUTOR,
+                          lambda x: self._prompt_node(
+                              self.NODE_PROMPT_EXECUTOR,
+                              "output",
+                              x))
+        workflow.add_node(self.NODE_OUTPUT_HISTORY_ANALYZER,
+                          lambda x: self._output_history_analyzer(x))
+        workflow.add_node(self.NODE_PROMPT_ANALYZER,
+                          lambda x: self._prompt_analyzer(x))
+        workflow.add_node(self.NODE_PROMPT_SUGGESTER,
+                          lambda x: self._prompt_node(
+                              self.NODE_PROMPT_SUGGESTER,
+                              "suggestions",
+                              x))
 
-        self.workflow.add_node(self.NODE_PROMPT_INITIAL_DEVELOPER,
-                               lambda x: self._prompt_node(
-                                   self.NODE_PROMPT_INITIAL_DEVELOPER,
-                                   "system_message",
-                                   x))
-        self.workflow.add_node(self.NODE_PROMPT_DEVELOPER,
-                               lambda x: self._prompt_node(
-                                   self.NODE_PROMPT_DEVELOPER,
-                                   "system_message",
-                                   x))
-        self.workflow.add_node(self.NODE_PROMPT_EXECUTOR,
-                               lambda x: self._prompt_node(
-                                   self.NODE_PROMPT_EXECUTOR,
-                                   "output",
-                                   x))
-        self.workflow.add_node(self.NODE_OUTPUT_HISTORY_ANALYZER,
-                               lambda x: self._output_history_analyzer(x))
-        self.workflow.add_node(self.NODE_PROMPT_ANALYZER,
-                               lambda x: self._prompt_analyzer(x))
-        self.workflow.add_node(self.NODE_PROMPT_SUGGESTER,
-                               lambda x: self._prompt_node(
-                                   self.NODE_PROMPT_SUGGESTER,
-                                   "suggestions",
-                                   x))
+        workflow.add_edge(self.NODE_PROMPT_DEVELOPER, self.NODE_PROMPT_EXECUTOR)
+        workflow.add_edge(self.NODE_PROMPT_EXECUTOR, self.NODE_OUTPUT_HISTORY_ANALYZER)
+        workflow.add_edge(self.NODE_PROMPT_SUGGESTER, self.NODE_PROMPT_DEVELOPER)
 
-        self.workflow.set_entry_point(self.NODE_PROMPT_INITIAL_DEVELOPER)
-
-        self.workflow.add_edge(self.NODE_PROMPT_INITIAL_DEVELOPER, self.NODE_PROMPT_EXECUTOR)
-        self.workflow.add_edge(self.NODE_PROMPT_DEVELOPER, self.NODE_PROMPT_EXECUTOR)
-        self.workflow.add_edge(self.NODE_PROMPT_EXECUTOR, self.NODE_OUTPUT_HISTORY_ANALYZER)
-        self.workflow.add_edge(self.NODE_PROMPT_SUGGESTER, self.NODE_PROMPT_DEVELOPER)
-
-        self.workflow.add_conditional_edges(
+        workflow.add_conditional_edges(
             self.NODE_OUTPUT_HISTORY_ANALYZER,
             lambda x: self._should_exit_on_max_age(x),
             {
@@ -326,7 +323,7 @@ Analysis:
             }
         )
 
-        self.workflow.add_conditional_edges(
+        workflow.add_conditional_edges(
             self.NODE_PROMPT_ANALYZER,
             lambda x: self._should_exit_on_acceptable_output(x),
             {
@@ -335,9 +332,24 @@ Analysis:
             }
         )
 
+        if including_initial_developer:
+            workflow.add_node(self.NODE_PROMPT_INITIAL_DEVELOPER,
+                            lambda x: self._prompt_node(
+                                self.NODE_PROMPT_INITIAL_DEVELOPER,
+                                "system_message",
+                                x))
+            workflow.add_edge(self.NODE_PROMPT_INITIAL_DEVELOPER, self.NODE_PROMPT_EXECUTOR)
+            workflow.set_entry_point(self.NODE_PROMPT_INITIAL_DEVELOPER)
+        else:
+            workflow.set_entry_point(self.NODE_PROMPT_EXECUTOR)
+
+        return workflow
+
     def __call__(self, state: AgentState, recursion_limit: int = 25) -> AgentState:
+        workflow = self._create_workflow(including_initial_developer=(state.system_message is None or state.system_message == ""))
+
         memory = MemorySaver()
-        graph = self.workflow.compile(checkpointer=memory)
+        graph = workflow.compile(checkpointer=memory)
         config = {"configurable": {"thread_id": "1"}, "recursion_limit": recursion_limit}
 
         try:
