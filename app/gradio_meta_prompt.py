@@ -96,7 +96,8 @@ iface = gr.Interface(
     # stop_btn = gr.Button("Stop", variant="stop", visible=True),
     title="MetaPromptGraph Chat Interface",
     description="A chat interface for MetaPromptGraph to process user inputs and generate system messages.",
-    examples=config.examples_path
+    examples=config.examples_path,
+    allow_flagging="never"
 )
 
 # Launch the Gradio app
