@@ -262,3 +262,12 @@ For any questions or feedback regarding this project, please feel free to reach 
 **Acknowledgements:**
 
 I would like to express my gratitude to my colleagues at [Wiz.AI](https://www.wiz.ai/) for their support and contributions.
+
+---
+title: Meta Prompt
+emoji: 🦀
+colorFrom: red
+colorTo: purple
+sdk: docker
+pinned: false
+---
