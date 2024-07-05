@@ -1,3 +1,12 @@
+---
+title: Meta Prompt
+emoji: 🦀
+colorFrom: red
+colorTo: purple
+sdk: docker
+pinned: false
+---
+
 # Meta Prompt Demo
 
 This project is a demonstration of the concept of Meta Prompt, which involves generating a language model prompt using another language model. The demo showcases how a language model can be used to generate high-quality prompts for another language model.
@@ -262,12 +271,3 @@ For any questions or feedback regarding this project, please feel free to reach 
 **Acknowledgements:**
 
 I would like to express my gratitude to my colleagues at [Wiz.AI](https://www.wiz.ai/) for their support and contributions.
-
----
-title: Meta Prompt
-emoji: 🦀
-colorFrom: red
-colorTo: purple
-sdk: docker
-pinned: false
----
