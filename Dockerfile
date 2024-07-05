@@ -6,7 +6,7 @@ WORKDIR /app
 
 # Copy all files from the current directory to the working directory in the container
 COPY config.yml poetry.lock pyproject.toml /app/
-COPY demo /app/demo/
+COPY app /app/app/
 COPY meta_prompt /app/meta_prompt/
 
 RUN pip install --no-cache-dir -U poetry
@@ -17,4 +17,4 @@ RUN poetry install --with=dev
 EXPOSE 7860
 
 # Run the script when the container launches
-CMD python demo/gradio_meta_prompt.py
+CMD python app/gradio_meta_prompt.py

@@ -3,35 +3,37 @@ llms:
     type: ChatOpenAI
     temperature: 0.1
     model_name: "llama3-70b-8192"
-    openai_api_key: ""
+    # openai_api_key: ""
     openai_api_base: "https://api.groq.com/openai/v1"
     max_tokens: 8192
     verbose: true
-  anthropic/claude-3-haiku:
-    type: ChatOpenAI
-    temperature: 0.1
-    model_name: "anthropic/claude-3-haiku:beta"
-    openai_api_key: ""
-    openai_api_base: "https://openrouter.ai/api/v1"
-    max_tokens: 8192
-    verbose: true
-  anthropic/claude-3-sonnet:
-    type: ChatOpenAI
-    temperature: 0.1
-    model_name: "anthropic/claude-3-sonnet:beta"
-    openai_api_key: ""
-    openai_api_base: "https://openrouter.ai/api/v1"
-    max_tokens: 8192
-    verbose: true
-  anthropic/deepseek-chat:
-    type: ChatOpenAI
-    temperature: 0.1
-    model_name: "deepseek/deepseek-chat"
-    openai_api_key: ""
-    openai_api_base: "https://openrouter.ai/api/v1"
-    max_tokens: 8192
-    verbose: true
+  # anthropic/claude-3-haiku:
+  #   type: ChatOpenAI
+  #   temperature: 0.1
+  #   model_name: "anthropic/claude-3-haiku:beta"
+  #   openai_api_key: ""
+  #   openai_api_base: "https://openrouter.ai/api/v1"
+  #   max_tokens: 8192
+  #   verbose: true
+  # anthropic/claude-3-sonnet:
+  #   type: ChatOpenAI
+  #   temperature: 0.1
+  #   model_name: "anthropic/claude-3-sonnet:beta"
+  #   openai_api_key: ""
+  #   openai_api_base: "https://openrouter.ai/api/v1"
+  #   max_tokens: 8192
+  #   verbose: true
+  # anthropic/deepseek-chat:
+  #   type: ChatOpenAI
+  #   temperature: 0.1
+  #   model_name: "deepseek/deepseek-chat"
+  #   openai_api_key: ""
+  #   openai_api_base: "https://openrouter.ai/api/v1"
+  #   max_tokens: 8192
+  #   verbose: true
 
 examples_path: "app/examples"
-server_name: 0.0.0.0
-server_port: 7860
+# server_name: 0.0.0.0
+# server_port: 7860
+recursion_limit: 16
+recursion_limit_max: 20
