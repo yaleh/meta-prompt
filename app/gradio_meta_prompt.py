@@ -1,8 +1,62 @@
+import csv
+from pathlib import Path
+from typing import Any
 import gradio as gr
+from gradio import CSVLogger, utils
+from gradio_client import utils as client_utils
 from confz import BaseConfig, CLArgSource, EnvSource, FileSource
 from meta_prompt import MetaPromptGraph, AgentState
 from langchain_openai import ChatOpenAI
 from app.config import MetaPromptConfig
+
+class SimplifiedCSVLogger(CSVLogger):
+    """
+    A subclass of CSVLogger that logs only the components data to a CSV file, excluding
+    flag, username, and timestamp information.
+    """
+
+    def flag(
+        self,
+        flag_data: list[Any],
+        flag_option: str = "",
+        username: str | None = None,
+    ) -> int:
+        flagging_dir = self.flagging_dir
+        log_filepath = Path(flagging_dir) / "log.csv"
+        is_new = not Path(log_filepath).exists()
+        headers = [
+            getattr(component, "label", None) or f"component {idx}"
+            for idx, component in enumerate(self.components)
+        ]
+
+        csv_data = []
+        for idx, (component, sample) in enumerate(zip(self.components, flag_data)):
+            save_dir = Path(
+                flagging_dir
+            ) / client_utils.strip_invalid_filename_characters(
+                getattr(component, "label", None) or f"component {idx}"
+            )
+            if utils.is_prop_update(sample):
+                csv_data.append(str(sample))
+            else:
+                data = (
+                    component.flag(sample, flag_dir=save_dir)
+                    if sample is not None
+                    else ""
+                )
+                if self.simplify_file_data:
+                    data = utils.simplify_file_data_in_str(data)
+                csv_data.append(data)
+
+        with open(log_filepath, "a", newline="", encoding="utf-8") as csvfile:
+            writer = csv.writer(csvfile)
+            if is_new:
+                writer.writerow(utils.sanitize_list_for_csv(headers))
+            writer.writerow(utils.sanitize_list_for_csv(csv_data))
+
+        with open(log_filepath, encoding="utf-8") as csvfile:
+            line_count = len(list(csv.reader(csvfile))) - 1
+        return line_count
 
 class LLMModelFactory:
     def __init__(self):
@@ -71,34 +125,51 @@ config_sources = [
 config = MetaPromptConfig(config_sources=config_sources)
 
 # Create the Gradio interface
+user_message_input = gr.Textbox(label="User Message", show_copy_button=True)
+expected_output_input = gr.Textbox(label="Expected Output", show_copy_button=True)
+acceptance_criteria_input = gr.Textbox(label="Acceptance Criteria", show_copy_button=True)
+
+system_message_output = gr.Textbox(label="System Message", show_copy_button=True)
+output_output = gr.Textbox(label="Output", show_copy_button=True)
+analysis_output = gr.Textbox(label="Analysis", show_copy_button=True)
+
+initial_system_message_input = gr.Textbox(label="Initial System Message", show_copy_button=True, value="")
+recursion_limit_input = gr.Number(label="Recursion Limit", value=config.recursion_limit,
+                                  precision=0, minimum=1, maximum=config.recursion_limit_max, step=1)
+model_name_input = gr.Dropdown(
+    label="Model Name",
+    choices=config.llms.keys(),
+    value=list(config.llms.keys())[0],
+)
+
+flagging_callback = SimplifiedCSVLogger()
+
 iface = gr.Interface(
     fn=process_message,
     inputs=[
-        gr.Textbox(label="User Message", show_copy_button=True),
-        gr.Textbox(label="Expected Output", show_copy_button=True),
-        gr.Textbox(label="Acceptance Criteria", show_copy_button=True),
+        user_message_input,
+        expected_output_input,
+        acceptance_criteria_input,
     ],
     outputs=[
-        gr.Textbox(label="System Message", show_copy_button=True),
-        gr.Textbox(label="Output", show_copy_button=True),
-        gr.Textbox(label="Analysis", show_copy_button=True)
+        system_message_output,
+        output_output,
+        analysis_output
     ],
     additional_inputs=[
-        gr.Textbox(label="Initial System Message", show_copy_button=True, value=""),
-        gr.Number(label="Recursion Limit", value=config.recursion_limit,
-                  precision=0, minimum=1, maximum=config.recursion_limit_max, step=1),
-        gr.Dropdown(
-            label="Model Name",
-            choices=config.llms.keys(),
-            value=list(config.llms.keys())[0],
-        )
+        initial_system_message_input,
+        recursion_limit_input,
+        model_name_input
     ],
-    # stop_btn = gr.Button("Stop", variant="stop", visible=True),
     title="MetaPromptGraph Chat Interface",
     description="A chat interface for MetaPromptGraph to process user inputs and generate system messages.",
     examples=config.examples_path,
-    allow_flagging="never"
+    allow_flagging=config.allow_flagging,
+    flagging_dir=config.examples_path,
+    flagging_options=["Example"],
+    flagging_callback=flagging_callback
 )
+flagging_callback.setup([user_message_input, expected_output_input, acceptance_criteria_input, initial_system_message_input],config.examples_path)
 
 # Launch the Gradio app
 iface.launch(server_name=config.server_name, server_port=config.server_port)

@@ -37,3 +37,4 @@ server_name: 0.0.0.0
 # server_port: 7860
 recursion_limit: 16
 recursion_limit_max: 20
+allow_flask_cors: false

@@ -1,5 +1,5 @@
-User Message,Expected Output,Acceptance Criteria
-How do I reverse a list in Python?,Use the `[::-1]` slicing technique or the `list.reverse()` method.,"Similar in meaning, text length and style."
+User Message,Expected Output,Acceptance Criteria,Initial System Message
+How do I reverse a list in Python?,Use the `[::-1]` slicing technique or the `list.reverse()` method.,"Similar in meaning, text length and style.",""
 (2+8)*3,"(2+8)*3
 = 10*3
 = 30
@@ -8,7 +8,7 @@ How do I reverse a list in Python?,Use the `[::-1]` slicing technique or the `li
 * Acceptable differences:
   * Extra or missing spaces.
   * Extra or missing line breaks at the beginning or end of the output.
-"
+",""
 "Here is the GDP data in billions of US dollars (USD) for these years:
 
 Germany:
@@ -57,7 +57,7 @@ Spain:
   * Differences in digital/percentage values in the table, even significant ones.
   * Extra or missing spaces.
   * Extra or missing line breaks.
-"
+",""
 "Gene sequence: ATGGCCATGGCGCCCAGAACTGAGATCAATAGTACCCGTATTAACGGGTGA
 Species: Escherichia coli","{
   ""Gene Sequence Analysis Results"": {
@@ -125,7 +125,7 @@ Species: Escherichia coli","{
   * Extra or missing spaces
   * Extra or missing line breaks at the beginning or end of the output
   * Differences in JSON field values
-  * JSON wrapped in backquotes"
+  * JSON wrapped in backquotes",""
 今天下午3点，在北京国家会议中心，阿里巴巴集团董事局主席马云宣布将投资100亿元人民币用于农村电商发展。这一决定受到了与会代表的热烈欢迎，大家认为这将为中国农村经济带来新的机遇。,"{
   ""文本分析结果"": {
     ""情感分析"": {
@@ -164,7 +164,7 @@ Species: Escherichia coli","{
   * Extra or missing line breaks at the beginning or end of the output.
   * Differences in JSON field values
   * Differences in section/item orders.
-  * JSON wrapped in backquotes."
+  * JSON wrapped in backquotes.",""
 Low-noise amplifier,"A '''low-noise amplifier''' ('''LNA''') is an electronic component that amplifies a very low-power [[signal]] without significantly degrading its [[signal-to-noise ratio]] (SNR). Any [[electronic amplifier]] will increase the power of both the signal and the [[Noise (electronics)|noise]] present at its input, but the amplifier will also introduce some additional noise. LNAs are designed to minimize that additional noise, by choosing special components, operating points, and [[Circuit topology (electrical)|circuit topologies]]. Minimizing additional noise must balance with other design goals such as [[power gain]] and [[impedance matching]].
 
 LNAs are found in [[Radio|radio communications]] systems, [[Amateur Radio]] stations, medical instruments and [[electronic test equipment]]. A typical LNA may supply a power gain of 100 (20&nbsp;[[decibels]] (dB)) while decreasing the SNR by less than a factor of two (a 3&nbsp;dB [[noise figure]] (NF)). Although LNAs are primarily concerned with weak signals that are just above the [[noise floor]], they must also consider the presence of larger signals that cause [[intermodulation distortion]].","* Consistent with Expected Output:
@@ -178,7 +178,7 @@ LNAs are found in [[Radio|radio communications]] systems, [[Amateur Radio]] stat
   * Expression differences.
   * Numerical differences.
   * Additional content in Actual Output.
-  * Missing minor content in Actual Output."
+  * Missing minor content in Actual Output.",""
 What is the meaning of life?,"[
   {""persona"": ""Philosopher"", ""prompt"": ""Explore the concept of life's meaning through the lens of existentialism and purpose-driven existence.""},
   {""persona"": ""Scientist"", ""prompt"": ""Examine the biological and evolutionary perspectives on the function and significance of life.""},
@@ -193,7 +193,7 @@ What is the meaning of life?,"[
   * Extra or missing spaces
   * Extra or missing line breaks at the beginning or end of the output
 * Unacceptable:
-  * Showing the personas in Expected Output in System Message"
+  * Showing the personas in Expected Output in System Message",""
 "<?php
 $username = $_POST['username'];
 $password = $_POST['password'];
@@ -233,4 +233,5 @@ if (mysqli_num_rows($result) > 0) {
   * Differences in field values
   * Extra or missing spaces
   * Extra or missing line breaks at the beginning or end of the output
-  * YAML wrapped in backquotes"
+  * YAML wrapped in backquotes",""
+“老爸，老爸，我们去哪里呀？”,《爸爸去哪儿》,Exactly text match.,"查询歌词出处。"

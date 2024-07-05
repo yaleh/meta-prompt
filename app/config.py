@@ -16,3 +16,4 @@ class MetaPromptConfig(BaseConfig):
     server_port: Optional[int] = None
     recursion_limit: Optional[int] = 25
     recursion_limit_max: Optional[int] = 50
+    allow_flagging: Optional[bool] = False
