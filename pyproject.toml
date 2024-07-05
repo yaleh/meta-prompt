@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "meta-prompt"
+version = "0.1.0"
+description = "This package generates high quality prompts with input and expected output examples."
+authors = ["Yale Huang <calvino.huang@gmail.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+langgraph = "^0.1.5"
+langchain = "^0.2.6"
+langchain-openai = "^0.1.14"
+pydantic = "^2.8.2"
+
+[tool.poetry.dev-dependencies]
+gradio = "^4.37.2"
+confz = "^2.0.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -79,9 +79,9 @@ class TestMetaPromptGraph(unittest.TestCase):
         assert updated_state.accepted == True
 
     def test_workflow_execution(self):
-        MODEL_NAME = "anthropic/claude-3.5-sonnet:haiku"
+        # MODEL_NAME = "anthropic/claude-3.5-sonnet:beta"
         # MODEL_NAME = "meta-llama/llama-3-70b-instruct"
-        # MODEL_NAME = "deepseek/deepseek-chat"
+        MODEL_NAME = "deepseek/deepseek-chat"
         # MODEL_NAME = "google/gemma-2-9b-it"
         # MODEL_NAME = "recursal/eagle-7b"
         # MODEL_NAME = "meta-llama/llama-3-8b-instruct"
@@ -116,7 +116,7 @@ class TestMetaPromptGraph(unittest.TestCase):
         print(result.content)
 
     def test_workflow_execution_with_llms(self):
-        optimizer_llm = ChatOpenAI(model_name="anthropic/claude-3.5-sonnet:haiku", temperature=0.5)
+        optimizer_llm = ChatOpenAI(model_name="deepseek/deepseek-chat", temperature=0.5)
         executor_llm = ChatOpenAI(model_name="meta-llama/llama-3-8b-instruct", temperature=0.01)
 
         llms = {

@@ -12,5 +12,7 @@ class LLMConfig(BaseModel):
 class MetaPromptConfig(BaseConfig):
     llms: Optional[dict[str, LLMConfig]]
     examples_path: Optional[str]
-    server_name: Optional[str] = '127.0.0.1'
-    server_port: Optional[int] = 7878
+    server_name: Optional[str] = None
+    server_port: Optional[int] = None
+    recursion_limit: Optional[int] = 25
+    recursion_limit_max: Optional[int] = 50

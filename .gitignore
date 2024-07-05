@@ -3,3 +3,5 @@
 __pycache__
 .env
 config.yml.debug
+debug.yml
+dist

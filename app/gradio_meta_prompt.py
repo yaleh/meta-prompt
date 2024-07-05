@@ -2,7 +2,7 @@ import gradio as gr
 from confz import BaseConfig, CLArgSource, EnvSource, FileSource
 from meta_prompt import MetaPromptGraph, AgentState
 from langchain_openai import ChatOpenAI
-from config import MetaPromptConfig
+from app.config import MetaPromptConfig
 
 class LLMModelFactory:
     def __init__(self):
@@ -85,8 +85,8 @@ iface = gr.Interface(
     ],
     additional_inputs=[
         gr.Textbox(label="Initial System Message", show_copy_button=True, value=""),
-        gr.Number(label="Recursion Limit", value=25,
-                  precision=0, minimum=1, maximum=100, step=1),
+        gr.Number(label="Recursion Limit", value=config.recursion_limit,
+                  precision=0, minimum=1, maximum=config.recursion_limit_max, step=1),
         gr.Dropdown(
             label="Model Name",
             choices=config.llms.keys(),
