@@ -33,7 +33,7 @@ llms:
   #   verbose: true
 
 examples_path: "app/examples"
-# server_name: 0.0.0.0
+server_name: 0.0.0.0
 # server_port: 7860
 recursion_limit: 16
 recursion_limit_max: 20
