@@ -235,4 +235,3 @@ if (mysqli_num_rows($result) > 0) {
   * Extra or missing line breaks at the beginning or end of the output
   * YAML wrapped in backquotes",""
 “老爸，老爸，我们去哪里呀？”,《爸爸去哪儿》,Exactly text match.,"查询歌词出处。"
-How do I reverse a list in Python?,Use the `[::-1]` slicing technique or the `list.reverse()` method.,"Similar in meaning, text length and style.",
