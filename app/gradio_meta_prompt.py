@@ -230,9 +230,6 @@ with gr.Blocks() as demo:
                                     outputs=[system_message_output, output_output, analysis_output])
     multiple_clear_button.click(clear_inputs,
                                 outputs=[user_message_input, expected_output_input, acceptance_criteria_input, initial_system_message_input])
-    # flag_button.click(flagging_callback.flag,
-    #                   inputs=[user_message_input, expected_output_input, acceptance_criteria_input, initial_system_message_input],
-    #                   outputs=[])
 
     # Load examples
     examples = config.examples_path
