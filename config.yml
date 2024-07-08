@@ -7,6 +7,27 @@ llms:
     openai_api_base: "https://api.groq.com/openai/v1"
     max_tokens: 8192
     verbose: true
+  groq/llama3-8b-8192:
+    type: ChatOpenAI
+    temperature: 0.1
+    model_name: "llama3-8b-8192"
+    openai_api_base: "https://api.groq.com/openai/v1"
+    max_tokens: 8192
+    verbose: true
+  groq/gemma2-9b-it:
+    type: ChatOpenAI
+    temperature: 0.1
+    model_name: "gemma2-9b-it"
+    openai_api_base: "https://api.groq.com/openai/v1"
+    max_tokens: 8192
+    verbose: true
+  groq/mixtral-8x7b-32768:
+    type: ChatOpenAI
+    temperature: 0.1
+    model_name: "mixtral-8x7b-32768"
+    openai_api_base: "https://api.groq.com/openai/v1"
+    max_tokens: 8192
+    verbose: true  
   # anthropic/claude-3-haiku:
   #   type: ChatOpenAI
   #   temperature: 0.1

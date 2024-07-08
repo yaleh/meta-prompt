@@ -1,13 +1,15 @@
 import csv
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, Union
 import gradio as gr
-from gradio import CSVLogger, utils
+from gradio import CSVLogger, utils, Button
+from gradio.flagging import FlagMethod
 from gradio_client import utils as client_utils
 from confz import BaseConfig, CLArgSource, EnvSource, FileSource
 from meta_prompt import MetaPromptGraph, AgentState
 from langchain_openai import ChatOpenAI
 from app.config import MetaPromptConfig
+from langchain_core.language_models import BaseLanguageModel
 
 class SimplifiedCSVLogger(CSVLogger):
     """
@@ -69,7 +71,7 @@ class LLMModelFactory:
 llm_model_factory = LLMModelFactory()
 
 def process_message(user_message, expected_output, acceptance_criteria, initial_system_message,
-                    recursion_limit: int, model_name: str):
+                    recursion_limit: int, llms: Union[BaseLanguageModel, Dict[str, BaseLanguageModel]]):
     # Create the input state
     input_state = AgentState(
         user_message=user_message,
@@ -79,10 +81,7 @@ def process_message(user_message, expected_output, acceptance_criteria, initial_
     )
     
     # Get the output state from MetaPromptGraph
-    type = config.llms[model_name].type
-    args = config.llms[model_name].model_dump(exclude={'type'})
-    llm = llm_model_factory.create(type, **args)
-    meta_prompt_graph = MetaPromptGraph(llms=llm)
+    meta_prompt_graph = MetaPromptGraph(llms=llms)
     output_state = meta_prompt_graph(input_state, recursion_limit=recursion_limit)
     
     # Validate the output state
@@ -107,6 +106,36 @@ def process_message(user_message, expected_output, acceptance_criteria, initial_
 
     return system_message, output, analysis
 
+
+def process_message_with_single_llm(user_message, expected_output, acceptance_criteria, initial_system_message,
+                                    recursion_limit: int, model_name: str):
+    # Get the output state from MetaPromptGraph
+    type = config.llms[model_name].type
+    args = config.llms[model_name].model_dump(exclude={'type'})
+    llm = llm_model_factory.create(type, **args)
+
+    return process_message(user_message, expected_output, acceptance_criteria, initial_system_message,
+                           recursion_limit, llm)
+
+def process_message_with_2_llms(user_message, expected_output, acceptance_criteria, initial_system_message,
+                                       recursion_limit: int, optimizer_model_name: str, executor_model_name: str,):
+    # Get the output state from MetaPromptGraph
+    optimizer_model = llm_model_factory.create(config.llms[optimizer_model_name].type,
+                                               **config.llms[optimizer_model_name].model_dump(exclude={'type'}))
+    executor_model = llm_model_factory.create(config.llms[executor_model_name].type,
+                                              **config.llms[executor_model_name].model_dump(exclude={'type'}))
+    llms = {
+        MetaPromptGraph.NODE_PROMPT_INITIAL_DEVELOPER: optimizer_model,
+        MetaPromptGraph.NODE_PROMPT_DEVELOPER: optimizer_model,
+        MetaPromptGraph.NODE_PROMPT_EXECUTOR: executor_model,
+        MetaPromptGraph.NODE_OUTPUT_HISTORY_ANALYZER: optimizer_model,
+        MetaPromptGraph.NODE_PROMPT_ANALYZER: optimizer_model,
+        MetaPromptGraph.NODE_PROMPT_SUGGESTER: optimizer_model
+    }
+
+    return process_message(user_message, expected_output, acceptance_criteria, initial_system_message,
+                           recursion_limit, llms)
+
 class FileConfig(BaseConfig):
     config_file: str = 'config.yml'  # default path
 
@@ -122,54 +151,117 @@ config_sources = [
     CLArgSource()
 ]
 
+# Add event handlers
+def handle_submit(user_message, expected_output, acceptance_criteria, initial_system_message, recursion_limit, model_name):
+    return process_message(user_message, expected_output, acceptance_criteria, initial_system_message, recursion_limit, model_name)
+
+# Define clear function
+def clear_inputs():
+    return "", "", "", "", "", ""
+
 config = MetaPromptConfig(config_sources=config_sources)
-
-# Create the Gradio interface
-user_message_input = gr.Textbox(label="User Message", show_copy_button=True)
-expected_output_input = gr.Textbox(label="Expected Output", show_copy_button=True)
-acceptance_criteria_input = gr.Textbox(label="Acceptance Criteria", show_copy_button=True)
-
-system_message_output = gr.Textbox(label="System Message", show_copy_button=True)
-output_output = gr.Textbox(label="Output", show_copy_button=True)
-analysis_output = gr.Textbox(label="Analysis", show_copy_button=True)
-
-initial_system_message_input = gr.Textbox(label="Initial System Message", show_copy_button=True, value="")
-recursion_limit_input = gr.Number(label="Recursion Limit", value=config.recursion_limit,
-                                  precision=0, minimum=1, maximum=config.recursion_limit_max, step=1)
-model_name_input = gr.Dropdown(
-    label="Model Name",
-    choices=config.llms.keys(),
-    value=list(config.llms.keys())[0],
-)
 
 flagging_callback = SimplifiedCSVLogger()
 
-iface = gr.Interface(
-    fn=process_message,
-    inputs=[
-        user_message_input,
-        expected_output_input,
-        acceptance_criteria_input,
-    ],
-    outputs=[
-        system_message_output,
-        output_output,
-        analysis_output
-    ],
-    additional_inputs=[
-        initial_system_message_input,
-        recursion_limit_input,
-        model_name_input
-    ],
-    title="MetaPromptGraph Chat Interface",
-    description="A chat interface for MetaPromptGraph to process user inputs and generate system messages.",
-    examples=config.examples_path,
-    allow_flagging=config.allow_flagging,
-    flagging_dir=config.examples_path,
-    flagging_options=["Example"],
-    flagging_callback=flagging_callback
-)
-flagging_callback.setup([user_message_input, expected_output_input, acceptance_criteria_input, initial_system_message_input],config.examples_path)
+# Create a Gradio Blocks context
+with gr.Blocks() as demo:
+    # Define the layout
+    with gr.Row():
+        gr.Markdown(f"""<h1 style='text-align: left; margin-bottom: 1rem'>Meta Prompt</h1>
+<p style="text-align:left">A tool for generating and analyzing natural language prompts using multiple language models.</p>
+<a href="https://github.com/yaleh/meta-prompt"><img src="https://img.shields.io/badge/GitHub-blue?logo=github" alt="GitHub"></a>""")
+    with gr.Row():
+        with gr.Column():
+            user_message_input = gr.Textbox(
+                label="User Message", show_copy_button=True)
+            expected_output_input = gr.Textbox(
+                label="Expected Output", show_copy_button=True)
+            acceptance_criteria_input = gr.Textbox(
+                label="Acceptance Criteria", show_copy_button=True)
+            initial_system_message_input = gr.Textbox(
+                label="Initial System Message", show_copy_button=True, value="")
+            recursion_limit_input = gr.Number(label="Recursion Limit", value=config.recursion_limit,
+                                              precision=0, minimum=1, maximum=config.recursion_limit_max, step=1)
+
+            with gr.Row():
+                with gr.Tab('Simple'):
+                    model_name_input = gr.Dropdown(
+                        label="Model Name",
+                        choices=config.llms.keys(),
+                        value=list(config.llms.keys())[0],
+                    )
+                    # Connect the inputs and outputs to the function
+                    with gr.Row():
+                        submit_button = gr.Button(value="Submit", variant="primary")
+                        clear_button = gr.Button(value="Clear", variant="secondary")
+                with gr.Tab('Advanced'):
+                    optimizer_model_name_input = gr.Dropdown(
+                        label="Optimizer Model Name",
+                        choices=config.llms.keys(),
+                        value=list(config.llms.keys())[0],
+                    )
+                    executor_model_name_input = gr.Dropdown(
+                        label="Executor Model Name",
+                        choices=config.llms.keys(),
+                        value=list(config.llms.keys())[0],
+                    )
+                    # Connect the inputs and outputs to the function
+                    with gr.Row():
+                        multiple_submit_button = gr.Button(value="Submit", variant="primary")
+                        multiple_clear_button = gr.Button(value="Clear", variant="secondary")
+        with gr.Column():
+            system_message_output = gr.Textbox(
+                label="System Message", show_copy_button=True)
+            output_output = gr.Textbox(label="Output", show_copy_button=True)
+            analysis_output = gr.Textbox(
+                label="Analysis", show_copy_button=True)
+            flag_button = gr.Button(value="Flag", variant="secondary")
+
+    submit_button.click(process_message_with_single_llm,
+                        inputs=[user_message_input, expected_output_input, acceptance_criteria_input,
+                                initial_system_message_input, recursion_limit_input, model_name_input],
+                        outputs=[system_message_output, output_output, analysis_output])
+    clear_button.click(clear_inputs,
+                        outputs=[user_message_input, expected_output_input, acceptance_criteria_input, initial_system_message_input])
+    multiple_submit_button.click(process_message_with_2_llms,
+                                    inputs=[user_message_input, expected_output_input, acceptance_criteria_input,
+                                            initial_system_message_input, recursion_limit_input,
+                                            optimizer_model_name_input, executor_model_name_input],
+                                    outputs=[system_message_output, output_output, analysis_output])
+    multiple_clear_button.click(clear_inputs,
+                                outputs=[user_message_input, expected_output_input, acceptance_criteria_input, initial_system_message_input])
+    flag_button.click(flagging_callback.flag,
+                      inputs=[user_message_input, expected_output_input, acceptance_criteria_input, initial_system_message_input],
+                      outputs=[])
+
+    # Load examples
+    examples = config.examples_path
+    gr.Examples(examples, inputs=[user_message_input, expected_output_input, acceptance_criteria_input, initial_system_message_input, recursion_limit_input, model_name_input])
+
+    flagging_inputs = [user_message_input, expected_output_input, acceptance_criteria_input, initial_system_message_input]
+
+    # Configure flagging
+    if config.allow_flagging:
+        flag_method = FlagMethod(flagging_callback, "Flag", "")
+        flag_button.click(
+            utils.async_lambda(
+                lambda: Button(value="Saving...", interactive=False)
+            ),
+            None,
+            flag_button,
+            queue=False,
+            show_api=False,
+        )
+        flag_button.click(
+            flag_method,
+            inputs=flagging_inputs,
+            outputs=flag_button,
+            preprocess=False,
+            queue=False,
+            show_api=False,
+        )
+
+flagging_callback.setup(flagging_inputs, config.examples_path)
 
 # Launch the Gradio app
-iface.launch(server_name=config.server_name, server_port=config.server_port)
+demo.launch(server_name=config.server_name, server_port=config.server_port)
