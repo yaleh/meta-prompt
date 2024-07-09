@@ -59,4 +59,4 @@ server_name: 0.0.0.0
 recursion_limit: 16
 recursion_limit_max: 20
 allow_flagging: false
-verbose: false
+# verbose: false
