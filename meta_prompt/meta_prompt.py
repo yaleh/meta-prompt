@@ -77,11 +77,14 @@ Output and match Expected Output more closely.
 3. Modify only the content mentioned in the Suggestion. Do not change the
    parts that are not related to the Suggestion.
 4. Output only the updated system message, without any additional content.
-5. Expected Output text should not appear in System Message as an example. But
+5. Avoiding the behavior should be explicitly requested (e.g. `Don't ...`) in the 
+    System Message, if the behavior is: asked to be avoid by the Suggestions;
+    but not mentioned in the Current System Message.
+6. Expected Output text should not appear in System Message as an example. But
    it's OK to use some similar text as an example instead.
    * Remove the Expected Output text or text highly similar to Expected Output
      from System Message, if it's present.
-6. Format the system message well, with no more than 80 characters per line
+7. Format the system message well, with no more than 80 characters per line
    (except for raw text).
 
 ## Output
@@ -112,12 +115,13 @@ Provide only the updated System Message, adhering to the above guidelines.
         NODE_OUTPUT_HISTORY_ANALYZER: ChatPromptTemplate.from_messages([
             ("system", """You are a text comparing program. You read the Acceptance Criteria, compare the
 compare the exptected output with two different outputs, and decide which one is
-more similar to the expected output.
+more consistent with the expected output. When comparing the outputs, ignore the
+differences which are acceptable or ignorable according to the Acceptance Criteria.
 
 You output the following analysis according to the Acceptance Criteria:
 
 * Your analysis in a Markdown list.
-* The ID of the output that is more similar to the Expected Output as Preferred
+* The ID of the output that is more consistent with the Expected Output as Preferred
     Output ID, with the following format:
     
 ```
@@ -210,50 +214,52 @@ Provide your analysis in the following format:
         NODE_PROMPT_SUGGESTER: ChatPromptTemplate.from_messages([
             ("system", """
 Read the following inputs and outputs of an LLM prompt, and also analysis about them.
-Then suggest how to improve System Prompt.
+Then suggest how to improve System Message.
 
-System Prompt:
-```
-{system_message}
-```
-User Message:
-```
-{user_message}
-```
-Expected Output: 
-```
-{expected_output}
-```
-Actual Output: 
-```
-{output}
-```
-
-Acceptance Criteria:
-```
-{acceptance_criteria}
-```
-
-Analysis:
-```
-{analysis}
-```
-
-* The goal is to improve the System Prompt to match the Expected Output better.
+* The goal is to improve the System Message to match the Expected Output better.
 * Ignore all Acceptable Differences and focus on Unacceptable Differences.
 * Suggest formal changes first, then semantic changes.
 * Provide your suggestions in a Markdown list, nothing else. Output only the
     suggestions related with Unacceptable Differences.
-    * Use `... should ...` to clearly state the desired output.
+    * Start every suggestion with `The System Message should ...`.
     * Figue out the contexts of the System Message that conflict with the suggestions,
     and suggest modification or deletion.
+    * Avoiding the behavior should be explicitly requested (e.g. `The System Message 
+    should explicitly state that the output shoud not ...`) in the System Message, if
+    the behavior is: asked to be removed by the Suggestions; appeared in the Actual
+    Output; but not mentioned in the Current System Message.
 * Expected Output text should not appear in System Message as an example. But
-    it's OK to use some similar text as an example instead.
+    it's OK to use some similar but distinct text as an example instead.
     * Ask to remove the Expected Output text or text highly similar to Expected Output
     from System Message, if it's present.
 * Provide format examples or detected format name, if System Message does not.
     * Specify the detected format name (e.g. XML, JSON, etc.) of Expected Output, if
     System Message does not mention it.
+"""),
+            ("human", """
+<|Start_System_Message|>
+{system_message}
+<|End_System_Message|>
+
+<|Start_User_Message|>
+{user_message}
+<|End_User_Message|>
+
+<|Start_Expected_Output|>
+{expected_output}
+<|End_Expected_Output|>
+
+<|Start_Actual_Output|>
+{output}
+<|End_Actual_Output|>
+
+<|Start_Acceptance Criteria|>
+{acceptance_criteria}
+<|End_Acceptance Criteria|>
+
+<|Start_Analysis|>
+{analysis}
+<|End_Analysis|>
 """)
         ])
     }
@@ -272,12 +278,14 @@ Analysis:
     def __init__(self,
                  llms: Union[BaseLanguageModel, Dict[str, BaseLanguageModel]] = {},
                  prompts: Dict[str, ChatPromptTemplate] = {},
+                 logger: Optional[logging.Logger] = None,
                  verbose = False):
-        self.logger = logging.getLogger(__name__)
-        if verbose:
-            self.logger.setLevel(logging.DEBUG)
-        else:
-            self.logger.setLevel(logging.INFO)
+        self.logger = logger or logging.getLogger(__name__)
+        if self.logger is not None:
+            if verbose:
+                self.logger.setLevel(logging.DEBUG)
+            else:
+                self.logger.setLevel(logging.INFO)
 
         if isinstance(llms, BaseLanguageModel):
             self.llms: Dict[str, BaseLanguageModel] = {node: llms for node in self.get_node_names()}
@@ -374,32 +382,36 @@ Analysis:
         return state
 
     def _prompt_node(self, node, target_attribute: str, state: AgentState) -> AgentState:
+        logger = self.logger.getChild(node)
         prompt = self.prompt_templates[node].format_messages(**state.model_dump())
 
-        self.logger.debug("Invoking %s with prompt: %s", node, pprint.pformat(prompt))
+        for message in prompt:
+            logger.debug({'node': node, 'action': 'invoke', 'type': message.type, 'message': message.content})
         response = self.llms[node].invoke(self.prompt_templates[node].format_messages(**state.model_dump()))
-        self.logger.debug("Response: %s", response.content)
+        logger.debug({'node': node, 'action': 'response', 'type': response.type, 'message': response.content})
         
         setattr(state, target_attribute, response.content)
         return state
 
     def _output_history_analyzer(self, state: AgentState) -> AgentState:
+        logger = self.logger.getChild(self.NODE_OUTPUT_HISTORY_ANALYZER)
+
         if state.best_output is None:
             state.best_output = state.output
             state.best_system_message = state.system_message
             state.best_output_age = 0
 
-            self.logger.debug("Best output initialized to the current output: \n %s", state.output)
+            logger.debug("Best output initialized to the current output: \n %s", state.output)
 
             return state
 
         prompt = self.prompt_templates[self.NODE_OUTPUT_HISTORY_ANALYZER].format_messages(**state.model_dump())
 
-        self.logger.debug("Invoking %s with prompt: %s",
-                          self.NODE_OUTPUT_HISTORY_ANALYZER, 
-                          pprint.pformat(prompt))
+        for message in prompt:
+            logger.debug({'node': self.NODE_OUTPUT_HISTORY_ANALYZER, 'action': 'invoke', 'type': message.type, 'message': message.content})
+
         response = self.llms[self.NODE_OUTPUT_HISTORY_ANALYZER].invoke(prompt)
-        self.logger.debug("Response: %s", response.content)
+        logger.debug({'node': self.NODE_OUTPUT_HISTORY_ANALYZER, 'action': 'response', 'type': response.type, 'message': response.content})
 
         analysis = response.content
 
@@ -408,35 +420,44 @@ Analysis:
             state.best_system_message = state.system_message
             state.best_output_age = 0
 
-            self.logger.debug("Best output updated to the current output: \n %s", state.output)
+            logger.debug("Best output updated to the current output: \n %s", state.output)
         else:
             state.best_output_age += 1
 
-            self.logger.debug("Best output age incremented to %s", state.best_output_age)
+            logger.debug("Best output age incremented to %s", state.best_output_age)
 
         return state
 
     def _prompt_analyzer(self, state: AgentState) -> AgentState:
+        logger = self.logger.getChild(self.NODE_PROMPT_ANALYZER)
         prompt = self.prompt_templates[self.NODE_PROMPT_ANALYZER].format_messages(**state.model_dump())
 
-        self.logger.debug("Invoking %s with prompt: %s",
-                          self.NODE_PROMPT_ANALYZER,
-                          pprint.pformat(prompt))
+        for message in prompt:
+            logger.debug({'node': self.NODE_PROMPT_ANALYZER, 'action': 'invoke', 'type': message.type, 'message': message.content})
+
         response = self.llms[self.NODE_PROMPT_ANALYZER].invoke(prompt)
-        self.logger.debug("Response: %s", response.content)
+        logger.debug({'node': self.NODE_PROMPT_ANALYZER, 'action': 'response', 'type': response.type, 'message': response.content})
 
         state.analysis = response.content
         state.accepted = "Accept: Yes" in response.content
 
-        self.logger.debug("Accepted: %s", state.accepted)
+        logger.debug("Accepted: %s", state.accepted)
 
         return state
 
     def _should_exit_on_max_age(self, state: AgentState) -> str:
-        if state.max_output_age <= 0 or state.best_output_age < state.max_output_age:
+        if state.max_output_age <=0:
+            # always continue if max age is 0
             return "continue"
-        else:
-            return "rerun"
+        
+        if state.best_output_age >= state.max_output_age:
+            return END
+        
+        if state.best_output_age > 0:
+            # skip prompt_analyzer and prompt_suggester, goto prompt_developer
+            return "rerun" 
+        
+        return "continue"
 
     def _should_exit_on_acceptable_output(self, state: AgentState) -> str:
         return "continue" if not state.accepted else END

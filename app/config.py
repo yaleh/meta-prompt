@@ -17,3 +17,6 @@ class MetaPromptConfig(BaseConfig):
     recursion_limit: Optional[int] = 25
     recursion_limit_max: Optional[int] = 50
     allow_flagging: Optional[bool] = False
+    verbose: Optional[bool] = False
+    max_output_age: Optional[int] = 3
+    max_output_age_max: Optional[int] = 8

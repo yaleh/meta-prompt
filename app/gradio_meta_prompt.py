@@ -1,15 +1,20 @@
 import csv
+import io
+import json
+import logging
 from pathlib import Path
+import pprint
 from typing import Any, Dict, Union
 import gradio as gr
-from gradio import CSVLogger, utils, Button
+from gradio import CSVLogger, Button, utils
 from gradio.flagging import FlagMethod
 from gradio_client import utils as client_utils
 from confz import BaseConfig, CLArgSource, EnvSource, FileSource
-from meta_prompt import MetaPromptGraph, AgentState
-from langchain_openai import ChatOpenAI
 from app.config import MetaPromptConfig
 from langchain_core.language_models import BaseLanguageModel
+from langchain_openai import ChatOpenAI
+from meta_prompt import MetaPromptGraph, AgentState
+from pythonjsonlogger import jsonlogger
 
 class SimplifiedCSVLogger(CSVLogger):
     """
@@ -70,19 +75,56 @@ class LLMModelFactory:
     
 llm_model_factory = LLMModelFactory()
 
+def chat_log_2_chatbot_list(chat_log: str):
+    chatbot_list = []
+    if chat_log is None or chat_log == '':
+        return chatbot_list
+    for line in chat_log.splitlines():
+        try:
+            json_line = json.loads(line)
+            if 'action' in json_line:
+                if json_line['action'] == 'invoke':
+                    chatbot_list.append([json_line['message'],None])
+                if json_line['action'] == 'response':
+                    chatbot_list.append([None,json_line['message']])
+        except json.decoder.JSONDecodeError as e:
+            print(f"Error decoding JSON log output: {e}")
+            print(line)
+        except KeyError as e:
+            print(f"Error accessing key in JSON log output: {e}")
+            print(line)
+    return chatbot_list
+
 def process_message(user_message, expected_output, acceptance_criteria, initial_system_message,
-                    recursion_limit: int, llms: Union[BaseLanguageModel, Dict[str, BaseLanguageModel]]):
+                    recursion_limit: int, max_output_age: int,
+                    llms: Union[BaseLanguageModel, Dict[str, BaseLanguageModel]]):
     # Create the input state
     input_state = AgentState(
         user_message=user_message,
         expected_output=expected_output,
         acceptance_criteria=acceptance_criteria,
-        system_message=initial_system_message
+        system_message=initial_system_message,
+        max_output_age=max_output_age
     )
     
     # Get the output state from MetaPromptGraph
-    meta_prompt_graph = MetaPromptGraph(llms=llms)
+    log_stream = io.StringIO()
+    log_handler = None
+    logger = None
+    if config.verbose:
+        log_handler = logging.StreamHandler(log_stream)
+        logger = logging.getLogger(MetaPromptGraph.__name__)
+        log_handler.setFormatter(jsonlogger.JsonFormatter('%(asctime)s %(name)s %(levelname)s %(message)s'))
+        logger.addHandler(log_handler)
+
+    meta_prompt_graph = MetaPromptGraph(llms=llms, verbose=config.verbose, logger=logger)
     output_state = meta_prompt_graph(input_state, recursion_limit=recursion_limit)
+
+    if config.verbose:
+        log_handler.close()
+        log_output = log_stream.getvalue()
+    else:
+        log_output = None
     
     # Validate the output state
     system_message = ''
@@ -104,21 +146,23 @@ def process_message(user_message, expected_output, acceptance_criteria, initial_
     else:
         analysis = "Error: The output state does not contain a valid 'analysis'"
 
-    return system_message, output, analysis
+    return system_message, output, analysis, chat_log_2_chatbot_list(log_output)
 
 
 def process_message_with_single_llm(user_message, expected_output, acceptance_criteria, initial_system_message,
-                                    recursion_limit: int, model_name: str):
+                                    recursion_limit: int, max_output_age: int,
+                                    model_name: str):
     # Get the output state from MetaPromptGraph
     type = config.llms[model_name].type
     args = config.llms[model_name].model_dump(exclude={'type'})
     llm = llm_model_factory.create(type, **args)
 
     return process_message(user_message, expected_output, acceptance_criteria, initial_system_message,
-                           recursion_limit, llm)
+                           recursion_limit, max_output_age, llm)
 
 def process_message_with_2_llms(user_message, expected_output, acceptance_criteria, initial_system_message,
-                                       recursion_limit: int, optimizer_model_name: str, executor_model_name: str,):
+                                       recursion_limit: int, max_output_age: int,
+                                       optimizer_model_name: str, executor_model_name: str,):
     # Get the output state from MetaPromptGraph
     optimizer_model = llm_model_factory.create(config.llms[optimizer_model_name].type,
                                                **config.llms[optimizer_model_name].model_dump(exclude={'type'}))
@@ -134,7 +178,7 @@ def process_message_with_2_llms(user_message, expected_output, acceptance_criter
     }
 
     return process_message(user_message, expected_output, acceptance_criteria, initial_system_message,
-                           recursion_limit, llms)
+                           recursion_limit, max_output_age, llms)
 
 class FileConfig(BaseConfig):
     config_file: str = 'config.yml'  # default path
@@ -151,20 +195,12 @@ config_sources = [
     CLArgSource()
 ]
 
-# Add event handlers
-def handle_submit(user_message, expected_output, acceptance_criteria, initial_system_message, recursion_limit, model_name):
-    return process_message(user_message, expected_output, acceptance_criteria, initial_system_message, recursion_limit, model_name)
-
-# Define clear function
-def clear_inputs():
-    return "", "", "", "", "", ""
-
 config = MetaPromptConfig(config_sources=config_sources)
 
 flagging_callback = SimplifiedCSVLogger()
 
 # Create a Gradio Blocks context
-with gr.Blocks() as demo:
+with gr.Blocks(title='Meta Prompt') as demo:
     # Define the layout
     with gr.Row():
         gr.Markdown(f"""<h1 style='text-align: left; margin-bottom: 1rem'>Meta Prompt</h1>
@@ -182,7 +218,8 @@ with gr.Blocks() as demo:
                 label="Initial System Message", show_copy_button=True, value="")
             recursion_limit_input = gr.Number(label="Recursion Limit", value=config.recursion_limit,
                                               precision=0, minimum=1, maximum=config.recursion_limit_max, step=1)
-
+            max_output_age = gr.Number(label="Max Output Age", value=config.max_output_age,
+                                       precision=0, minimum=1, maximum=config.max_output_age_max, step=1)
             with gr.Row():
                 with gr.Tab('Simple'):
                     model_name_input = gr.Dropdown(
@@ -193,7 +230,10 @@ with gr.Blocks() as demo:
                     # Connect the inputs and outputs to the function
                     with gr.Row():
                         submit_button = gr.Button(value="Submit", variant="primary")
-                        clear_button = gr.Button(value="Clear", variant="secondary")
+                        clear_button = gr.ClearButton(
+                            [user_message_input, expected_output_input,
+                             acceptance_criteria_input, initial_system_message_input],
+                            value='Clear All')
                 with gr.Tab('Advanced'):
                     optimizer_model_name_input = gr.Dropdown(
                         label="Optimizer Model Name",
@@ -208,7 +248,11 @@ with gr.Blocks() as demo:
                     # Connect the inputs and outputs to the function
                     with gr.Row():
                         multiple_submit_button = gr.Button(value="Submit", variant="primary")
-                        multiple_clear_button = gr.Button(value="Clear", variant="secondary")
+                        multiple_clear_button = gr.ClearButton(components=[user_message_input,
+                                                                           expected_output_input,
+                                                                           acceptance_criteria_input,
+                                                                           initial_system_message_input],
+                                                               value='Clear All')
         with gr.Column():
             system_message_output = gr.Textbox(
                 label="System Message", show_copy_button=True)
@@ -216,20 +260,26 @@ with gr.Blocks() as demo:
             analysis_output = gr.Textbox(
                 label="Analysis", show_copy_button=True)
             flag_button = gr.Button(value="Flag", variant="secondary", visible=config.allow_flagging)
+            with gr.Accordion("Details", open=False, visible=config.verbose):
+                logs_chatbot = gr.Chatbot(label='Messages', show_copy_button=True, layout='bubble',
+                                          bubble_full_width=False, render_markdown=False)
+                clear_logs_button = gr.ClearButton([logs_chatbot], value='Clear Logs')
+
+        clear_button.add([system_message_output, output_output,
+                         analysis_output, logs_chatbot])
+        multiple_clear_button.add([system_message_output, output_output,
+                                    analysis_output, logs_chatbot])
 
     submit_button.click(process_message_with_single_llm,
                         inputs=[user_message_input, expected_output_input, acceptance_criteria_input,
-                                initial_system_message_input, recursion_limit_input, model_name_input],
-                        outputs=[system_message_output, output_output, analysis_output])
-    clear_button.click(clear_inputs,
-                        outputs=[user_message_input, expected_output_input, acceptance_criteria_input, initial_system_message_input])
+                                initial_system_message_input, recursion_limit_input, max_output_age,
+                                model_name_input],
+                        outputs=[system_message_output, output_output, analysis_output, logs_chatbot])
     multiple_submit_button.click(process_message_with_2_llms,
                                     inputs=[user_message_input, expected_output_input, acceptance_criteria_input,
-                                            initial_system_message_input, recursion_limit_input,
+                                            initial_system_message_input, recursion_limit_input, max_output_age,
                                             optimizer_model_name_input, executor_model_name_input],
-                                    outputs=[system_message_output, output_output, analysis_output])
-    multiple_clear_button.click(clear_inputs,
-                                outputs=[user_message_input, expected_output_input, acceptance_criteria_input, initial_system_message_input])
+                                    outputs=[system_message_output, output_output, analysis_output, logs_chatbot])
 
     # Load examples
     examples = config.examples_path

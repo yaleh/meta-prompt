@@ -27,7 +27,7 @@ llms:
     model_name: "mixtral-8x7b-32768"
     openai_api_base: "https://api.groq.com/openai/v1"
     max_tokens: 8192
-    verbose: true  
+    verbose: true
   # anthropic/claude-3-haiku:
   #   type: ChatOpenAI
   #   temperature: 0.1
@@ -58,4 +58,5 @@ server_name: 0.0.0.0
 # server_port: 7860
 recursion_limit: 16
 recursion_limit_max: 20
-allow_flask_cors: false
+allow_flagging: false
+verbose: false

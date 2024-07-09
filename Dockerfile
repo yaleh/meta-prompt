@@ -6,11 +6,13 @@ WORKDIR /app
 
 # Copy all files from the current directory to the working directory in the container
 COPY config.yml poetry.lock pyproject.toml /app/
-COPY app /app/app/
-COPY meta_prompt /app/meta_prompt/
 
 RUN pip install --no-cache-dir -U poetry
 RUN poetry config virtualenvs.create false
+RUN poetry install --with=dev
+
+COPY meta_prompt /app/meta_prompt/
+COPY app /app/app/
 RUN poetry install --with=dev
 
 # Expose the port (if necessary)
