@@ -19,6 +19,7 @@ confz = "^2.0.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2.2"
+datasets = "^2.20.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

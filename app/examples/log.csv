@@ -4,7 +4,7 @@ How do I reverse a list in Python?,Use the `[::-1]` slicing technique or the `li
 = 10*3
 = 30
 ","
-* Exactly text match.
+* Exact text match.
 * Acceptable differences:
   * Extra or missing spaces.
   * Extra or missing line breaks at the beginning or end of the output.
@@ -234,4 +234,61 @@ if (mysqli_num_rows($result) > 0) {
   * Extra or missing spaces
   * Extra or missing line breaks at the beginning or end of the output
   * YAML wrapped in backquotes",""
-“老爸，老爸，我们去哪里呀？”,《爸爸去哪儿》,Exactly text match.,"查询歌词出处。"
+“老爸，老爸，我们去哪里呀？”,《爸爸去哪儿》,Exact text match.,"查询歌词出处。"
+"Add a transition sentence at the end of this passage, but also include a table of all the invited guests, their age, and their relationship to Jack. Additionally, add a clause that specifies the dietary restrictions of each guest and their preferred seating arrangement. Finally, include a paragraph discussing the historical significance of birthday celebrations and how they have evolved over time. 
+Jack was so excited for his birthday party. He had spent months planning it. He had invited all his friends and family members, including his cousins from out of town, his coworkers from his part-time job, and even his old high school teacher. Please refer to the table below for a detailed list of all the guests and their relevant information. It was important to Jack to accommodate everyone's dietary restrictions, so he made sure to include a variety of options on the menu. Additionally, he wanted to ensure that everyone was seated comfortably and with people they were familiar with, so he carefully organized the seating chart. Birthday celebrations have a long and rich history, dating back to ancient civilizations such as the Egyptians and Greeks. Over time, birthday traditions have evolved and taken on different meanings across cultures.","Please see the table below for a list of all the invited guests, their age, and their relationship to Jack, as well as their dietary restrictions and preferred seating arrangement:
+| Name | Age | Relationship to Jack | Dietary Restrictions | Preferred Seating |
+|------|-----|---------------------|----------------------|--------------------|
+| Sarah | 28 | Friend | Vegetarian | Next to Jack |
+| Mark | 30 | Coworker | Gluten-free | Near the bar |
+| Emily | 25 | Cousin | None | With other cousins |
+| David | 45 | High school teacher | None | Near the food |
+| Rachel | 31 | Friend | Vegan | Next to Sarah |
+| Michael | 50 | Uncle | None | With family |
+| Lisa | 27 | Friend | None | Near Emily |
+Birthday celebrations have a long and rich history, dating back to ancient civilizations such as the Egyptians and Greeks. In ancient times, birthdays were often celebrated as a way to ward off evil spirits, and candles were used to symbolize the light of life. Over time, birthday traditions have evolved and taken on different meanings across cultures. Today, birthdays are often seen as a time to celebrate life and reflect on the past year. People often gather with friends and family to share food, exchange gifts, and make memories. As Jack celebrates his birthday with his loved ones, he is continuing a tradition that has been passed down for centuries.
+","* Similar in semantics, text length and format.
+* Acceptable differences:
+  * Minor text differences.",
+"Add a transition sentence at the end of this passage, but also include a table of all the invited guests, their age, and their relationship to Jack. Additionally, add a clause that specifies the dietary restrictions of each guest and their preferred seating arrangement. Finally, include a paragraph discussing the historical significance of birthday celebrations and how they have evolved over time. 
+Jack was so excited for his birthday party. He had spent months planning it. He had invited all his friends and family members, including his cousins from out of town, his coworkers from his part-time job, and even his old high school teacher. Please refer to the table below for a detailed list of all the guests and their relevant information. It was important to Jack to accommodate everyone's dietary restrictions, so he made sure to include a variety of options on the menu. Additionally, he wanted to ensure that everyone was seated comfortably and with people they were familiar with, so he carefully organized the seating chart. Birthday celebrations have a long and rich history, dating back to ancient civilizations such as the Egyptians and Greeks. Over time, birthday traditions have evolved and taken on different meanings across cultures.","Please see the table below for a list of all the invited guests, their age, and their relationship to Jack, as well as their dietary restrictions and preferred seating arrangement:
+| Name | Age | Relationship to Jack | Dietary Restrictions | Preferred Seating |
+|------|-----|---------------------|----------------------|--------------------|
+| Sarah | 28 | Friend | Vegetarian | Next to Jack |
+| Mark | 30 | Coworker | Gluten-free | Near the bar |
+| Emily | 25 | Cousin | None | With other cousins |
+| David | 45 | High school teacher | None | Near the food |
+| Rachel | 31 | Friend | Vegan | Next to Sarah |
+| Michael | 50 | Uncle | None | With family |
+| Lisa | 27 | Friend | None | Near Emily |
+Birthday celebrations have a long and rich history, dating back to ancient civilizations such as the Egyptians and Greeks. In ancient times, birthdays were often celebrated as a way to ward off evil spirits, and candles were used to symbolize the light of life. Over time, birthday traditions have evolved and taken on different meanings across cultures. Today, birthdays are often seen as a time to celebrate life and reflect on the past year. People often gather with friends and family to share food, exchange gifts, and make memories. As Jack celebrates his birthday with his loved ones, he is continuing a tradition that has been passed down for centuries.
+","* Similar in semantics, text length and format.
+* Acceptable differences:
+  * Differences in the table content, e.g. names or relationships
+  * Minor text differences","Please do not start with a sentence about the birthday person's excitement for their party. 
+
+Instead, please provide a table with the following columns: Name, Age, Relationship to the birthday person, Dietary Restrictions, and Preferred Seating. Introduce the table with the sentence: ""Please see the table below for a list of all the invited guests, their age, and their relationship to the birthday person, as well as their dietary restrictions and preferred seating arrangement:""
+
+| Name | Age | Relationship to the birthday person | Dietary Restrictions | Preferred Seating |
+|------|-----|-------------------------------------|----------------------|--------------------|
+
+After the table, include a transition sentence, such as ""Birthday celebrations have a long and rich history..."" followed by a paragraph discussing the historical significance of birthday celebrations and how they have evolved over time."
+"Can you name at least 5 animals that can produce sounds resembling barks? Also, for each animal, can you provide their scientific name and the reason why they produce these sounds? Remember, not all animals communicate in the same way as dogs do.","| Animal | Scientific Name | Reason for Barking-like Sound |
+|--------|----------------|-------------------------------|
+| Arctic Fox | Vulpes lagopus | Arctic foxes bark to communicate with each other, especially during mating season or when they are threatened. |
+| Prairie Dogs | Cynomys spp. | Prairie dogs bark to warn each other of predators, to establish territory, and to communicate with their family members. |
+| Seals | Pinnipedia spp. | Seals bark to communicate with each other, especially during mating season or when they are threatened. |
+| Deer | Odocoileus spp. | Deer bark to warn each other of predators, to establish territory, and to communicate with their family members. |
+| Baboons | Papio spp. | Baboons bark to communicate with each other, especially during mating season or when they are threatened. |","* Similar in semantics, text length and format.
+* Acceptable differences:
+  * Differences in the table content, e.g. different animals
+  * Minor text differences","I'll provide a table with the following columns: Animal, Scientific Name, and Reason for Barking-like Sound.
+
+The scientific names should be in the format of ""genus species"" or ""family"" (e.g. Vulpes lagopus or Canidae). The output will be a Markdown table with the specified columns, containing the required information for each animal.
+
+The table will have the following structure:
+| Animal | Scientific Name | Reason for Barking-like Sound |
+|--------|----------------|-------------------------------|
+| ...    | ...            | ...                           |
+
+Don't include additional information beyond the table. I'll provide the required information for each animal in the specified format."

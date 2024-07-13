@@ -64,6 +64,7 @@ class SimplifiedCSVLogger(CSVLogger):
 
         with open(log_filepath, encoding="utf-8") as csvfile:
             line_count = len(list(csv.reader(csvfile))) - 1
+
         return line_count
 
 
@@ -280,10 +281,21 @@ with gr.Blocks(title='Meta Prompt') as demo:
                 )
                 clear_logs_button = gr.ClearButton([logs_chatbot], value='Clear Logs')
 
-        clear_button.add([system_message_output, output_output,
-                         analysis_output, logs_chatbot])
-        multiple_clear_button.add([system_message_output, output_output,
-                                   analysis_output, logs_chatbot])
+    # Load examples
+    examples = gr.Examples(config.examples_path, inputs=[
+        user_message_input,
+        expected_output_input,
+        acceptance_criteria_input,
+        initial_system_message_input,
+        recursion_limit_input,
+        model_name_input
+    ])
+
+    # set up event handlers
+    clear_button.add([system_message_output, output_output,
+                        analysis_output, logs_chatbot])
+    multiple_clear_button.add([system_message_output, output_output,
+                                analysis_output, logs_chatbot])
 
     submit_button.click(
         process_message_with_single_llm,
@@ -323,17 +335,6 @@ with gr.Blocks(title='Meta Prompt') as demo:
             logs_chatbot
         ]
     )
-
-    # Load examples
-    examples = config.examples_path
-    gr.Examples(examples, inputs=[
-        user_message_input,
-        expected_output_input,
-        acceptance_criteria_input,
-        initial_system_message_input,
-        recursion_limit_input,
-        model_name_input
-    ])
 
     flagging_inputs = [
         user_message_input,
