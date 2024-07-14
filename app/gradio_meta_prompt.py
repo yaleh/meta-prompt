@@ -11,6 +11,7 @@ from gradio_client import utils as client_utils
 from confz import BaseConfig, CLArgSource, EnvSource, FileSource
 from app.config import MetaPromptConfig
 from langchain_core.language_models import BaseLanguageModel
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from meta_prompt import *
 from pythonjsonlogger import jsonlogger
@@ -100,6 +101,59 @@ def chat_log_2_chatbot_list(chat_log: str):
             print(f"Error accessing key in JSON log output: {e}")
             print(line)
     return chatbot_list
+
+
+active_model_tab = "Simple"
+
+def on_model_tab_select(event: gr.SelectData):
+    if not event.selected:
+        return
+    
+    global active_model_tab
+    active_model_tab = event.value
+
+
+def get_current_models(simple_model_name: str, optimizer_model_name: str, executor_model_name: str):
+    optimizer_model_config = config.llms[optimizer_model_name if active_model_tab ==
+                                        "Advanced" else simple_model_name]
+    executor_model_config = config.llms[executor_model_name if active_model_tab ==
+                                        "Advanced" else simple_model_name]
+    optimizer_model = LLMModelFactory().create(optimizer_model_config.type,
+                                              **optimizer_model_config.model_dump(exclude={'type'}))
+    executor_model = LLMModelFactory().create(executor_model_config.type,
+                                              **executor_model_config.model_dump(exclude={'type'}))
+
+    return {
+        NODE_PROMPT_INITIAL_DEVELOPER: optimizer_model,
+        NODE_PROMPT_DEVELOPER: optimizer_model,
+        NODE_PROMPT_EXECUTOR: executor_model,
+        NODE_OUTPUT_HISTORY_ANALYZER: optimizer_model,
+        NODE_PROMPT_ANALYZER: optimizer_model,
+        NODE_PROMPT_SUGGESTER: optimizer_model
+    }
+
+
+def get_current_executor_model(simple_model_name: str, executor_model_name: str):
+    executor_model_config = config.llms[executor_model_name if active_model_tab ==
+                                        "Advanced" else simple_model_name]
+    executor_model = LLMModelFactory().create(executor_model_config.type,
+                                              **executor_model_config.model_dump(exclude={'type'}))
+    return executor_model
+
+
+def evaluate_system_message(system_message, user_message, simple_model, executor_model):
+    llm = get_current_executor_model(simple_model, executor_model)
+    template = ChatPromptTemplate.from_messages([
+        ("system", "{system_message}"),
+        ("human", "{user_message}")
+    ])
+    messages = template.format_messages(system_message=system_message, user_message=user_message)
+    output = llm.invoke(messages)
+
+    if hasattr(output, 'content'):
+        return output.content
+    else:
+        return ""
 
 
 def process_message(user_message, expected_output, acceptance_criteria,
@@ -229,6 +283,8 @@ with gr.Blocks(title='Meta Prompt') as demo:
                 label="Acceptance Criteria", show_copy_button=True)
             initial_system_message_input = gr.Textbox(
                 label="Initial System Message", show_copy_button=True, value="")
+            evaluate_initial_system_message_button = gr.Button(
+                value="Evaluate", variant="secondary")
             recursion_limit_input = gr.Number(
                 label="Recursion Limit", value=config.recursion_limit,
                 precision=0, minimum=1, maximum=config.recursion_limit_max, step=1)
@@ -236,41 +292,45 @@ with gr.Blocks(title='Meta Prompt') as demo:
                 label="Max Output Age", value=config.max_output_age,
                 precision=0, minimum=1, maximum=config.max_output_age_max, step=1)
             with gr.Row():
-                with gr.Tab('Simple'):
-                    model_name_input = gr.Dropdown(
-                        label="Model Name",
-                        choices=config.llms.keys(),
-                        value=list(config.llms.keys())[0],
-                    )
-                    # Connect the inputs and outputs to the function
-                    with gr.Row():
-                        submit_button = gr.Button(
-                            value="Submit", variant="primary")
-                        clear_button = gr.ClearButton(
-                            [user_message_input, expected_output_input,
-                             acceptance_criteria_input, initial_system_message_input],
-                            value='Clear All')
-                with gr.Tab('Advanced'):
-                    optimizer_model_name_input = gr.Dropdown(
-                        label="Optimizer Model Name",
-                        choices=config.llms.keys(),
-                        value=list(config.llms.keys())[0],
-                    )
-                    executor_model_name_input = gr.Dropdown(
-                        label="Executor Model Name",
-                        choices=config.llms.keys(),
-                        value=list(config.llms.keys())[0],
-                    )
-                    # Connect the inputs and outputs to the function
-                    with gr.Row():
-                        multiple_submit_button = gr.Button(
-                            value="Submit", variant="primary")
-                        multiple_clear_button = gr.ClearButton(
-                            components=[user_message_input, expected_output_input,
-                                        acceptance_criteria_input, initial_system_message_input],
-                            value='Clear All')
+                with gr.Tabs():
+                    with gr.Tab('Simple') as simple_llm_tab:
+                        model_name_input = gr.Dropdown(
+                            label="Model Name",
+                            choices=config.llms.keys(),
+                            value=list(config.llms.keys())[0],
+                        )
+                        # Connect the inputs and outputs to the function
+                        with gr.Row():
+                            submit_button = gr.Button(
+                                value="Submit", variant="primary")
+                            clear_button = gr.ClearButton(
+                                [user_message_input, expected_output_input,
+                                acceptance_criteria_input, initial_system_message_input],
+                                value='Clear All')
+                    with gr.Tab('Advanced') as advanced_llm_tab:
+                        optimizer_model_name_input = gr.Dropdown(
+                            label="Optimizer Model Name",
+                            choices=config.llms.keys(),
+                            value=list(config.llms.keys())[0],
+                        )
+                        executor_model_name_input = gr.Dropdown(
+                            label="Executor Model Name",
+                            choices=config.llms.keys(),
+                            value=list(config.llms.keys())[0],
+                        )
+                        # Connect the inputs and outputs to the function
+                        with gr.Row():
+                            multiple_submit_button = gr.Button(
+                                value="Submit", variant="primary")
+                            multiple_clear_button = gr.ClearButton(
+                                components=[user_message_input, expected_output_input,
+                                            acceptance_criteria_input, initial_system_message_input],
+                                value='Clear All')
         with gr.Column():
             system_message_output = gr.Textbox(label="System Message", show_copy_button=True)
+            with gr.Row():
+                evaluate_system_message_button = gr.Button(value="Evaluate", variant="secondary")
+                copy_to_initial_system_message_button = gr.Button(value="Copy to Initial System Message", variant="secondary")
             output_output = gr.Textbox(label="Output", show_copy_button=True)
             analysis_output = gr.Textbox(label="Analysis", show_copy_button=True)
             flag_button = gr.Button(value="Flag", variant="secondary", visible=config.allow_flagging)
@@ -292,6 +352,27 @@ with gr.Blocks(title='Meta Prompt') as demo:
     ])
 
     # set up event handlers
+    simple_llm_tab.select(on_model_tab_select)
+    advanced_llm_tab.select(on_model_tab_select)
+
+    evaluate_initial_system_message_button.click(
+        evaluate_system_message,
+        inputs=[initial_system_message_input, user_message_input,
+                model_name_input, executor_model_name_input],
+        outputs=[output_output]
+    )
+    evaluate_system_message_button.click(
+        evaluate_system_message,
+        inputs=[system_message_output, user_message_input,
+                model_name_input, executor_model_name_input],
+        outputs=[output_output]
+    )
+    copy_to_initial_system_message_button.click(
+        lambda x: x,
+        inputs=[system_message_output],
+        outputs=[initial_system_message_input]
+    )
+
     clear_button.add([system_message_output, output_output,
                         analysis_output, logs_chatbot])
     multiple_clear_button.add([system_message_output, output_output,
