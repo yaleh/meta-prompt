@@ -247,6 +247,37 @@ def process_message_with_2_llms(user_message, expected_output, acceptance_criter
                            recursion_limit, max_output_age, llms)
 
 
+def process_message_with_expert_llms(user_message, expected_output, acceptance_criteria, initial_system_message,
+                                        recursion_limit: int, max_output_age: int,
+                                        initial_developer_model_name: str, developer_model_name: str,
+                                        executor_model_name: str, output_history_analyzer_model_name: str,
+                                        analyzer_model_name: str, suggester_model_name: str):
+    # Get the output state from MetaPromptGraph
+    initial_developer_model = LLMModelFactory().create(config.llms[initial_developer_model_name].type,
+                                                    **config.llms[initial_developer_model_name].model_dump(exclude={'type'}))
+    developer_model = LLMModelFactory().create(config.llms[developer_model_name].type,
+                                                    **config.llms[developer_model_name].model_dump(exclude={'type'}))
+    executor_model = LLMModelFactory().create(config.llms[executor_model_name].type,
+                                                    **config.llms[executor_model_name].model_dump(exclude={'type'}))
+    output_history_analyzer_model = LLMModelFactory().create(config.llms[output_history_analyzer_model_name].type,
+                                                    **config.llms[output_history_analyzer_model_name].model_dump(exclude={'type'}))
+    analyzer_model = LLMModelFactory().create(config.llms[analyzer_model_name].type,
+                                                    **config.llms[analyzer_model_name].model_dump(exclude={'type'}))
+    suggester_model = LLMModelFactory().create(config.llms[suggester_model_name].type,
+                                                    **config.llms[suggester_model_name].model_dump(exclude={'type'}))
+    llms = {
+        NODE_PROMPT_INITIAL_DEVELOPER: initial_developer_model,
+        NODE_PROMPT_DEVELOPER: developer_model,
+        NODE_PROMPT_EXECUTOR: executor_model,
+        NODE_OUTPUT_HISTORY_ANALYZER: output_history_analyzer_model,
+        NODE_PROMPT_ANALYZER: analyzer_model,
+        NODE_PROMPT_SUGGESTER: suggester_model
+    }
+
+    return process_message(user_message, expected_output, acceptance_criteria, initial_system_message,
+                            recursion_limit, max_output_age, llms)
+
+
 class FileConfig(BaseConfig):
     config_file: str = 'config.yml'  # default path
 
@@ -294,35 +325,79 @@ with gr.Blocks(title='Meta Prompt') as demo:
             with gr.Row():
                 with gr.Tabs():
                     with gr.Tab('Simple') as simple_llm_tab:
-                        model_name_input = gr.Dropdown(
+                        simple_model_name_input = gr.Dropdown(
                             label="Model Name",
                             choices=config.llms.keys(),
                             value=list(config.llms.keys())[0],
                         )
                         # Connect the inputs and outputs to the function
                         with gr.Row():
-                            submit_button = gr.Button(
+                            simple_submit_button = gr.Button(
                                 value="Submit", variant="primary")
-                            clear_button = gr.ClearButton(
+                            simple_clear_button = gr.ClearButton(
                                 [user_message_input, expected_output_input,
                                 acceptance_criteria_input, initial_system_message_input],
                                 value='Clear All')
                     with gr.Tab('Advanced') as advanced_llm_tab:
-                        optimizer_model_name_input = gr.Dropdown(
+                        advanced_optimizer_model_name_input = gr.Dropdown(
                             label="Optimizer Model Name",
                             choices=config.llms.keys(),
                             value=list(config.llms.keys())[0],
                         )
-                        executor_model_name_input = gr.Dropdown(
+                        advanced_executor_model_name_input = gr.Dropdown(
                             label="Executor Model Name",
                             choices=config.llms.keys(),
                             value=list(config.llms.keys())[0],
                         )
                         # Connect the inputs and outputs to the function
                         with gr.Row():
-                            multiple_submit_button = gr.Button(
+                            advanced_submit_button = gr.Button(
                                 value="Submit", variant="primary")
-                            multiple_clear_button = gr.ClearButton(
+                            advanced_clear_button = gr.ClearButton(
+                                components=[user_message_input, expected_output_input,
+                                            acceptance_criteria_input, initial_system_message_input],
+                                value='Clear All')
+                    with gr.Tab('Expert') as expert_llm_tab:
+                        expert_prompt_initial_developer_model_name_input = gr.Dropdown(
+                            label="Initial Developer Model Name",
+                            choices=config.llms.keys(),
+                            value=list(config.llms.keys())[0],
+                        )
+
+                        expert_prompt_developer_model_name_input = gr.Dropdown(
+                            label="Developer Model Name",
+                            choices=config.llms.keys(),
+                            value=list(config.llms.keys())[0],
+                        )
+
+                        expert_prompt_executor_model_name_input = gr.Dropdown(
+                            label="Executor Model Name",
+                            choices=config.llms.keys(),
+                            value=list(config.llms.keys())[0],
+                        )
+
+                        expert_output_history_analyzer_model_name_input = gr.Dropdown(
+                            label="History Analyzer Model Name",
+                            choices=config.llms.keys(),
+                            value=list(config.llms.keys())[0],
+                        )
+
+                        expert_prompt_analyzer_model_name_input = gr.Dropdown(
+                            label="Analyzer Model Name",
+                            choices=config.llms.keys(),
+                            value=list(config.llms.keys())[0],
+                        )
+
+                        expert_prompt_suggester_model_name_input = gr.Dropdown(
+                            label="Suggester Model Name",
+                            choices=config.llms.keys(),
+                            value=list(config.llms.keys())[0],
+                        )
+                        # Connect the inputs and outputs to the function
+                        with gr.Row():
+                            expert_submit_button = gr.Button(
+                                value="Submit", variant="primary")
+                            expert_clear_button = gr.ClearButton(
                                 components=[user_message_input, expected_output_input,
                                             acceptance_criteria_input, initial_system_message_input],
                                 value='Clear All')
@@ -348,23 +423,24 @@ with gr.Blocks(title='Meta Prompt') as demo:
         acceptance_criteria_input,
         initial_system_message_input,
         recursion_limit_input,
-        model_name_input
+        simple_model_name_input
     ])
 
     # set up event handlers
     simple_llm_tab.select(on_model_tab_select)
     advanced_llm_tab.select(on_model_tab_select)
+    expert_llm_tab.select(on_model_tab_select)
 
     evaluate_initial_system_message_button.click(
         evaluate_system_message,
         inputs=[initial_system_message_input, user_message_input,
-                model_name_input, executor_model_name_input],
+                simple_model_name_input, advanced_executor_model_name_input],
         outputs=[output_output]
     )
     evaluate_system_message_button.click(
         evaluate_system_message,
         inputs=[system_message_output, user_message_input,
-                model_name_input, executor_model_name_input],
+                simple_model_name_input, advanced_executor_model_name_input],
         outputs=[output_output]
     )
     copy_to_initial_system_message_button.click(
@@ -373,12 +449,12 @@ with gr.Blocks(title='Meta Prompt') as demo:
         outputs=[initial_system_message_input]
     )
 
-    clear_button.add([system_message_output, output_output,
+    simple_clear_button.add([system_message_output, output_output,
                         analysis_output, logs_chatbot])
-    multiple_clear_button.add([system_message_output, output_output,
+    advanced_clear_button.add([system_message_output, output_output,
                                 analysis_output, logs_chatbot])
 
-    submit_button.click(
+    simple_submit_button.click(
         process_message_with_single_llm,
         inputs=[
             user_message_input,
@@ -387,7 +463,7 @@ with gr.Blocks(title='Meta Prompt') as demo:
             initial_system_message_input,
             recursion_limit_input,
             max_output_age,
-            model_name_input
+            simple_model_name_input
         ],
         outputs=[
             system_message_output,
@@ -397,7 +473,7 @@ with gr.Blocks(title='Meta Prompt') as demo:
         ]
     )
 
-    multiple_submit_button.click(
+    advanced_submit_button.click(
         process_message_with_2_llms,
         inputs=[
             user_message_input,
@@ -406,8 +482,32 @@ with gr.Blocks(title='Meta Prompt') as demo:
             initial_system_message_input,
             recursion_limit_input,
             max_output_age,
-            optimizer_model_name_input,
-            executor_model_name_input
+            advanced_optimizer_model_name_input,
+            advanced_executor_model_name_input
+        ],
+        outputs=[
+            system_message_output,
+            output_output,
+            analysis_output,
+            logs_chatbot
+        ]
+    )
+
+    expert_submit_button.click(
+        process_message_with_expert_llms,
+        inputs=[
+            user_message_input,
+            expected_output_input,
+            acceptance_criteria_input,
+            initial_system_message_input,
+            recursion_limit_input,
+            max_output_age,
+            expert_prompt_initial_developer_model_name_input,
+            expert_prompt_developer_model_name_input,
+            expert_prompt_executor_model_name_input,
+            expert_output_history_analyzer_model_name_input,
+            expert_prompt_analyzer_model_name_input,
+            expert_prompt_suggester_model_name_input
         ],
         outputs=[
             system_message_output,
