@@ -41,6 +41,9 @@ Provide only the system message, adhering to the above guidelines.
 # Expected Output
 
 {expected_output}
+
+# System Message
+
 """)
     ]),
     NODE_PROMPT_DEVELOPER: ChatPromptTemplate.from_messages([
@@ -63,7 +66,7 @@ You are an expert prompt engineer tasked with updating system messages for AI as
 
 Provide only the updated System Message, adhering to the above guidelines.
 """),
-        ("human", """# Current system message
+        ("human", """# Current System Message
 
 {system_message}
 
@@ -78,6 +81,9 @@ Provide only the updated System Message, adhering to the above guidelines.
 # Suggestions
 
 {suggestions}
+
+# Updated System Message
+
 """)
     ]),
     NODE_PROMPT_EXECUTOR: ChatPromptTemplate.from_messages([
@@ -90,7 +96,7 @@ Provide only the updated System Message, adhering to the above guidelines.
 You output the following analysis according to the Acceptance Criteria:
 
 * Your analysis in a Markdown list.
-* The ID of the output that is more consistent with the Expected Output as Preferred Output ID, with the following format:
+* Indicates an output ID that is more consistent with the expected output, in the following format:
 
 ```
 # Analysis
@@ -188,7 +194,7 @@ Provide your analysis in the following format:
 * Avoiding the behavior should be explicitly requested (e.g. `The System Message should explicitly state that the output shoud not ...`) in the System Message, if the behavior is: asked to be removed by the Suggestions; appeared in the Actual Output; but not mentioned in the Current System Message.
 * Expected Output text should not appear in System Message as an example. But it's OK to use some similar but distinct text as an example instead.
 * Ask to remove the Expected Output text or text highly similar to Expected Output from System Message, if it's present.
-* Provide format examples or detected format name, if System Message does not.
+* Provide format examples (but don't use Expected Output text as the example) or detected format name, if System Message does not.
 * Specify the detected format name (e.g. XML, JSON, etc.) of Expected Output, if System Message does not mention it.
 """),
         ("human", """
