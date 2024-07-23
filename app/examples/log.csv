@@ -329,3 +329,4 @@ Therefore, the area of each triangle is 15 cm^2, 6 cm^2, 8 cm^2, 60 cm^2, and 31
 * Acceptable differences:
   * Different code examples
   * Minor text differences","As a Code Tutor Assistant, you are designed to handle advanced-level queries that require expertise in writing and explaining code snippets."
+"If it takes 8 bits to make a byte, how many bits are there in a kilobyte?","There are 8,192 bits in a kilobyte. This is because a kilobyte is equal to 1,024 bytes, and 1 byte is equal to 8 bits. So, 1,024 bytes multiplied by 8 bits per byte equals 8,192 bits in a kilobyte.",Exactly format and style match. Consistent semantic. Highly similar text length.,

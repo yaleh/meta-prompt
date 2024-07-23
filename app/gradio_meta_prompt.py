@@ -148,7 +148,13 @@ def evaluate_system_message(system_message, user_message, simple_model, executor
         ("human", "{user_message}")
     ])
     messages = template.format_messages(system_message=system_message, user_message=user_message)
-    output = llm.invoke(messages)
+    try:
+        output = llm.invoke(messages)
+    except Exception as e:
+        if isinstance(e, gr.Error):
+            raise e
+        else:
+            raise gr.Error(f"Error: {e}")   
 
     if hasattr(output, 'content'):
         return output.content
@@ -160,7 +166,6 @@ def process_message(user_message, expected_output, acceptance_criteria,
                     initial_system_message, recursion_limit: int,
                     max_output_age: int,
                     llms: Union[BaseLanguageModel, Dict[str, BaseLanguageModel]]):
-    # Create the input state
     input_state = AgentState(
         user_message=user_message,
         expected_output=expected_output,
@@ -169,49 +174,35 @@ def process_message(user_message, expected_output, acceptance_criteria,
         max_output_age=max_output_age
     )
 
-    # Get the output state from MetaPromptGraph
     log_stream = io.StringIO()
-    log_handler = None
-    logger = None
-    if config.verbose:
-        log_handler = logging.StreamHandler(log_stream)
-        logger = logging.getLogger(MetaPromptGraph.__name__)
+    logger = logging.getLogger(MetaPromptGraph.__name__) if config.verbose else None
+    log_handler = logging.StreamHandler(log_stream) if logger else None
+    if log_handler:
         log_handler.setFormatter(jsonlogger.JsonFormatter(
             '%(asctime)s %(name)s %(levelname)s %(message)s'))
         logger.addHandler(log_handler)
 
-    meta_prompt_graph = MetaPromptGraph(
-        llms=llms, verbose=config.verbose, logger=logger)
-    output_state = meta_prompt_graph(input_state, recursion_limit=recursion_limit)
+    meta_prompt_graph = MetaPromptGraph(llms=llms, verbose=config.verbose, logger=logger)
+    try:
+        output_state = meta_prompt_graph(input_state, recursion_limit=recursion_limit)
+    except Exception as e:
+        if isinstance(e, gr.Error):
+            raise e
+        else:
+            raise gr.Error(f"Error: {e}")           
 
-    if config.verbose:
+    if log_handler:
         log_handler.close()
         log_output = log_stream.getvalue()
     else:
         log_output = None
 
-    # Validate the output state
-    system_message = ''
-    output = ''
-    analysis = ''
+    system_message = output_state.get('best_system_message', "Error: The output state does not contain a valid 'best_system_message'")
+    output = output_state.get('best_output', "Error: The output state does not contain a valid 'best_output'")
+    analysis = output_state.get('analysis', "Error: The output state does not contain a valid 'analysis'")
 
-    if 'best_system_message' in output_state and output_state['best_system_message'] is not None:
-        system_message = output_state['best_system_message']
-    else:
-        system_message = "Error: The output state does not contain a valid 'best_system_message'"
+    return (system_message, output, analysis, chat_log_2_chatbot_list(log_output))
 
-    if 'best_output' in output_state and output_state['best_output'] is not None:
-        output = output_state["best_output"]
-    else:
-        output = "Error: The output state does not contain a valid 'best_output'"
-
-    if 'analysis' in output_state and output_state['analysis'] is not None:
-        analysis = output_state['analysis']
-    else:
-        analysis = "Error: The output state does not contain a valid 'analysis'"
-
-    return (system_message, output, analysis,
-            chat_log_2_chatbot_list(log_output))
 
 
 def process_message_with_single_llm(user_message, expected_output, acceptance_criteria, initial_system_message,

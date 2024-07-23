@@ -28,7 +28,8 @@ You are an expert prompt engineer tasked with creating system messages for AI as
 2. Ensure the system message can handle similar user messages.
 3. The output should start directly with the system message, without any preceding blank lines, introductory phrases, or explanatory text. Do not include extra lines at the beginning or end of the output.
 4. Expected Output text should not appear in System Message as an example. But it's OK to use some similar text as an example instead.
-5. Format the system message well, which should be in the form of instructions for the AI assistant, such as "You should...". Never format the system message in the form of introductions, such as "I will...".
+5. In the System Message, do not use `Expected Output` to refer to the example you want to illustrate. Instead, directly describe the specific features you need.
+6. Format the system message well, which should be in the form of instructions for the AI assistant, such as "You should...". Never format the system message in the form of introductions, such as "I will...".
 
 ## Output
 
@@ -59,8 +60,9 @@ You are an expert prompt engineer tasked with updating system messages for AI as
 4. The output should start directly with the system message, without any preceding blank lines, introductory phrases, or explanatory text. Do not include extra lines at the beginning or end of the output.
 5. Avoiding the behavior should be explicitly requested (e.g. `Don't ...`) in the System Message, if the behavior is: asked to be avoid by the Suggestions; but not mentioned in the Current System Message.
 6. Expected Output text should not appear in System Message as an example. But it's OK to use some similar text as an example instead.
-7. Remove the Expected Output text or text highly similar to Expected Output from System Message, if it's present.
-8. Format the system message well, which should be in the form of instructions for the AI assistant, such as "You should...". Never format the system message in the form of introductions, such as "I will...".
+7. In the System Message, do not use `Expected Output` to refer to the example you want to illustrate. Instead, directly describe the specific features you need.
+8. Remove the Expected Output text or text highly similar to Expected Output from System Message, if it's present.
+9. Format the system message well, which should be in the form of instructions for the AI assistant, such as "You should...". Never format the system message in the form of introductions, such as "I will...".
 
 ## Output
 
@@ -91,12 +93,12 @@ Provide only the updated System Message, adhering to the above guidelines.
         ("human", "{user_message}")
     ]),
     NODE_OUTPUT_HISTORY_ANALYZER: ChatPromptTemplate.from_messages([
-        ("system", """You are a text comparing program. You read the Acceptance Criteria, compare the compare the exptected output with two different outputs, and decide which one is more consistent with the expected output. When comparing the outputs, ignore the differences which are acceptable or ignorable according to the Acceptance Criteria.
+        ("system", """You are a text comparing program. You read the Acceptance Criteria, compare the compare the Expected Output with two different outputs, and decide which one is more consistent with the Expected Output. When comparing the outputs, ignore the differences which are acceptable or ignorable according to the Acceptance Criteria.
 
 You output the following analysis according to the Acceptance Criteria:
 
 * Your analysis in a Markdown list.
-* Indicates an output ID that is more consistent with the expected output, in the following format:
+* Indicates an output ID that is more consistent with the Expected Output, in the following format:
 
 ```
 # Analysis
@@ -106,7 +108,7 @@ You output the following analysis according to the Acceptance Criteria:
 # Preferred Output ID: [ID]
 ```
 
-If both outputs are equally similar to the expected output, output the following:
+If both outputs are equally similar to the Expected Output, output the following:
 
 ```
 # Analysis
@@ -191,6 +193,7 @@ Provide your analysis in the following format:
 * Provide your suggestions in a Markdown list, nothing else. Output only the suggestions related with Unacceptable Differences.
 * Start every suggestion with `The System Message should ...`.
 * Figue out the contexts of the System Message that conflict with the suggestions, and suggest modification or deletion.
+* Do not simply describe the output as being the same/similar/different from the Expected Output, such as `the output should not use a different format and style compared to the Expected Output` or `the output should match the expected output exactly`; instead, describe the expected characteristics specifically and suggest a detailed example.
 * Avoiding the behavior should be explicitly requested (e.g. `The System Message should explicitly state that the output shoud not ...`) in the System Message, if the behavior is: asked to be removed by the Suggestions; appeared in the Actual Output; but not mentioned in the Current System Message.
 * Expected Output text should not appear in System Message as an example. But it's OK to use some similar but distinct text as an example instead.
 * Ask to remove the Expected Output text or text highly similar to Expected Output from System Message, if it's present.

@@ -4,10 +4,10 @@ import logging
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
-# Assuming the necessary imports are made for the classes and functions used in meta_prompt_graph.py
-from meta_prompt import AgentState, MetaPromptGraph
-
 from langchain_openai import ChatOpenAI
+
+# Assuming the necessary imports are made for the classes and functions used in meta_prompt_graph.py
+from meta_prompt import *
 
 class TestMetaPromptGraph(unittest.TestCase):
     def setUp(self):
@@ -16,7 +16,7 @@ class TestMetaPromptGraph(unittest.TestCase):
 
     def test_prompt_node(self):
         llms = {
-            MetaPromptGraph.NODE_PROMPT_INITIAL_DEVELOPER: MagicMock(
+            NODE_PROMPT_INITIAL_DEVELOPER: MagicMock(
                 invoke=MagicMock(return_value=MagicMock(content="Mocked response content"))
             )
         }
@@ -29,7 +29,7 @@ class TestMetaPromptGraph(unittest.TestCase):
 
         # Invoke the _prompt_node method with the mock node, target attribute, and state
         updated_state = graph._prompt_node(
-            MetaPromptGraph.NODE_PROMPT_INITIAL_DEVELOPER, "output", state
+            NODE_PROMPT_INITIAL_DEVELOPER, "output", state
         )
 
         # Assertions
@@ -70,13 +70,18 @@ class TestMetaPromptGraph(unittest.TestCase):
 
     def test_prompt_analyzer_accept(self):
         llms = {
-            MetaPromptGraph.NODE_PROMPT_ANALYZER: MagicMock(
+            NODE_PROMPT_ANALYZER: MagicMock(
                 invoke=lambda prompt: MagicMock(content="Accept: Yes"))
         }
         meta_prompt_graph = MetaPromptGraph(llms)
         state = AgentState(output="Test output", expected_output="Expected output")
         updated_state = meta_prompt_graph._prompt_analyzer(state)
         assert updated_state.accepted == True
+
+    def test_get_node_names(self):
+        graph = MetaPromptGraph()
+        node_names = graph.get_node_names()
+        self.assertEqual(node_names, META_PROMPT_NODES)
 
     def test_workflow_execution(self):
         # MODEL_NAME = "anthropic/claude-3.5-sonnet:beta"
@@ -120,12 +125,12 @@ class TestMetaPromptGraph(unittest.TestCase):
         executor_llm = ChatOpenAI(model_name="meta-llama/llama-3-8b-instruct", temperature=0.01)
 
         llms = {
-            MetaPromptGraph.NODE_PROMPT_INITIAL_DEVELOPER: optimizer_llm,
-            MetaPromptGraph.NODE_PROMPT_DEVELOPER: optimizer_llm,
-            MetaPromptGraph.NODE_PROMPT_EXECUTOR: executor_llm,
-            MetaPromptGraph.NODE_OUTPUT_HISTORY_ANALYZER: optimizer_llm,
-            MetaPromptGraph.NODE_PROMPT_ANALYZER: optimizer_llm,
-            MetaPromptGraph.NODE_PROMPT_SUGGESTER: optimizer_llm
+            NODE_PROMPT_INITIAL_DEVELOPER: optimizer_llm,
+            NODE_PROMPT_DEVELOPER: optimizer_llm,
+            NODE_PROMPT_EXECUTOR: executor_llm,
+            NODE_OUTPUT_HISTORY_ANALYZER: optimizer_llm,
+            NODE_PROMPT_ANALYZER: optimizer_llm,
+            NODE_PROMPT_SUGGESTER: optimizer_llm
         }
 
         meta_prompt_graph = MetaPromptGraph(llms=llms)
