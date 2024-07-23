@@ -1,10 +1,8 @@
 import unittest
 import pprint
 import logging
-from unittest.mock import MagicMock, patch, Mock
-from langchain_core.runnables.utils import Output
+from unittest.mock import MagicMock, Mock
 from langchain_core.language_models import BaseLanguageModel
-
 from langchain_openai import ChatOpenAI
 
 # Assuming the necessary imports are made for the classes and functions used in meta_prompt_graph.py
@@ -168,7 +166,7 @@ class TestMetaPromptGraph(unittest.TestCase):
         responses = [
             Mock(type="content", content="Explain how to reverse a list in Python."),  # NODE_PROMPT_INITIAL_DEVELOPER
             Mock(type="content", content="Here's one way: `my_list[::-1]`"),  # NODE_PROMPT_EXECUTOR
-            Mock(type="content", content="Accept: Yes"),  # NODE_OUTPUT_HISTORY_ANALYZER
+            Mock(type="content", content="Accept: Yes"),  # NODE_PPROMPT_ANALYZER
         ]
         llm.invoke = lambda _: responses.pop(0)
 
@@ -183,6 +181,37 @@ class TestMetaPromptGraph(unittest.TestCase):
 
         self.assertIsNotNone(output_state['best_system_message'])
         self.assertIsNotNone(output_state['best_output'])
+
+        pprint.pp(output_state["best_output"])
+
+    def test_iterated_workflow_execution(self):
+        # Create a mock LLM that returns predefined responses based on the input messages
+        llm = Mock(spec=BaseLanguageModel)
+        responses = [
+            Mock(type="content", content="Explain how to reverse a list in Python."),  # NODE_PROMPT_INITIAL_DEVELOPER
+            Mock(type="content", content="Here's one way: `my_list[::-1]`"),  # NODE_PROMPT_EXECUTOR
+            Mock(type="content", content="Accept: No"),  # NODE_PPROMPT_ANALYZER
+            Mock(type="content", content="Try using the `reverse()` method instead."),  # NODE_PROMPT_SUGGESTER
+            Mock(type="content", content="Explain how to reverse a list in Python. Output in a Markdown List."),  # NODE_PROMPT_DEVELOPER
+            Mock(type="content", content="Here's one way: `my_list.reverse()`"),  # NODE_PROMPT_EXECUTOR
+            Mock(type="content", content="# Preferred Output ID: B"), # NODE_OUTPUT_HISTORY_ANALYZER
+            Mock(type="content", content="Accept: Yes"),  # NODE_PPROMPT_ANALYZER
+        ]
+        llm.invoke = lambda _: responses.pop(0)
+
+        meta_prompt_graph = MetaPromptGraph(llms=llm)
+        input_state = AgentState(
+            user_message="How do I reverse a list in Python?",
+            expected_output="The output should use the `reverse()` method.",
+            acceptance_criteria="The output should be correct and efficient."
+        )
+
+        output_state = meta_prompt_graph(input_state)
+
+        self.assertIsNotNone(output_state['best_system_message'])
+        self.assertIsNotNone(output_state['best_output'])
+
+        pprint.pp(output_state["best_output"])
 
 if __name__ == '__main__':
     unittest.main()
