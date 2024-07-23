@@ -1,8 +1,9 @@
 import unittest
 import pprint
 import logging
-from unittest.mock import MagicMock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch, Mock
+from langchain_core.runnables.utils import Output
+from langchain_core.language_models import BaseLanguageModel
 
 from langchain_openai import ChatOpenAI
 
@@ -160,6 +161,28 @@ class TestMetaPromptGraph(unittest.TestCase):
         assert hasattr(result, 'content'), \
             "The result should have the attribute 'content'"
         print(result.content)
+
+    def test_simple_workflow_execution(self):
+        # Create a mock LLM that returns predefined responses based on the input messages
+        llm = Mock(spec=BaseLanguageModel)
+        responses = [
+            Mock(type="content", content="Explain how to reverse a list in Python."),  # NODE_PROMPT_INITIAL_DEVELOPER
+            Mock(type="content", content="Here's one way: `my_list[::-1]`"),  # NODE_PROMPT_EXECUTOR
+            Mock(type="content", content="Accept: Yes"),  # NODE_OUTPUT_HISTORY_ANALYZER
+        ]
+        llm.invoke = lambda _: responses.pop(0)
+
+        meta_prompt_graph = MetaPromptGraph(llms=llm)
+        input_state = AgentState(
+            user_message="How do I reverse a list in Python?",
+            expected_output="The output should use the `reverse()` method.",
+            acceptance_criteria="The output should be correct and efficient."
+        )
+
+        output_state = meta_prompt_graph(input_state)
+
+        self.assertIsNotNone(output_state['best_system_message'])
+        self.assertIsNotNone(output_state['best_output'])
 
 if __name__ == '__main__':
     unittest.main()
