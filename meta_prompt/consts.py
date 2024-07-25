@@ -108,7 +108,7 @@ You output the following analysis according to the Acceptance Criteria:
 # Preferred Output ID: [ID]
 ```
 
-If both outputs are equally similar to the Expected Output, output the following:
+You must choose one of the two outputs. If both outputs are exacly the same, output the following:
 
 ```
 # Analysis
@@ -193,7 +193,7 @@ Provide your analysis in the following format:
 * Provide your suggestions in a Markdown list, nothing else. Output only the suggestions related with Unacceptable Differences.
 * Start every suggestion with `The System Message should ...`.
 * Figue out the contexts of the System Message that conflict with the suggestions, and suggest modification or deletion.
-* Do not simply describe the output as being the same/similar/different from the Expected Output, such as `the output should not use a different format and style compared to the Expected Output` or `the output should match the expected output exactly`; instead, describe the expected characteristics specifically and suggest a detailed example.
+* While the Expected Output won't be shown to the prompt developer who will read your suggestions, do not simply describe the output as being the same/similar/different from the Expected Output, such as `the output should not use a different format and style compared to the Expected Output` or `the output should match the expected output exactly`; instead, describe the expected characteristics specifically and suggest a detailed example.
 * Avoiding the behavior should be explicitly requested (e.g. `The System Message should explicitly state that the output shoud not ...`) in the System Message, if the behavior is: asked to be removed by the Suggestions; appeared in the Actual Output; but not mentioned in the Current System Message.
 * Expected Output text should not appear in System Message as an example. But it's OK to use some similar but distinct text as an example instead.
 * Ask to remove the Expected Output text or text highly similar to Expected Output from System Message, if it's present.

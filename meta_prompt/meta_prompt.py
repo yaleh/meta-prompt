@@ -12,6 +12,23 @@ from pydantic import BaseModel
 from .consts import *
 
 class AgentState(BaseModel):
+    """
+    Represents the state of an agent in a conversation.
+
+    Attributes:
+    - max_output_age (int): The maximum age of the output.
+    - user_message (str, optional): The user's message.
+    - expected_output (str, optional): The expected output.
+    - acceptance_criteria (str, optional): The acceptance criteria.
+    - system_message (str, optional): The system message.
+    - output (str, optional): The output.
+    - suggestions (str, optional): The suggestions.
+    - accepted (bool): Whether the output is accepted.
+    - analysis (str, optional): The analysis.
+    - best_output (str, optional): The best output.
+    - best_system_message (str, optional): The best system message.
+    - best_output_age (int): The age of the best output.
+    """
     max_output_age: int = 0
     user_message: Optional[str] = None
     expected_output: Optional[str] = None
@@ -26,8 +43,30 @@ class AgentState(BaseModel):
     best_output_age: int = 0
 
 class MetaPromptGraph:
+    """
+    This class represents a graph for meta-prompting in a conversational AI system.
+
+    It manages the state of the conversation, including the user's message, expected output, 
+    acceptance criteria, system message, output, suggestions, and analysis. The graph 
+    consists of nodes that represent different stages of the conversation, such as 
+    prompting the developer, executing the output, analyzing the output history, and 
+    suggesting new prompts. The class provides methods to create the workflow, 
+    initialize the graph, and invoke the graph with a given state.
+
+    The MetaPromptGraph class is responsible for orchestrating the conversation flow 
+    and deciding the next step based on the current state of the conversation. It uses 
+    language models and prompt templates to generate responses and analyze the output.
+    """
     @classmethod
     def get_node_names(cls):
+        """
+        Returns a list of node names in the meta-prompt graph.
+
+        This method is used to initialize the language models and prompt templates for each node in the graph.
+
+        Returns:
+            list: A list of node names.
+        """
         return META_PROMPT_NODES
 
     def __init__(self,
@@ -36,6 +75,17 @@ class MetaPromptGraph:
                  prompts: Dict[str, ChatPromptTemplate] = {},
                  logger: Optional[logging.Logger] = None,
                  verbose=False):
+        """
+        Initializes the MetaPromptGraph instance.
+
+        Args:
+        - llms (Union[BaseLanguageModel, Dict[str, BaseLanguageModel]], optional): The language models for the graph nodes. Defaults to {}.
+        - prompts (Dict[str, ChatPromptTemplate], optional): The custom prompt templates for the graph nodes. Defaults to {}.
+        - logger (Optional[logging.Logger], optional): The logger for the graph. Defaults to None.
+        - verbose (bool, optional): Whether to set the logger level to DEBUG. Defaults to False.
+
+        Initializes the logger, sets the language models and prompt templates for the graph nodes, and updates the prompt templates with custom ones if provided.
+        """
         self.logger = logger or logging.getLogger(__name__)
         if self.logger is not None:
             if verbose:

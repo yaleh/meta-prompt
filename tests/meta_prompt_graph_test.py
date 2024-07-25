@@ -1,6 +1,7 @@
 import unittest
 import pprint
 import logging
+import functools
 from unittest.mock import MagicMock, Mock
 from langchain_core.language_models import BaseLanguageModel
 from langchain_openai import ChatOpenAI
@@ -168,7 +169,7 @@ class TestMetaPromptGraph(unittest.TestCase):
             Mock(type="content", content="Here's one way: `my_list[::-1]`"),  # NODE_PROMPT_EXECUTOR
             Mock(type="content", content="Accept: Yes"),  # NODE_PPROMPT_ANALYZER
         ]
-        llm.invoke = lambda _: responses.pop(0)
+        llm.invoke = functools.partial(next, iter(responses))
 
         meta_prompt_graph = MetaPromptGraph(llms=llm)
         input_state = AgentState(

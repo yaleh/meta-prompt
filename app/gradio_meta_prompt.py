@@ -70,6 +70,20 @@ class SimplifiedCSVLogger(CSVLogger):
 
 
 class LLMModelFactory:
+    """A factory class for creating instances of LLM models.
+
+    This class follows the Singleton pattern, ensuring that only one instance is created.
+    The `create` method dynamically instantiates a model based on the provided `model_type`.
+
+    Attributes:
+        _instance (LLMModelFactory): A private class variable to store the singleton instance.
+
+    Methods:
+        create(model_type: str, **kwargs) -> BaseLanguageModel:
+            Dynamically creates and returns an instance of a model based on `model_type`.
+
+    """
+
     _instance = None
 
     def __new__(cls):
@@ -77,12 +91,34 @@ class LLMModelFactory:
             cls._instance = super(LLMModelFactory, cls).__new__(cls)
         return cls._instance
 
-    def create(self, model_type: str, **kwargs):
+    def create(self, model_type: str, **kwargs) -> BaseLanguageModel:
+        """Creates and returns an instance of a model based on `model_type`.
+
+        Args:
+            model_type (str): The name of the model class to instantiate.
+            **kwargs: Additional keyword arguments to pass to the model constructor.
+
+        Returns:
+            BaseLanguageModel: An instance of a model that inherits from BaseLanguageModel.
+
+        """
         model_class = globals()[model_type]
         return model_class(**kwargs)
 
 
 def chat_log_2_chatbot_list(chat_log: str):
+    """Convert a chat log string into a list of dialogues for the Chatbot format.
+
+    Args:
+        chat_log (str): A JSON formatted chat log where each line represents an action with its message.
+                         Expected actions are 'invoke' and 'response'.
+
+    Returns:
+        List[List[str]]: A list of dialogue pairs where the first element is a user input and the second element is a bot response.
+                          If the action was 'invoke', the first element will be the message, and the second element will be None.
+                          If the action was 'response', the first element will be None, and the second element will be the message.
+    """
+
     chatbot_list = []
     if chat_log is None or chat_log == '':
         return chatbot_list
@@ -91,9 +127,9 @@ def chat_log_2_chatbot_list(chat_log: str):
             json_line = json.loads(line)
             if 'action' in json_line:
                 if json_line['action'] == 'invoke':
-                    chatbot_list.append([json_line['message'],None])
+                    chatbot_list.append([json_line['message'], None])
                 if json_line['action'] == 'response':
-                    chatbot_list.append([None,json_line['message']])
+                    chatbot_list.append([None, json_line['message']])
         except json.decoder.JSONDecodeError as e:
             print(f"Error decoding JSON log output: {e}")
             print(line)
@@ -106,6 +142,16 @@ def chat_log_2_chatbot_list(chat_log: str):
 active_model_tab = "Simple"
 
 def on_model_tab_select(event: gr.SelectData):
+    """
+    Handles model tab selection events and updates the active model tab.
+
+    Parameters:
+        event (gr.SelectData): The select data event triggered by the user's action.
+
+    Returns:
+        None: This function doesn't return anything but updates the global variable 'active_model_tab'.
+
+    """
     if not event.selected:
         return
     
@@ -113,59 +159,96 @@ def on_model_tab_select(event: gr.SelectData):
     active_model_tab = event.value
 
 
-def get_current_models(simple_model_name: str, optimizer_model_name: str, executor_model_name: str):
-    optimizer_model_config = config.llms[optimizer_model_name if active_model_tab ==
-                                        "Advanced" else simple_model_name]
-    executor_model_config = config.llms[executor_model_name if active_model_tab ==
-                                        "Advanced" else simple_model_name]
-    optimizer_model = LLMModelFactory().create(optimizer_model_config.type,
-                                              **optimizer_model_config.model_dump(exclude={'type'}))
-    executor_model = LLMModelFactory().create(executor_model_config.type,
-                                              **executor_model_config.model_dump(exclude={'type'}))
+def get_current_executor_model(simple_model_name: str, advanced_model_name: str, expert_model_name: str) -> BaseLanguageModel:
+    """
+    Retrieve and return a language model (LLM) based on the currently active model tab.
 
-    return {
-        NODE_PROMPT_INITIAL_DEVELOPER: optimizer_model,
-        NODE_PROMPT_DEVELOPER: optimizer_model,
-        NODE_PROMPT_EXECUTOR: executor_model,
-        NODE_OUTPUT_HISTORY_ANALYZER: optimizer_model,
-        NODE_PROMPT_ANALYZER: optimizer_model,
-        NODE_PROMPT_SUGGESTER: optimizer_model
+    This function uses a mapping to associate model tab names with their corresponding model names.
+    It then looks up the configuration for the selected executor model in the application's
+    configuration, creates an instance of the appropriate type of language model using that
+    configuration, and returns it. If the active model tab is not found in the mapping, the simple model
+    will be used as a default.
+
+    Args:
+        simple_model_name (str): The name of the simple language model.
+            This should correspond to a key in the 'llms' section of the application's configuration.
+        advanced_model_name (str): The name of the advanced language model.
+            This should correspond to a key in the 'llms' section of the application's configuration.
+        expert_model_name (str): The name of the expert language model.
+            This should correspond to a key in the 'llms' section of the application's configuration.
+
+    Returns:
+        BaseLanguageModel: An instance of a language model that inherits from BaseLanguageModel,
+                           based on the currently active model tab and the provided model names.
+    """
+    model_mapping = {
+        "Simple": simple_model_name,
+        "Advanced": advanced_model_name,
+        "Expert": expert_model_name
     }
+    executor_model_name = model_mapping.get(active_model_tab, simple_model_name)
+    executor_model_config = config.llms[executor_model_name]
+    return LLMModelFactory().create(executor_model_config.type, 
+                                    **executor_model_config.model_dump(exclude={'type'}))
 
 
-def get_current_executor_model(simple_model_name: str, executor_model_name: str):
-    executor_model_config = config.llms[executor_model_name if active_model_tab ==
-                                        "Advanced" else simple_model_name]
-    executor_model = LLMModelFactory().create(executor_model_config.type,
-                                              **executor_model_config.model_dump(exclude={'type'}))
-    return executor_model
+def evaluate_system_message(system_message, user_message, simple_model, advanced_executor_model, expert_executor_model):
+    """
+    Evaluate a system message by using it to generate a response from an executor model based on the current active tab and provided user message.
 
+    This function retrieves the appropriate language model (LLM) for the current active model tab, formats a chat prompt template with the system message and user message, invokes the LLM using this formatted prompt, and returns the content of the output if it exists.
 
-def evaluate_system_message(system_message, user_message, simple_model, executor_model):
-    llm = get_current_executor_model(simple_model, executor_model)
+    Args:
+        system_message (str): The system message to use when evaluating the response.
+        user_message (str): The user's input message for which a response will be generated.
+        simple_model (str): The name of the simple language model. This should correspond to a key in the 'llms' section of the application's configuration.
+        advanced_executor_model (str): The name of the advanced language model. This should correspond to a key in the 'llms' section of the application's configuration.
+        expert_executor_model (str): The name of the expert language model. This should correspond to a key in the 'llms' section of the application's configuration.
+
+    Returns:
+        str: The content of the output generated by the LLM based on the system message and user message, if it exists; otherwise, an empty string.
+
+    Raises:
+        gr.Error: If there is a Gradio-specific error during the execution of this function.
+        Exception: For any other unexpected errors that occur during the execution of this function.
+    """
+    llm = get_current_executor_model(simple_model, advanced_executor_model, expert_executor_model)
     template = ChatPromptTemplate.from_messages([
         ("system", "{system_message}"),
         ("human", "{user_message}")
     ])
-    messages = template.format_messages(system_message=system_message, user_message=user_message)
     try:
-        output = llm.invoke(messages)
+        output = llm.invoke(template.format(
+            system_message=system_message, user_message=user_message))
+        return output.content if hasattr(output, 'content') else ""
+    except gr.Error as e:
+        raise e
     except Exception as e:
-        if isinstance(e, gr.Error):
-            raise e
-        else:
-            raise gr.Error(f"Error: {e}")   
-
-    if hasattr(output, 'content'):
-        return output.content
-    else:
-        return ""
+        raise gr.Error(f"Error: {e}")
 
 
-def process_message(user_message, expected_output, acceptance_criteria,
-                    initial_system_message, recursion_limit: int,
-                    max_output_age: int,
-                    llms: Union[BaseLanguageModel, Dict[str, BaseLanguageModel]]):
+def process_message(user_message, expected_output, acceptance_criteria, initial_system_message, recursion_limit: int, max_output_age: int, llms: Union[BaseLanguageModel, Dict[str, BaseLanguageModel]]):
+    """
+    Process a user message by executing the MetaPromptGraph with provided language models and input state.
+    This function sets up the initial state of the conversation, logs the execution if verbose mode is enabled,
+    and extracts the best system message, output, and analysis from the output state of the MetaPromptGraph.
+
+    Args:
+        user_message (str): The user's input message to be processed by the language model(s).
+        expected_output (str): The anticipated response or outcome from the language model(s) based on the user's message.
+        acceptance_criteria (str): Criteria that determines whether the output is acceptable or not.
+        initial_system_message (str): Initial instruction given to the language model(s) before processing the user's message.
+        recursion_limit (int): The maximum number of times the MetaPromptGraph can call itself recursively.
+        max_output_age (int): The maximum age of output messages that should be considered in the conversation history.
+        llms (Union[BaseLanguageModel, Dict[str, BaseLanguageModel]]): A single language model or a dictionary of language models to use for processing the user's message.
+
+    Returns:
+        tuple: A tuple containing the best system message, output, analysis, and chat log in JSON format.
+            - best_system_message (str): The system message that resulted in the most appropriate response based on the acceptance criteria.
+            - best_output (str): The output generated by the language model(s) that best meets the expected outcome and acceptance criteria.
+            - analysis (str): An analysis of how well the generated output matches the expected output and acceptance criteria.
+            - chat_log (list): A list containing JSON objects representing the conversation log, with each object containing a timestamp, logger name, levelname, and message.
+    """
     input_state = AgentState(
         user_message=user_message,
         expected_output=expected_output,
@@ -197,34 +280,107 @@ def process_message(user_message, expected_output, acceptance_criteria,
     else:
         log_output = None
 
-    system_message = output_state.get('best_system_message', "Error: The output state does not contain a valid 'best_system_message'")
-    output = output_state.get('best_output', "Error: The output state does not contain a valid 'best_output'")
-    analysis = output_state.get('analysis', "Error: The output state does not contain a valid 'analysis'")
+    system_message = output_state.get(
+        'best_system_message', "Error: The output state does not contain a valid 'best_system_message'")
+    output = output_state.get(
+        'best_output', "Error: The output state does not contain a valid 'best_output'")
+    analysis = output_state.get(
+        'analysis', "Error: The output state does not contain a valid 'analysis'")
 
     return (system_message, output, analysis, chat_log_2_chatbot_list(log_output))
 
+
+def initialize_llm(model_name: str) -> Any:
+    """
+    Initialize and return a language model (LLM) based on its name.
+
+    This function looks up the configuration for the specified language model in the application's
+    configuration, creates an instance of the appropriate type of language model using that
+    configuration, and returns it.
+
+    Args:
+        model_name (str): The name of the language model to initialize.
+            This should correspond to a key in the 'llms' section of the application's configuration.
+
+    Returns:
+        Any: An instance of the specified type of language model, initialized with its configured settings.
+
+    Raises:
+        KeyError: If no configuration exists for the specified model name.
+        NotImplementedError: If an unrecognized type is configured for the language model.
+            This should not occur under normal circumstances because the LLMModelFactory class
+            checks and validates the type when creating a new language model.
+    """
+    model_config = config.llms[model_name]
+    return LLMModelFactory().create(model_config.type, **model_config.model_dump(exclude={'type'}))
 
 
 def process_message_with_single_llm(user_message, expected_output, acceptance_criteria, initial_system_message,
                                     recursion_limit: int, max_output_age: int,
                                     model_name: str):
-    # Get the output state from MetaPromptGraph
-    type = config.llms[model_name].type
-    args = config.llms[model_name].model_dump(exclude={'type'})
-    llm = LLMModelFactory().create(type, **args)
+    """
+    Process a user message using a single language model.
 
+    This function initializes the specified language model and then uses it to process the user's
+    message along with other provided input parameters such as expected output, acceptance criteria,
+    initial system message, recursion limit, and max output age. The result is obtained by calling
+    the `process_message` function with this single language model.
+
+    Args:
+        user_message (str): The user's input message to be processed by the language model(s).
+        expected_output (str): The anticipated response or outcome from the language model based on the user's message.
+        acceptance_criteria (str): Criteria that determines whether the output is acceptable or not.
+        initial_system_message (str): Initial instruction given to the language model before processing the user's message.
+        recursion_limit (int): The maximum number of times the MetaPromptGraph can call itself recursively.
+        max_output_age (int): The maximum age of output messages that should be considered in the conversation history.
+        model_name (str): The name of the language model to initialize and use for processing the user's message.
+            This should correspond to a key in the 'llms' section of the application's configuration.
+
+    Returns:
+        tuple: A tuple containing the best system message, output, analysis, and chat log in JSON format.
+            - best_system_message (str): The system message that resulted in the most appropriate response based on the acceptance criteria.
+            - best_output (str): The output generated by the language model that best meets the expected outcome and acceptance criteria.
+            - analysis (str): An analysis of how well the generated output matches the expected output and acceptance criteria.
+            - chat_log (list): A list containing JSON objects representing the conversation log, with each object containing a timestamp, logger name, levelname, and message.
+    """
+    llm = initialize_llm(model_name)
     return process_message(user_message, expected_output, acceptance_criteria, initial_system_message,
                            recursion_limit, max_output_age, llm)
 
 
 def process_message_with_2_llms(user_message, expected_output, acceptance_criteria, initial_system_message,
                                 recursion_limit: int, max_output_age: int,
-                                optimizer_model_name: str, executor_model_name: str,):
-    # Get the output state from MetaPromptGraph
-    optimizer_model = LLMModelFactory().create(config.llms[optimizer_model_name].type,
-                                               **config.llms[optimizer_model_name].model_dump(exclude={'type'}))
-    executor_model = LLMModelFactory().create(config.llms[executor_model_name].type,
-                                              **config.llms[executor_model_name].model_dump(exclude={'type'}))
+                                optimizer_model_name: str, executor_model_name: str):
+    """
+    Process a user message using two language models - one for optimization and another for execution.
+
+    This function initializes the specified optimizer and executor language models and then uses them to process
+    the user's message along with other provided input parameters such as expected output, acceptance criteria,
+    initial system message, recursion limit, and max output age. The result is obtained by calling the `process_message`
+    function with a dictionary of language models where all nodes except for NODE_PROMPT_EXECUTOR use the optimizer model
+    and NODE_PROMPT_EXECUTOR uses the executor model.
+
+    Args:
+        user_message (str): The user's input message to be processed by the language models.
+        expected_output (str): The anticipated response or outcome from the language models based on the user's message.
+        acceptance_criteria (str): Criteria that determines whether the output is acceptable or not.
+        initial_system_message (str): Initial instruction given to the language models before processing the user's message.
+        recursion_limit (int): The maximum number of times the MetaPromptGraph can call itself recursively.
+        max_output_age (int): The maximum age of output messages that should be considered in the conversation history.
+        optimizer_model_name (str): The name of the language model to initialize and use for optimization tasks like prompt development, analysis, and suggestion.
+            This should correspond to a key in the 'llms' section of the application's configuration.
+        executor_model_name (str): The name of the language model to initialize and use for execution tasks like running code or providing final outputs.
+            This should correspond to a key in the 'llms' section of the application's configuration.
+
+    Returns:
+        tuple: A tuple containing the best system message, output, analysis, and chat log in JSON format.
+            - best_system_message (str): The system message that resulted in the most appropriate response based on the acceptance criteria.
+            - best_output (str): The output generated by the language models that best meets the expected outcome and acceptance criteria.
+            - analysis (str): An analysis of how well the generated output matches the expected output and acceptance criteria.
+            - chat_log (list): A list containing JSON objects representing the conversation log, with each object containing a timestamp, logger name, levelname, and message.
+    """
+    optimizer_model = initialize_llm(optimizer_model_name)
+    executor_model = initialize_llm(executor_model_name)
     llms = {
         NODE_PROMPT_INITIAL_DEVELOPER: optimizer_model,
         NODE_PROMPT_DEVELOPER: optimizer_model,
@@ -233,40 +389,54 @@ def process_message_with_2_llms(user_message, expected_output, acceptance_criter
         NODE_PROMPT_ANALYZER: optimizer_model,
         NODE_PROMPT_SUGGESTER: optimizer_model
     }
-
     return process_message(user_message, expected_output, acceptance_criteria, initial_system_message,
                            recursion_limit, max_output_age, llms)
 
 
 def process_message_with_expert_llms(user_message, expected_output, acceptance_criteria, initial_system_message,
-                                        recursion_limit: int, max_output_age: int,
-                                        initial_developer_model_name: str, developer_model_name: str,
-                                        executor_model_name: str, output_history_analyzer_model_name: str,
-                                        analyzer_model_name: str, suggester_model_name: str):
-    # Get the output state from MetaPromptGraph
-    initial_developer_model = LLMModelFactory().create(config.llms[initial_developer_model_name].type,
-                                                    **config.llms[initial_developer_model_name].model_dump(exclude={'type'}))
-    developer_model = LLMModelFactory().create(config.llms[developer_model_name].type,
-                                                    **config.llms[developer_model_name].model_dump(exclude={'type'}))
-    executor_model = LLMModelFactory().create(config.llms[executor_model_name].type,
-                                                    **config.llms[executor_model_name].model_dump(exclude={'type'}))
-    output_history_analyzer_model = LLMModelFactory().create(config.llms[output_history_analyzer_model_name].type,
-                                                    **config.llms[output_history_analyzer_model_name].model_dump(exclude={'type'}))
-    analyzer_model = LLMModelFactory().create(config.llms[analyzer_model_name].type,
-                                                    **config.llms[analyzer_model_name].model_dump(exclude={'type'}))
-    suggester_model = LLMModelFactory().create(config.llms[suggester_model_name].type,
-                                                    **config.llms[suggester_model_name].model_dump(exclude={'type'}))
-    llms = {
-        NODE_PROMPT_INITIAL_DEVELOPER: initial_developer_model,
-        NODE_PROMPT_DEVELOPER: developer_model,
-        NODE_PROMPT_EXECUTOR: executor_model,
-        NODE_OUTPUT_HISTORY_ANALYZER: output_history_analyzer_model,
-        NODE_PROMPT_ANALYZER: analyzer_model,
-        NODE_PROMPT_SUGGESTER: suggester_model
-    }
+                                     recursion_limit: int, max_output_age: int,
+                                     initial_developer_model_name: str, developer_model_name: str,
+                                     executor_model_name: str, output_history_analyzer_model_name: str,
+                                     analyzer_model_name: str, suggester_model_name: str):
+    """
+    Process a user message using multiple expert language models.
 
+    This function initializes six expert language models based on their names and uses them to process the user's message
+    along with other provided input parameters such as expected output, acceptance criteria, initial system message, 
+    recursion limit, and max output age. The result is obtained by calling the `process_message` function with a dictionary 
+    of language models where each node uses a specific language model.
+
+    Args:
+        user_message (str): The user's input message to be processed by the language models.
+        expected_output (str): The anticipated response or outcome from the language models based on the user's message.
+        acceptance_criteria (str): Criteria that determines whether the output is acceptable or not.
+        initial_system_message (str): Initial instruction given to the language models before processing the user's message.
+        recursion_limit (int): The maximum number of times the MetaPromptGraph can call itself recursively.
+        max_output_age (int): The maximum age of output messages that should be considered in the conversation history.
+        initial_developer_model_name (str): The name of the language model to initialize and use for the initial developer node.
+        developer_model_name (str): The name of the language model to initialize and use for the developer node.
+        executor_model_name (str): The name of the language model to initialize and use for the executor node.
+        output_history_analyzer_model_name (str): The name of the language model to initialize and use for the output history analyzer node.
+        analyzer_model_name (str): The name of the language model to initialize and use for the analyzer node.
+        suggester_model_name (str): The name of the language model to initialize and use for the suggester node.
+
+    Returns:
+        tuple: A tuple containing the best system message, output, analysis, and chat log in JSON format.
+            - best_system_message (str): The system message that resulted in the most appropriate response based on the acceptance criteria.
+            - best_output (str): The output generated by the language models that best meets the expected outcome and acceptance criteria.
+            - analysis (str): An analysis of how well the generated output matches the expected output and acceptance criteria.
+            - chat_log (list): A list containing JSON objects representing the conversation log, with each object containing a timestamp, logger name, levelname, and message.
+    """
+    llms = {
+        NODE_PROMPT_INITIAL_DEVELOPER: initialize_llm(initial_developer_model_name),
+        NODE_PROMPT_DEVELOPER: initialize_llm(developer_model_name),
+        NODE_PROMPT_EXECUTOR: initialize_llm(executor_model_name),
+        NODE_OUTPUT_HISTORY_ANALYZER: initialize_llm(output_history_analyzer_model_name),
+        NODE_PROMPT_ANALYZER: initialize_llm(analyzer_model_name),
+        NODE_PROMPT_SUGGESTER: initialize_llm(suggester_model_name)
+    }
     return process_message(user_message, expected_output, acceptance_criteria, initial_system_message,
-                            recursion_limit, max_output_age, llms)
+                           recursion_limit, max_output_age, llms)
 
 
 class FileConfig(BaseConfig):
@@ -393,19 +563,25 @@ with gr.Blocks(title='Meta Prompt') as demo:
                                             acceptance_criteria_input, initial_system_message_input],
                                 value='Clear All')
         with gr.Column():
-            system_message_output = gr.Textbox(label="System Message", show_copy_button=True)
+            system_message_output = gr.Textbox(
+                label="System Message", show_copy_button=True)
             with gr.Row():
-                evaluate_system_message_button = gr.Button(value="Evaluate", variant="secondary")
-                copy_to_initial_system_message_button = gr.Button(value="Copy to Initial System Message", variant="secondary")
+                evaluate_system_message_button = gr.Button(
+                    value="Evaluate", variant="secondary")
+                copy_to_initial_system_message_button = gr.Button(
+                    value="Copy to Initial System Message", variant="secondary")
             output_output = gr.Textbox(label="Output", show_copy_button=True)
-            analysis_output = gr.Textbox(label="Analysis", show_copy_button=True)
-            flag_button = gr.Button(value="Flag", variant="secondary", visible=config.allow_flagging)
+            analysis_output = gr.Textbox(
+                label="Analysis", show_copy_button=True)
+            flag_button = gr.Button(
+                value="Flag", variant="secondary", visible=config.allow_flagging)
             with gr.Accordion("Details", open=False, visible=config.verbose):
                 logs_chatbot = gr.Chatbot(
                     label='Messages', show_copy_button=True, layout='bubble',
                     bubble_full_width=False, render_markdown=False
                 )
-                clear_logs_button = gr.ClearButton([logs_chatbot], value='Clear Logs')
+                clear_logs_button = gr.ClearButton(
+                    [logs_chatbot], value='Clear Logs')
 
     # Load examples
     examples = gr.Examples(config.examples_path, inputs=[
@@ -425,13 +601,13 @@ with gr.Blocks(title='Meta Prompt') as demo:
     evaluate_initial_system_message_button.click(
         evaluate_system_message,
         inputs=[initial_system_message_input, user_message_input,
-                simple_model_name_input, advanced_executor_model_name_input],
+                simple_model_name_input, advanced_executor_model_name_input, expert_prompt_executor_model_name_input],
         outputs=[output_output]
     )
     evaluate_system_message_button.click(
         evaluate_system_message,
         inputs=[system_message_output, user_message_input,
-                simple_model_name_input, advanced_executor_model_name_input],
+                simple_model_name_input, advanced_executor_model_name_input, expert_prompt_executor_model_name_input],
         outputs=[output_output]
     )
     copy_to_initial_system_message_button.click(
