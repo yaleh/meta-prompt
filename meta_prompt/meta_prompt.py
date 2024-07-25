@@ -237,7 +237,7 @@ class MetaPromptGraph:
 
         analysis = response.content
 
-        if state.best_output is None or "# Preferred Output ID: B" in analysis:
+        if state.best_output is None or "# Output ID closer to Expected Output: B" in analysis:
             state.best_output = state.output
             state.best_system_message = state.system_message
             state.best_output_age = 0

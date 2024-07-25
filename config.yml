@@ -14,6 +14,27 @@ llms:
     openai_api_base: "https://api.groq.com/openai/v1"
     max_tokens: 8192
     verbose: true
+  groq/llama-3.1-405b-reasoning:
+    type: ChatOpenAI
+    temperature: 0.1
+    model_name: "llama-3.1-405b-reasoning"
+    openai_api_base: "https://api.groq.com/openai/v1"
+    max_tokens: 131072
+    verbose: true
+  groq/llama-3.1-70b-versatile:
+    type: ChatOpenAI
+    temperature: 0.1
+    model_name: "llama-3.1-70b-versatile"
+    openai_api_base: "https://api.groq.com/openai/v1"
+    max_tokens: 8000
+    verbose: true
+  groq/llama-3.1-8b-instant:
+    type: ChatOpenAI
+    temperature: 0.1
+    model_name: "llama-3.1-8b-instant"
+    openai_api_base: "https://api.groq.com/openai/v1"
+    max_tokens: 8000
+    verbose: true
   groq/gemma2-9b-it:
     type: ChatOpenAI
     temperature: 0.1

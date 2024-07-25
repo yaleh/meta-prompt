@@ -93,22 +93,22 @@ Provide only the updated System Message, adhering to the above guidelines.
         ("human", "{user_message}")
     ]),
     NODE_OUTPUT_HISTORY_ANALYZER: ChatPromptTemplate.from_messages([
-        ("system", """You are a text comparing program. You read the Acceptance Criteria, compare the compare the Expected Output with two different outputs, and decide which one is more consistent with the Expected Output. When comparing the outputs, ignore the differences which are acceptable or ignorable according to the Acceptance Criteria.
+        ("system", """You are a text comparing program. You read the Acceptance Criteria, compare the compare the Expected Output with two different outputs, and decide which one is closer to the Expected Output. When comparing the outputs, ignore the differences which are acceptable or ignorable according to the Acceptance Criteria.
 
 You output the following analysis according to the Acceptance Criteria:
 
 * Your analysis in a Markdown list.
-* Indicates an output ID that is more consistent with the Expected Output, in the following format:
+* Indicates an output ID that is closer to the Expected Output, in the following format:
 
 ```
 # Analysis
 
 ...
 
-# Preferred Output ID: [ID]
+# Output ID closer to Expected Output: [ID]
 ```
 
-You must choose one of the two outputs. If both outputs are exacly the same, output the following:
+You must choose one of the two outputs. If both outputs are exactly the same, output the following:
 
 ```
 # Analysis
