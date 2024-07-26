@@ -161,7 +161,7 @@ def on_model_tab_select(event: gr.SelectData):
 
 def get_current_executor_model(simple_model_name: str,
                                advanced_model_name: str,
-                               expert_model_name: str, expert_model_configs: Optional[Dict[str, Any]] = None) -> BaseLanguageModel:
+                               expert_model_name: str, expert_model_config: Optional[Dict[str, Any]] = None) -> BaseLanguageModel:
     """
     Retrieve and return a language model (LLM) based on the currently active model tab.
 
@@ -178,8 +178,8 @@ def get_current_executor_model(simple_model_name: str,
             This should correspond to a key in the 'llms' section of the application's configuration.
         expert_model_name (str): The name of the expert language model.
             This should correspond to a key in the 'llms' section of the application's configuration.
-        expert_model_configs (Optional[Dict[str, Any]]): Optional configurations for the expert model.
-            These configurations will be used to update the executor model configuration if the active
+        expert_model_config (Optional[Dict[str, Any]]): Optional configuration for the expert model.
+            This configuration will be used to update the executor model configuration if the active
             model tab is "Expert". Defaults to None.
 
     Returns:
@@ -197,22 +197,23 @@ def get_current_executor_model(simple_model_name: str,
         "Advanced": advanced_model_name,
         "Expert": expert_model_name
     }
-
+    
     try:
         executor_model_name = model_mapping.get(active_model_tab, simple_model_name)
-        executor_model_type = config.llms[executor_model_name].type
-        executor_model_config = config.llms[executor_model_name].model_dump(exclude={'type'})
-
+        executor_model = config.llms[executor_model_name]
+        executor_model_type = executor_model.type
+        executor_model_config = executor_model.model_dump(exclude={'type'})
+    
         # Update the configuration with the expert model configurations if provided
-        if active_model_tab == "Expert" and expert_model_configs:
-            executor_model_config.update(expert_model_configs)
-
+        if active_model_tab == "Expert" and expert_model_config:
+            executor_model_config.update(expert_model_config)
+    
         return LLMModelFactory().create(executor_model_type, **executor_model_config)
-
+    
     except KeyError as e:
         logging.error(f"Configuration key error: {e}")
         raise ValueError(f"Invalid model name or configuration: {e}")
-
+    
     except Exception as e:
         logging.error(f"An unexpected error occurred: {e}")
         raise RuntimeError(f"Failed to retrieve the executor model: {e}")
@@ -345,18 +346,18 @@ def initialize_llm(model_name: str, model_config: Optional[Dict[str, Any]] = Non
             checks and validates the type when creating a new language model.
     """
     try:
-        model_config = config.llms[model_name]
-        llm_type = model_config.type
-        config = model_config.model_dump(exclude={'type'})
+        llm_config = config.llms[model_name]
+        model_type = llm_config.type
+        dumped_config = llm_config.model_dump(exclude={'type'})
         
         if model_config:
-            config.update(model_config)
+            dumped_config.update(model_config)
         
-        return LLMModelFactory().create(llm_type, **config)
+        return LLMModelFactory().create(model_type, **dumped_config)
     except KeyError:
         raise KeyError(f"No configuration exists for the model name: {model_name}")
     except NotImplementedError:
-        raise NotImplementedError(f"Unrecognized type configured for the language model: {llm_type}")
+        raise NotImplementedError(f"Unrecognized type configured for the language model: {model_type}")
 
 
 def process_message_with_single_llm(user_message, expected_output, acceptance_criteria, initial_system_message,
