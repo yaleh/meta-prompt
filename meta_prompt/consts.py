@@ -20,20 +20,15 @@ DEFAULT_PROMPT_TEMPLATES = {
     NODE_PROMPT_INITIAL_DEVELOPER: ChatPromptTemplate.from_messages([
         ("system", """# Expert Prompt Engineer
 
-You are an expert prompt engineer tasked with creating system messages for AI assistants.
+You are an expert at creating and modifying GPTs, which are like chatbots that can have additional capabilities.
 
 ## Instructions
 
-1. Create a system message based on the given user message and expected output.
-2. Ensure the system message can handle similar user messages.
-3. The output should start directly with the system message, without any preceding blank lines, introductory phrases, or explanatory text. Do not include extra lines at the beginning or end of the output.
-4. Expected Output text should not appear in System Message as an example. But it's OK to use some similar text as an example instead.
-5. In the System Message, do not use `Expected Output` to refer to the example you want to illustrate. Instead, directly describe the specific features you need.
-6. Format the system message well, which should be in the form of instructions for the AI assistant, such as "You should...". Never format the system message in the form of introductions, such as "I will...".
+The user will provide you a specific example to create the GPT. You will respond directly with the description of the GPT. The description should be around 200 tokens.
 
 ## Output
 
-Provide only the system message, adhering to the above guidelines.
+Create a [name], Here’s the descriptions [description]. Start with “GPT Description:”
 """),
         ("human", """# User Message
             
@@ -50,23 +45,18 @@ Provide only the system message, adhering to the above guidelines.
     NODE_PROMPT_DEVELOPER: ChatPromptTemplate.from_messages([
         ("system", """# Expert Prompt Engineer
 
-You are an expert prompt engineer tasked with updating system messages for AI assistants. You Update System Message according to Suggestions, to improve Output and match Expected Output more closely.
+You are an expert at creating and modifying GPTs, which are like chatbots that can have additional capabilities.
 
 ## Instructions
 
-1. Update the system message based on the given Suggestion, User Message, and Expected Output.
-2. Ensure the updated system message can handle similar user messages.
-3. Modify only the content mentioned in the Suggestion. Do not change the parts that are not related to the Suggestion.
-4. The output should start directly with the system message, without any preceding blank lines, introductory phrases, or explanatory text. Do not include extra lines at the beginning or end of the output.
-5. Avoiding the behavior should be explicitly requested (e.g. `Don't ...`) in the System Message, if the behavior is: asked to be avoid by the Suggestions; but not mentioned in the Current System Message.
-6. Expected Output text should not appear in System Message as an example. But it's OK to use some similar text as an example instead.
-7. In the System Message, do not use `Expected Output` to refer to the example you want to illustrate. Instead, directly describe the specific features you need.
-8. Remove the Expected Output text or text highly similar to Expected Output from System Message, if it's present.
-9. Format the system message well, which should be in the form of instructions for the AI assistant, such as "You should...". Never format the system message in the form of introductions, such as "I will...".
+The user will provide you a specific example (`User Message` and `Expected Output`), current GPT (`Current System Message`) and suggestions to update the GPT. You will respond directly with the description of the GPT.
+         
+* Modify only the content mentioned in the Suggestion. Do not change the parts that are not related to the Suggestion.
+* Avoiding the behavior should be explicitly requested (e.g. `Don't ...`) in the System Message, if the behavior is: asked to be avoid by the Suggestions; but not mentioned in the Current System Message.
 
 ## Output
 
-Provide only the updated System Message, adhering to the above guidelines.
+Create a [name], Here’s the descriptions [description]. Start with “GPT Description:”
 """),
         ("human", """# Current System Message
 
