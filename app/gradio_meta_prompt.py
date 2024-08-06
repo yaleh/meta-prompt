@@ -9,14 +9,36 @@ from gradio import CSVLogger, Button, utils
 from gradio.flagging import FlagMethod
 from gradio_client import utils as client_utils
 from confz import BaseConfig, CLArgSource, EnvSource, FileSource
-from app.config import MetaPromptConfig
+from app.config import MetaPromptConfig, RoleMessage
 from langchain_core.language_models import BaseLanguageModel
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from meta_prompt import *
 from pythonjsonlogger import jsonlogger
 import pprint
+from langchain_core.prompts import ChatPromptTemplate
+from typing import Optional, Dict, List
 
+def prompt_templates_confz2langchain(prompt_templates: Dict[str, Dict[str, List[RoleMessage]]]) -> Dict[str, ChatPromptTemplate]:
+    """
+    Convert a dictionary of prompt templates from the configuration format to the language chain format.
+
+    This function takes a dictionary of prompt templates in the configuration format and converts them to the language chain format.
+    Each prompt template is converted to a ChatPromptTemplate object, which is then stored in a new dictionary with the same keys.
+
+    Args:
+        prompt_templates (Dict[str, Dict[str, List[RoleMessage]]]): A dictionary of prompt templates in the configuration format.
+
+    Returns:
+        Dict[str, ChatPromptTemplate]: A dictionary of prompt templates in the language chain format.
+    """
+    return {
+        node: ChatPromptTemplate.from_messages([
+            (role_message.role, role_message.message)
+            for role_message in role_messages
+        ])
+        for node, role_messages in prompt_templates.items()
+    }
 
 class SimplifiedCSVLogger(CSVLogger):
     """
@@ -260,7 +282,11 @@ def evaluate_system_message(system_message, user_message,
         raise gr.Error(f"Error: {e}")
 
 
-def process_message(user_message, expected_output, acceptance_criteria, initial_system_message, recursion_limit: int, max_output_age: int, llms: Union[BaseLanguageModel, Dict[str, BaseLanguageModel]]):
+def process_message(user_message: str, expected_output: str,
+                    acceptance_criteria: str, initial_system_message: str,
+                    recursion_limit: int, max_output_age: int,
+                    llms: Union[BaseLanguageModel, Dict[str, BaseLanguageModel]],
+                    prompt_template_group: Optional[str] = None) -> tuple:
     """
     Process a user message by executing the MetaPromptGraph with provided language models and input state.
     This function sets up the initial state of the conversation, logs the execution if verbose mode is enabled,
@@ -298,7 +324,11 @@ def process_message(user_message, expected_output, acceptance_criteria, initial_
             '%(asctime)s %(name)s %(levelname)s %(message)s'))
         logger.addHandler(log_handler)
 
-    meta_prompt_graph = MetaPromptGraph(llms=llms, verbose=config.verbose, logger=logger)
+    if prompt_template_group is None:
+        prompt_template_group = 'default'
+    prompt_templates = prompt_templates_confz2langchain(config.prompt_templates[prompt_template_group])
+    meta_prompt_graph = MetaPromptGraph(llms=llms, prompts=prompt_templates,
+                                        verbose=config.verbose, logger=logger)
     try:
         output_state = meta_prompt_graph(input_state, recursion_limit=recursion_limit)
     except Exception as e:
@@ -360,19 +390,22 @@ def initialize_llm(model_name: str, model_config: Optional[Dict[str, Any]] = Non
         raise NotImplementedError(f"Unrecognized type configured for the language model: {model_type}")
 
 
-def process_message_with_single_llm(user_message, expected_output, acceptance_criteria, initial_system_message,
+def process_message_with_single_llm(user_message: str, expected_output: str,
+                                    acceptance_criteria: str, initial_system_message: str,
                                     recursion_limit: int, max_output_age: int,
-                                    model_name: str):
+                                    model_name: str, prompt_template_group: Optional[str] = None) -> tuple:
     """
     Process a user message using a single language model.
 
-    This function initializes the specified language model and then uses it to process the user's
-    message along with other provided input parameters such as expected output, acceptance criteria,
-    initial system message, recursion limit, and max output age. The result is obtained by calling
-    the `process_message` function with this single language model.
+    This function initializes a language model based on the provided model name and 
+    uses it to process the user's message. The function takes in additional parameters 
+    such as the user's message, expected output, acceptance criteria, initial system 
+    message, recursion limit, and max output age. It then calls the `process_message` 
+    function with the initialized language model to obtain the best system message, 
+    output, analysis, and chat log.
 
-    Args:
-        user_message (str): The user's input message to be processed by the language model(s).
+    Parameters:
+    user_message (str): The user's input message to be processed by the language model.
         expected_output (str): The anticipated response or outcome from the language model based on the user's message.
         acceptance_criteria (str): Criteria that determines whether the output is acceptable or not.
         initial_system_message (str): Initial instruction given to the language model before processing the user's message.
@@ -380,6 +413,7 @@ def process_message_with_single_llm(user_message, expected_output, acceptance_cr
         max_output_age (int): The maximum age of output messages that should be considered in the conversation history.
         model_name (str): The name of the language model to initialize and use for processing the user's message.
             This should correspond to a key in the 'llms' section of the application's configuration.
+        prompt_template_group (Optional[str], optional): The name of the prompt template group to use for processing the user's message. Defaults to None.
 
     Returns:
         tuple: A tuple containing the best system message, output, analysis, and chat log in JSON format.
@@ -390,12 +424,14 @@ def process_message_with_single_llm(user_message, expected_output, acceptance_cr
     """
     llm = initialize_llm(model_name)
     return process_message(user_message, expected_output, acceptance_criteria, initial_system_message,
-                           recursion_limit, max_output_age, llm)
+                           recursion_limit, max_output_age, llm, prompt_template_group)
 
 
-def process_message_with_2_llms(user_message, expected_output, acceptance_criteria, initial_system_message,
+def process_message_with_2_llms(user_message: str, expected_output: str,
+                                acceptance_criteria: str, initial_system_message: str,
                                 recursion_limit: int, max_output_age: int,
-                                optimizer_model_name: str, executor_model_name: str):
+                                optimizer_model_name: str, executor_model_name: str,
+                                prompt_template_group: Optional[str] = None) -> tuple:
     """
     Process a user message using two language models - one for optimization and another for execution.
 
@@ -416,6 +452,7 @@ def process_message_with_2_llms(user_message, expected_output, acceptance_criter
             This should correspond to a key in the 'llms' section of the application's configuration.
         executor_model_name (str): The name of the language model to initialize and use for execution tasks like running code or providing final outputs.
             This should correspond to a key in the 'llms' section of the application's configuration.
+        prompt_template_group (Optional[str], optional): The name of the prompt template group to use for processing the user's message. Defaults to None.
 
     Returns:
         tuple: A tuple containing the best system message, output, analysis, and chat log in JSON format.
@@ -435,46 +472,20 @@ def process_message_with_2_llms(user_message, expected_output, acceptance_criter
         NODE_PROMPT_SUGGESTER: optimizer_model
     }
     return process_message(user_message, expected_output, acceptance_criteria, initial_system_message,
-                           recursion_limit, max_output_age, llms)
+                           recursion_limit, max_output_age, llms, prompt_template_group)
 
 
-def process_message_with_expert_llms(user_message, expected_output, acceptance_criteria, initial_system_message,
+def process_message_with_expert_llms(user_message: str, expected_output: str,
+                                     acceptance_criteria: str, initial_system_message: str,
                                      recursion_limit: int, max_output_age: int,
                                      initial_developer_model_name: str, initial_developer_temperature: float,
                                      developer_model_name: str, developer_temperature: float,
                                      executor_model_name: str, executor_temperature: float,
                                      output_history_analyzer_model_name: str, output_history_analyzer_temperature: float,
                                      analyzer_model_name: str, analyzer_temperature: float,
-                                     suggester_model_name: str, suggester_temperature: float):
-    """
-    Process a user message using multiple expert language models.
+                                     suggester_model_name: str, suggester_temperature: float,
+                                     prompt_template_group: Optional[str] = None) -> tuple:
 
-    This function initializes six expert language models based on their names and uses them to process the user's message
-    along with other provided input parameters such as expected output, acceptance criteria, initial system message, 
-    recursion limit, and max output age. The result is obtained by calling the `process_message` function with a dictionary 
-    of language models where each node uses a specific language model.
-
-    Args:
-        user_message (str): The user's input message to be processed by the language models.
-        expected_output (str): The anticipated response or outcome from the language models based on the user's message.
-        acceptance_criteria (str): Criteria that determines whether the output is acceptable or not.
-        initial_system_message (str): Initial instruction given to the language models before processing the user's message.
-        recursion_limit (int): The maximum number of times the MetaPromptGraph can call itself recursively.
-        max_output_age (int): The maximum age of output messages that should be considered in the conversation history.
-        initial_developer_model_name (str): The name of the language model to initialize and use for the initial developer node.
-        developer_model_name (str): The name of the language model to initialize and use for the developer node.
-        executor_model_name (str): The name of the language model to initialize and use for the executor node.
-        output_history_analyzer_model_name (str): The name of the language model to initialize and use for the output history analyzer node.
-        analyzer_model_name (str): The name of the language model to initialize and use for the analyzer node.
-        suggester_model_name (str): The name of the language model to initialize and use for the suggester node.
-
-    Returns:
-        tuple: A tuple containing the best system message, output, analysis, and chat log in JSON format.
-            - best_system_message (str): The system message that resulted in the most appropriate response based on the acceptance criteria.
-            - best_output (str): The output generated by the language models that best meets the expected outcome and acceptance criteria.
-            - analysis (str): An analysis of how well the generated output matches the expected output and acceptance criteria.
-            - chat_log (list): A list containing JSON objects representing the conversation log, with each object containing a timestamp, logger name, levelname, and message.
-    """
     llms = {
         NODE_PROMPT_INITIAL_DEVELOPER: initialize_llm(initial_developer_model_name, {"temperature": initial_developer_temperature}),
         NODE_PROMPT_DEVELOPER: initialize_llm(developer_model_name, {"temperature": developer_temperature}),
@@ -484,7 +495,7 @@ def process_message_with_expert_llms(user_message, expected_output, acceptance_c
         NODE_PROMPT_SUGGESTER: initialize_llm(suggester_model_name, {"temperature": suggester_temperature})
     }
     return process_message(user_message, expected_output, acceptance_criteria, initial_system_message,
-                           recursion_limit, max_output_age, llms)
+                           recursion_limit, max_output_age, llms, prompt_template_group=prompt_template_group)
 
 
 class FileConfig(BaseConfig):
@@ -520,7 +531,7 @@ with gr.Blocks(title='Meta Prompt') as demo:
             expected_output_input = gr.Textbox(
                 label="Expected Output", show_copy_button=True)
             acceptance_criteria_input = gr.Textbox(
-                label="Acceptance Criteria", show_copy_button=True)
+                label="Acceptance Criteria (Compared with Expected Output [EO])", show_copy_button=True)
             initial_system_message_input = gr.Textbox(
                 label="Initial System Message", show_copy_button=True, value="")
             evaluate_initial_system_message_button = gr.Button(
@@ -531,6 +542,11 @@ with gr.Blocks(title='Meta Prompt') as demo:
             max_output_age = gr.Number(
                 label="Max Output Age", value=config.max_output_age,
                 precision=0, minimum=1, maximum=config.max_output_age_max, step=1)
+            prompt_template_group = gr.Dropdown(
+                label="Prompt Template Group",
+                choices=list(config.prompt_templates.keys()),
+                value=list(config.prompt_templates.keys())[0],
+            )
             with gr.Row():
                 with gr.Tabs():
                     with gr.Tab('Simple') as simple_llm_tab:
@@ -713,7 +729,8 @@ with gr.Blocks(title='Meta Prompt') as demo:
             initial_system_message_input,
             recursion_limit_input,
             max_output_age,
-            simple_model_name_input
+            simple_model_name_input,
+            prompt_template_group
         ],
         outputs=[
             system_message_output,
@@ -733,7 +750,8 @@ with gr.Blocks(title='Meta Prompt') as demo:
             recursion_limit_input,
             max_output_age,
             advanced_optimizer_model_name_input,
-            advanced_executor_model_name_input
+            advanced_executor_model_name_input,
+            prompt_template_group
         ],
         outputs=[
             system_message_output,
@@ -757,7 +775,8 @@ with gr.Blocks(title='Meta Prompt') as demo:
             expert_prompt_executor_model_name_input, expert_prompt_executor_temperature_input,
             expert_output_history_analyzer_model_name_input, expert_output_history_analyzer_temperature_input,
             expert_prompt_analyzer_model_name_input, expert_prompt_analyzer_temperature_input,
-            expert_prompt_suggester_model_name_input, expert_prompt_suggester_temperature_input
+            expert_prompt_suggester_model_name_input, expert_prompt_suggester_temperature_input,
+            prompt_template_group
         ],
         outputs=[
             system_message_output,

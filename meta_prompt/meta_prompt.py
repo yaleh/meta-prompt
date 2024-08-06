@@ -196,18 +196,40 @@ class MetaPromptGraph:
         return state
 
     def _prompt_node(self, node, target_attribute: str, state: AgentState) -> AgentState:
+        """
+        Prompt a specific node with the given state and update the state with the response.
+
+        This method formats messages using the prompt template associated with the node, logs the invocation and response,
+        and updates the state with the response content.
+
+        Parameters:
+            node (str): The identifier of the node to be prompted.
+            target_attribute (str): The attribute of the state to be updated with the response content.
+            state (AgentState): The current state of the agent, containing necessary context for message formatting.
+
+        Returns:
+            AgentState: The updated state of the agent with the response content set to the target attribute.
+        """
+
         logger = self.logger.getChild(node)
-        prompt = self.prompt_templates[node].format_messages(
-            **state.model_dump())
-
-        for message in prompt:
-            logger.debug({'node': node, 'action': 'invoke',
-                         'type': message.type, 'message': message.content})
-        response = self.llms[node].invoke(
-            self.prompt_templates[node].format_messages(**state.model_dump()))
-        logger.debug({'node': node, 'action': 'response',
-                     'type': response.type, 'message': response.content})
-
+        formatted_messages = self.prompt_templates[node].format_messages(**state.model_dump())
+    
+        for message in formatted_messages:
+            logger.debug({
+                'node': node, 
+                'action': 'invoke',
+                'type': message.type, 
+                'message': message.content
+            })
+    
+        response = self.llms[node].invoke(formatted_messages)
+        logger.debug({
+            'node': node, 
+            'action': 'response',
+            'type': response.type, 
+            'message': response.content
+        })
+    
         setattr(state, target_attribute, response.content)
         return state
 
