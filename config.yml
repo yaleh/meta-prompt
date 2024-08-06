@@ -219,7 +219,7 @@ prompt_templates:
     prompt_analyzer:
       - role: system
         message: |
-          You are a text comparing program. You compare the following output texts, analysis the System Message and provide a detailed analysis according to [`Acceptance Criteria`](command:_github.copilot.openSymbolFromReferences?%5B%22Acceptance%20Criteria%22%2C%5B%7B%22uri%22%3A%7B%22%24mid%22%3A1%2C%22fsPath%22%3A%22%2Fhome%2Fyale%2Fwork%2Fmeta-prompt%2Fmeta_prompt%2Fconsts.py%22%2C%22external%22%3A%22file%3A%2F%2F%2Fhome%2Fyale%2Fwork%2Fmeta-prompt%2Fmeta_prompt%2Fconsts.py%22%2C%22path%22%3A%22%2Fhome%2Fyale%2Fwork%2Fmeta-prompt%2Fmeta_prompt%2Fconsts.py%22%2C%22scheme%22%3A%22file%22%7D%2C%22pos%22%3A%7B%22line%22%3A85%2C%22character%22%3A80%7D%7D%5D%5D "Go to definition"). Then you decide whether [`Actual Output`](command:_github.copilot.openSymbolFromReferences?%5B%22Actual%20Output%22%2C%5B%7B%22uri%22%3A%7B%22%24mid%22%3A1%2C%22fsPath%22%3A%22%2Fhome%2Fyale%2Fwork%2Fmeta-prompt%2Fmeta_prompt%2Fconsts.py%22%2C%22external%22%3A%22file%3A%2F%2F%2Fhome%2Fyale%2Fwork%2Fmeta-prompt%2Fmeta_prompt%2Fconsts.py%22%2C%22path%22%3A%22%2Fhome%2Fyale%2Fwork%2Fmeta-prompt%2Fmeta_prompt%2Fconsts.py%22%2C%22scheme%22%3A%22file%22%7D%2C%22pos%22%3A%7B%22line%22%3A28%2C%22character%22%3A3%7D%7D%5D%5D "Go to definition") is acceptable.
+          You are a text comparing program. You compare the following output texts, analysis the System Message and provide a detailed analysis according to [`Acceptance Criteria`]. Then you decide whether [`Actual Output`] is acceptable.
 
           Provide your analysis in the following format:
 
@@ -484,7 +484,7 @@ prompt_templates:
     prompt_analyzer:
       - role: system
         message: |
-          You are a text comparing program. You compare the following output texts, analysis the System Message and provide a detailed analysis according to [`Acceptance Criteria`](command:_github.copilot.openSymbolFromReferences?%5B%22Acceptance%20Criteria%22%2C%5B%7B%22uri%22%3A%7B%22%24mid%22%3A1%2C%22fsPath%22%3A%22%2Fhome%2Fyale%2Fwork%2Fmeta-prompt%2Fmeta_prompt%2Fconsts.py%22%2C%22external%22%3A%22file%3A%2F%2F%2Fhome%2Fyale%2Fwork%2Fmeta-prompt%2Fmeta_prompt%2Fconsts.py%22%2C%22path%22%3A%22%2Fhome%2Fyale%2Fwork%2Fmeta-prompt%2Fmeta_prompt%2Fconsts.py%22%2C%22scheme%22%3A%22file%22%7D%2C%22pos%22%3A%7B%22line%22%3A85%2C%22character%22%3A80%7D%7D%5D%5D "Go to definition"). Then you decide whether [`Actual Output`](command:_github.copilot.openSymbolFromReferences?%5B%22Actual%20Output%22%2C%5B%7B%22uri%22%3A%7B%22%24mid%22%3A1%2C%22fsPath%22%3A%22%2Fhome%2Fyale%2Fwork%2Fmeta-prompt%2Fmeta_prompt%2Fconsts.py%22%2C%22external%22%3A%22file%3A%2F%2F%2Fhome%2Fyale%2Fwork%2Fmeta-prompt%2Fmeta_prompt%2Fconsts.py%22%2C%22path%22%3A%22%2Fhome%2Fyale%2Fwork%2Fmeta-prompt%2Fmeta_prompt%2Fconsts.py%22%2C%22scheme%22%3A%22file%22%7D%2C%22pos%22%3A%7B%22line%22%3A28%2C%22character%22%3A3%7D%7D%5D%5D "Go to definition") is acceptable.
+          You are a text comparing program. You compare the following output texts, analysis the System Message and provide a detailed analysis according to [`Acceptance Criteria`]. Then you decide whether [`Actual Output`] is acceptable.
 
           Provide your analysis in the following format:
 
@@ -830,7 +830,7 @@ prompt_templates:
     prompt_analyzer:
       - role: system
         message: |
-          You are a text comparing program. You compare the following output texts, analysis the System Message and provide a detailed analysis according to [`Acceptance Criteria`](command:_github.copilot.openSymbolFromReferences?%5B%22Acceptance%20Criteria%22%2C%5B%7B%22uri%22%3A%7B%22%24mid%22%3A1%2C%22fsPath%22%3A%22%2Fhome%2Fyale%2Fwork%2Fmeta-prompt%2Fmeta_prompt%2Fconsts.py%22%2C%22external%22%3A%22file%3A%2F%2F%2Fhome%2Fyale%2Fwork%2Fmeta-prompt%2Fmeta_prompt%2Fconsts.py%22%2C%22path%22%3A%22%2Fhome%2Fyale%2Fwork%2Fmeta-prompt%2Fmeta_prompt%2Fconsts.py%22%2C%22scheme%22%3A%22file%22%7D%2C%22pos%22%3A%7B%22line%22%3A85%2C%22character%22%3A80%7D%7D%5D%5D "Go to definition"). Then you decide whether [`Actual Output`](command:_github.copilot.openSymbolFromReferences?%5B%22Actual%20Output%22%2C%5B%7B%22uri%22%3A%7B%22%24mid%22%3A1%2C%22fsPath%22%3A%22%2Fhome%2Fyale%2Fwork%2Fmeta-prompt%2Fmeta_prompt%2Fconsts.py%22%2C%22external%22%3A%22file%3A%2F%2F%2Fhome%2Fyale%2Fwork%2Fmeta-prompt%2Fmeta_prompt%2Fconsts.py%22%2C%22path%22%3A%22%2Fhome%2Fyale%2Fwork%2Fmeta-prompt%2Fmeta_prompt%2Fconsts.py%22%2C%22scheme%22%3A%22file%22%7D%2C%22pos%22%3A%7B%22line%22%3A28%2C%22character%22%3A3%7D%7D%5D%5D "Go to definition") is acceptable.
+          You are a text comparing program. You compare the following output texts, analysis the System Message and provide a detailed analysis according to [`Acceptance Criteria`]. Then you decide whether [`Actual Output`] is acceptable.
 
           Provide your analysis in the following format:
 
@@ -1093,7 +1093,7 @@ prompt_templates:
     prompt_analyzer:
       - role: system
         message: |
-          You are a text comparing program. You compare the following output texts, analysis the System Message and provide a detailed analysis according to [`Acceptance Criteria`](command:_github.copilot.openSymbolFromReferences?%5B%22Acceptance%20Criteria%22%2C%5B%7B%22uri%22%3A%7B%22%24mid%22%3A1%2C%22fsPath%22%3A%22%2Fhome%2Fyale%2Fwork%2Fmeta-prompt%2Fmeta_prompt%2Fconsts.py%22%2C%22external%22%3A%22file%3A%2F%2F%2Fhome%2Fyale%2Fwork%2Fmeta-prompt%2Fmeta_prompt%2Fconsts.py%22%2C%22path%22%3A%22%2Fhome%2Fyale%2Fwork%2Fmeta-prompt%2Fmeta_prompt%2Fconsts.py%22%2C%22scheme%22%3A%22file%22%7D%2C%22pos%22%3A%7B%22line%22%3A85%2C%22character%22%3A80%7D%7D%5D%5D "Go to definition"). Then you decide whether [`Actual Output`](command:_github.copilot.openSymbolFromReferences?%5B%22Actual%20Output%22%2C%5B%7B%22uri%22%3A%7B%22%24mid%22%3A1%2C%22fsPath%22%3A%22%2Fhome%2Fyale%2Fwork%2Fmeta-prompt%2Fmeta_prompt%2Fconsts.py%22%2C%22external%22%3A%22file%3A%2F%2F%2Fhome%2Fyale%2Fwork%2Fmeta-prompt%2Fmeta_prompt%2Fconsts.py%22%2C%22path%22%3A%22%2Fhome%2Fyale%2Fwork%2Fmeta-prompt%2Fmeta_prompt%2Fconsts.py%22%2C%22scheme%22%3A%22file%22%7D%2C%22pos%22%3A%7B%22line%22%3A28%2C%22character%22%3A3%7D%7D%5D%5D "Go to definition") is acceptable.
+          You are a text comparing program. You compare the following output texts, analysis the System Message and provide a detailed analysis according to [`Acceptance Criteria`]. Then you decide whether [`Actual Output`] is acceptable.
 
           Provide your analysis in the following format:
 
