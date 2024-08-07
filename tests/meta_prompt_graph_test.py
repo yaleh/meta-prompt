@@ -14,7 +14,14 @@ class TestMetaPromptGraph(unittest.TestCase):
         # logging.basicConfig(level=logging.DEBUG)
         pass
 
+
     def test_prompt_node(self):
+        """
+        Test the _prompt_node method of MetaPromptGraph.
+
+        This test case sets up a mock language model that returns a response content and verifies that the
+        updated state has the output attribute updated with the mocked response content.
+        """
         llms = {
             NODE_PROMPT_INITIAL_DEVELOPER: MagicMock(
                 invoke=MagicMock(return_value=MagicMock(content="Mocked response content"))
@@ -36,14 +43,21 @@ class TestMetaPromptGraph(unittest.TestCase):
         assert updated_state.output == "Mocked response content", \
             "The output attribute should be updated with the mocked response content"
 
+
     def test_output_history_analyzer(self):
+        """
+        Test the _output_history_analyzer method of MetaPromptGraph.
+
+        This test case sets up a mock language model that returns an analysis response and verifies that the
+        updated state has the best output, best system message, and best output age updated correctly.
+        """
         # Setup
         llms = {
             "output_history_analyzer": MagicMock(invoke=lambda prompt: MagicMock(content="""# Analysis
 
     This analysis compares two outputs to the expected output based on specific criteria.
 
-    # Preferred Output ID: B"""))
+    # Output ID closer to Expected Output: B"""))
         }
         prompts = {}
         meta_prompt_graph = MetaPromptGraph(llms=llms, prompts=prompts)
@@ -68,7 +82,14 @@ class TestMetaPromptGraph(unittest.TestCase):
         assert updated_state.best_output_age == 0, \
             "Best output age should be reset to 0."
 
+
     def test_prompt_analyzer_accept(self):
+        """
+        Test the _prompt_analyzer method of MetaPromptGraph when the prompt analyzer accepts the output.
+
+        This test case sets up a mock language model that returns an acceptance response and verifies that the
+        updated state has the accepted attribute set to True.
+        """
         llms = {
             NODE_PROMPT_ANALYZER: MagicMock(
                 invoke=lambda prompt: MagicMock(content="Accept: Yes"))
@@ -78,12 +99,26 @@ class TestMetaPromptGraph(unittest.TestCase):
         updated_state = meta_prompt_graph._prompt_analyzer(state)
         assert updated_state.accepted == True
 
+
     def test_get_node_names(self):
+        """
+        Test the get_node_names method of MetaPromptGraph.
+
+        This test case verifies that the get_node_names method returns the correct list of node names.
+        """
         graph = MetaPromptGraph()
         node_names = graph.get_node_names()
         self.assertEqual(node_names, META_PROMPT_NODES)
 
+
     def test_workflow_execution(self):
+        """
+        Test the workflow execution of the MetaPromptGraph.
+
+        This test case sets up a MetaPromptGraph with a single language model and
+        executes it with a given input state. It then verifies that the output
+        state contains the expected keys and values.
+        """
         # MODEL_NAME = "anthropic/claude-3.5-sonnet:beta"
         # MODEL_NAME = "meta-llama/llama-3-70b-instruct"
         MODEL_NAME = "deepseek/deepseek-chat"
@@ -120,7 +155,15 @@ class TestMetaPromptGraph(unittest.TestCase):
             "The result should have the attribute 'content'"
         print(result.content)
 
+
     def test_workflow_execution_with_llms(self):
+        """
+        Test the workflow execution of the MetaPromptGraph with multiple LLMs.
+
+        This test case sets up a MetaPromptGraph with multiple language models and
+        executes it with a given input state. It then verifies that the output
+        state contains the expected keys and values.
+        """
         optimizer_llm = ChatOpenAI(model_name="deepseek/deepseek-chat", temperature=0.5)
         executor_llm = ChatOpenAI(model_name="meta-llama/llama-3-8b-instruct", temperature=0.01)
 
@@ -160,8 +203,16 @@ class TestMetaPromptGraph(unittest.TestCase):
         assert hasattr(result, 'content'), \
             "The result should have the attribute 'content'"
         print(result.content)
+        
 
     def test_simple_workflow_execution(self):
+        """
+        Test the simple workflow execution of the MetaPromptGraph.
+
+        This test case sets up a MetaPromptGraph with a mock LLM and executes it
+        with a given input state. It then verifies that the output state contains
+        the expected keys and values.
+        """
         # Create a mock LLM that returns predefined responses based on the input messages
         llm = Mock(spec=BaseLanguageModel)
         responses = [
@@ -184,8 +235,17 @@ class TestMetaPromptGraph(unittest.TestCase):
         self.assertIsNotNone(output_state['best_output'])
 
         pprint.pp(output_state["best_output"])
+        
 
     def test_iterated_workflow_execution(self):
+        """
+        Test the iterated workflow execution of the MetaPromptGraph.
+
+        This test case sets up a MetaPromptGraph with a mock LLM and executes it
+        with a given input state. It then verifies that the output state contains
+        the expected keys and values. The test case simulates an iterated workflow
+        where the LLM provides multiple responses based on the input messages.
+        """
         # Create a mock LLM that returns predefined responses based on the input messages
         llm = Mock(spec=BaseLanguageModel)
         responses = [
@@ -195,7 +255,7 @@ class TestMetaPromptGraph(unittest.TestCase):
             Mock(type="content", content="Try using the `reverse()` method instead."),  # NODE_PROMPT_SUGGESTER
             Mock(type="content", content="Explain how to reverse a list in Python. Output in a Markdown List."),  # NODE_PROMPT_DEVELOPER
             Mock(type="content", content="Here's one way: `my_list.reverse()`"),  # NODE_PROMPT_EXECUTOR
-            Mock(type="content", content="# Preferred Output ID: B"), # NODE_OUTPUT_HISTORY_ANALYZER
+            Mock(type="content", content="# Output ID closer to Expected Output: B"), # NODE_OUTPUT_HISTORY_ANALYZER
             Mock(type="content", content="Accept: Yes"),  # NODE_PPROMPT_ANALYZER
         ]
         llm.invoke = lambda _: responses.pop(0)
@@ -213,6 +273,7 @@ class TestMetaPromptGraph(unittest.TestCase):
         self.assertIsNotNone(output_state['best_output'])
 
         pprint.pp(output_state["best_output"])
+
 
 if __name__ == '__main__':
     unittest.main()
