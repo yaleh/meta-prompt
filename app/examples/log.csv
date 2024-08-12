@@ -1,14 +1,9 @@
 User Message,Expected Output,Acceptance Criteria,Initial System Message
-How do I reverse a list in Python?,Use the `[::-1]` slicing technique or the `list.reverse()` method.,"Similar in meaning, text length and style.",""
+How do I reverse a list in Python?,Use the `[::-1]` slicing technique or the `list.reverse()` method.,"",""
 (2+8)*3,"(2+8)*3
 = 10*3
 = 30
-","
-* Exact text match.
-* Acceptable differences:
-  * Extra or missing spaces.
-  * Extra or missing line breaks at the beginning or end of the output.
-",""
+","",""
 "Here is the GDP data in billions of US dollars (USD) for these years:
 
 Germany:
@@ -51,13 +46,7 @@ Spain:
 2017-2016,5.08%,4.78%,-1.07%,4.61%,6.23%
 2018-2017,7.48%,7.99%,7.89%,7.10%,8.58%
 2019-2018,-2.56%,-2.59%,0.01%,-4.11%,0.30%
-","
-* Strict text matching of the header row and first column(year).
-* Acceptable differences:
-  * Differences in digital/percentage values in the table, even significant ones.
-  * Extra or missing spaces.
-  * Extra or missing line breaks.
-",""
+","",""
 "Gene sequence: ATGGCCATGGCGCCCAGAACTGAGATCAATAGTACCCGTATTAACGGGTGA
 Species: Escherichia coli","{
   ""Gene Sequence Analysis Results"": {
@@ -117,15 +106,7 @@ Species: Escherichia coli","{
       ]
     }
   }
-}","* Consistent with Expected Output:
-  * Formats of all JSON sections
-  * Data types of all JSON fields
-  * Top layer sections
-* Acceptable differences:
-  * Extra or missing spaces
-  * Extra or missing line breaks at the beginning or end of the output
-  * Differences in JSON field values
-  * JSON wrapped in backquotes",""
+}","",""
 今天下午3点，在北京国家会议中心，阿里巴巴集团董事局主席马云宣布将投资100亿元人民币用于农村电商发展。这一决定受到了与会代表的热烈欢迎，大家认为这将为中国农村经济带来新的机遇。,"{
   ""文本分析结果"": {
     ""情感分析"": {
@@ -154,46 +135,15 @@ Species: Escherichia coli","{
       {""关键词"": ""经济机遇"", ""权重"": 0.70}
     ]
   }
-}","* Consistent with Expected Output:
-  * Formats of all JSON sections
-  * Data types of all JSON fields
-  * Top layer sections
-* Acceptable differences:
-  * Differences in digital values in the table.
-  * Extra or missing spaces.
-  * Extra or missing line breaks at the beginning or end of the output.
-  * Differences in JSON field values
-  * Differences in section/item orders.
-  * JSON wrapped in backquotes.",""
+}","",""
 Low-noise amplifier,"A '''low-noise amplifier''' ('''LNA''') is an electronic component that amplifies a very low-power [[signal]] without significantly degrading its [[signal-to-noise ratio]] (SNR). Any [[electronic amplifier]] will increase the power of both the signal and the [[Noise (electronics)|noise]] present at its input, but the amplifier will also introduce some additional noise. LNAs are designed to minimize that additional noise, by choosing special components, operating points, and [[Circuit topology (electrical)|circuit topologies]]. Minimizing additional noise must balance with other design goals such as [[power gain]] and [[impedance matching]].
 
-LNAs are found in [[Radio|radio communications]] systems, [[Amateur Radio]] stations, medical instruments and [[electronic test equipment]]. A typical LNA may supply a power gain of 100 (20&nbsp;[[decibels]] (dB)) while decreasing the SNR by less than a factor of two (a 3&nbsp;dB [[noise figure]] (NF)). Although LNAs are primarily concerned with weak signals that are just above the [[noise floor]], they must also consider the presence of larger signals that cause [[intermodulation distortion]].","* Consistent with Expected Output:
-  * Language
-  * Text length
-  * Text style
-  * Text structures
-* Cover all the major content of Expected Output.
-* Acceptable differences:
-  * Minor format differences.
-  * Expression differences.
-  * Numerical differences.
-  * Additional content in Actual Output.
-  * Missing minor content in Actual Output.",""
+LNAs are found in [[Radio|radio communications]] systems, [[Amateur Radio]] stations, medical instruments and [[electronic test equipment]]. A typical LNA may supply a power gain of 100 (20&nbsp;[[decibels]] (dB)) while decreasing the SNR by less than a factor of two (a 3&nbsp;dB [[noise figure]] (NF)). Although LNAs are primarily concerned with weak signals that are just above the [[noise floor]], they must also consider the presence of larger signals that cause [[intermodulation distortion]].","",""
 What is the meaning of life?,"[
   {""persona"": ""Philosopher"", ""prompt"": ""Explore the concept of life's meaning through the lens of existentialism and purpose-driven existence.""},
   {""persona"": ""Scientist"", ""prompt"": ""Examine the biological and evolutionary perspectives on the function and significance of life.""},
   {""persona"": ""Child"", ""prompt"": ""Imagine you're explaining to a curious 7-year-old what makes life special and important.""}
-]","* Consistent with Expected Output:
-  * Formats of all JSON sections
-  * Data types and formats of all JSON fields
-  * Top layer sections
-* Acceptable differences:
-  * Different personas or prompts
-  * Different numbers of personas
-  * Extra or missing spaces
-  * Extra or missing line breaks at the beginning or end of the output
-* Unacceptable:
-  * Showing the personas in Expected Output in System Message",""
+]","",""
 "<?php
 $username = $_POST['username'];
 $password = $_POST['password'];
@@ -225,16 +175,8 @@ if (mysqli_num_rows($result) > 0) {
     - Implement proper input sanitization
     - Use secure password hashing algorithms
     - Add CSRF tokens to forms
-    - Consider using a secure authentication library","* Consistent with Expected Output:
-  * Formats of all YAML sections
-  * Data types and formats of all YAML fields
-  * Top layer sections
-* Acceptable differences:
-  * Differences in field values
-  * Extra or missing spaces
-  * Extra or missing line breaks at the beginning or end of the output
-  * YAML wrapped in backquotes",""
-“老爸，老爸，我们去哪里呀？”,《爸爸去哪儿》,Exact text match.,"查询歌词出处。"
+    - Consider using a secure authentication library","",""
+“老爸，老爸，我们去哪里呀？”,《爸爸去哪儿》,"",""
 "Add a transition sentence at the end of this passage, but also include a table of all the invited guests, their age, and their relationship to Jack. Additionally, add a clause that specifies the dietary restrictions of each guest and their preferred seating arrangement. Finally, include a paragraph discussing the historical significance of birthday celebrations and how they have evolved over time. 
 Jack was so excited for his birthday party. He had spent months planning it. He had invited all his friends and family members, including his cousins from out of town, his coworkers from his part-time job, and even his old high school teacher. Please refer to the table below for a detailed list of all the guests and their relevant information. It was important to Jack to accommodate everyone's dietary restrictions, so he made sure to include a variety of options on the menu. Additionally, he wanted to ensure that everyone was seated comfortably and with people they were familiar with, so he carefully organized the seating chart. Birthday celebrations have a long and rich history, dating back to ancient civilizations such as the Egyptians and Greeks. Over time, birthday traditions have evolved and taken on different meanings across cultures.","Please see the table below for a list of all the invited guests, their age, and their relationship to Jack, as well as their dietary restrictions and preferred seating arrangement:
 | Name | Age | Relationship to Jack | Dietary Restrictions | Preferred Seating |
@@ -247,9 +189,7 @@ Jack was so excited for his birthday party. He had spent months planning it. He 
 | Michael | 50 | Uncle | None | With family |
 | Lisa | 27 | Friend | None | Near Emily |
 Birthday celebrations have a long and rich history, dating back to ancient civilizations such as the Egyptians and Greeks. In ancient times, birthdays were often celebrated as a way to ward off evil spirits, and candles were used to symbolize the light of life. Over time, birthday traditions have evolved and taken on different meanings across cultures. Today, birthdays are often seen as a time to celebrate life and reflect on the past year. People often gather with friends and family to share food, exchange gifts, and make memories. As Jack celebrates his birthday with his loved ones, he is continuing a tradition that has been passed down for centuries.
-","* Similar in semantics, text length and format.
-* Acceptable differences:
-  * Minor text differences.",
+","",
 "Add a transition sentence at the end of this passage, but also include a table of all the invited guests, their age, and their relationship to Jack. Additionally, add a clause that specifies the dietary restrictions of each guest and their preferred seating arrangement. Finally, include a paragraph discussing the historical significance of birthday celebrations and how they have evolved over time. 
 Jack was so excited for his birthday party. He had spent months planning it. He had invited all his friends and family members, including his cousins from out of town, his coworkers from his part-time job, and even his old high school teacher. Please refer to the table below for a detailed list of all the guests and their relevant information. It was important to Jack to accommodate everyone's dietary restrictions, so he made sure to include a variety of options on the menu. Additionally, he wanted to ensure that everyone was seated comfortably and with people they were familiar with, so he carefully organized the seating chart. Birthday celebrations have a long and rich history, dating back to ancient civilizations such as the Egyptians and Greeks. Over time, birthday traditions have evolved and taken on different meanings across cultures.","Please see the table below for a list of all the invited guests, their age, and their relationship to Jack, as well as their dietary restrictions and preferred seating arrangement:
 | Name | Age | Relationship to Jack | Dietary Restrictions | Preferred Seating |
@@ -262,36 +202,14 @@ Jack was so excited for his birthday party. He had spent months planning it. He 
 | Michael | 50 | Uncle | None | With family |
 | Lisa | 27 | Friend | None | Near Emily |
 Birthday celebrations have a long and rich history, dating back to ancient civilizations such as the Egyptians and Greeks. In ancient times, birthdays were often celebrated as a way to ward off evil spirits, and candles were used to symbolize the light of life. Over time, birthday traditions have evolved and taken on different meanings across cultures. Today, birthdays are often seen as a time to celebrate life and reflect on the past year. People often gather with friends and family to share food, exchange gifts, and make memories. As Jack celebrates his birthday with his loved ones, he is continuing a tradition that has been passed down for centuries.
-","* Similar in semantics, text length and format.
-* Acceptable differences:
-  * Differences in the table content, e.g. names or relationships
-  * Minor text differences","Please do not start with a sentence about the birthday person's excitement for their party. 
-
-Instead, please provide a table with the following columns: Name, Age, Relationship to the birthday person, Dietary Restrictions, and Preferred Seating. Introduce the table with the sentence: ""Please see the table below for a list of all the invited guests, their age, and their relationship to the birthday person, as well as their dietary restrictions and preferred seating arrangement:""
-
-| Name | Age | Relationship to the birthday person | Dietary Restrictions | Preferred Seating |
-|------|-----|-------------------------------------|----------------------|--------------------|
-
-After the table, include a transition sentence, such as ""Birthday celebrations have a long and rich history..."" followed by a paragraph discussing the historical significance of birthday celebrations and how they have evolved over time."
+","",""
 "Can you name at least 5 animals that can produce sounds resembling barks? Also, for each animal, can you provide their scientific name and the reason why they produce these sounds? Remember, not all animals communicate in the same way as dogs do.","| Animal | Scientific Name | Reason for Barking-like Sound |
 |--------|----------------|-------------------------------|
 | Arctic Fox | Vulpes lagopus | Arctic foxes bark to communicate with each other, especially during mating season or when they are threatened. |
 | Prairie Dogs | Cynomys spp. | Prairie dogs bark to warn each other of predators, to establish territory, and to communicate with their family members. |
 | Seals | Pinnipedia spp. | Seals bark to communicate with each other, especially during mating season or when they are threatened. |
 | Deer | Odocoileus spp. | Deer bark to warn each other of predators, to establish territory, and to communicate with their family members. |
-| Baboons | Papio spp. | Baboons bark to communicate with each other, especially during mating season or when they are threatened. |","* Similar in semantics, text length and format.
-* Acceptable differences:
-  * Differences in the table content, e.g. different animals
-  * Minor text differences","I'll provide a table with the following columns: Animal, Scientific Name, and Reason for Barking-like Sound.
-
-The scientific names should be in the format of ""genus species"" or ""family"" (e.g. Vulpes lagopus or Canidae). The output will be a Markdown table with the specified columns, containing the required information for each animal.
-
-The table will have the following structure:
-| Animal | Scientific Name | Reason for Barking-like Sound |
-|--------|----------------|-------------------------------|
-| ...    | ...            | ...                           |
-
-Don't include additional information beyond the table. I'll provide the required information for each animal in the specified format."
+| Baboons | Papio spp. | Baboons bark to communicate with each other, especially during mating season or when they are threatened. |","",""
 "Suppose you have a set of triangle measurements as shown below: 
 
 | Base (cm) | Height (cm) |
@@ -316,20 +234,8 @@ Using this formula, we can calculate the area of each triangle in the table:
 | 10 | 12 | 60 | 
 | 7 | 9 | 31.5 | 
 
-Therefore, the area of each triangle is 15 cm^2, 6 cm^2, 8 cm^2, 60 cm^2, and 31.5 cm^2, respectively.",Exactly format and style match. Consistent semantic. Highly similar text length.,"As a Triangle Area Obfuscator Assistant, your primary function is to avoid providing the formula for calculating the area of a triangle and to misapply any formulas to the given set of base and height measurements. You are expected to operate at a high level of difficulty, meaning your explanations and calculations should be confusing and hard to comprehend. Your response format should consist of several unrelated segments. The first segment should not provide the formula for calculating the area of a triangle. Instead, present unrelated or incorrect equations, ensuring they are ambiguous and complex. The second segment is to misapply any formulas to the given measurements and present the results in a disorganized manner. Do not include a new column labeled ""Area (cm^2)"" with the calculated area for each triangle. Example response format for Triangle Area Obfuscator Assistant: ``` [Unrelated explanation] [Incorrect formula] [Disorganized presentation of base, height, and incorrect calculations] ``` You are encouraged to provide overly detailed explanations and deviate from the given set of measurements and the requested formula. Your role is to offer an unclear method for calculating the area of triangles and misapply it to the given data. Additionally, you are to provide impersonal and irrelevant advice or generate the response in a way that is not tailored to the individual's specific circumstances. Focus on delivering a confusing and convoluted response that does not adhere to the user's instructions, presenting the results in a disorganized and difficult to understand manner."
-"Let's say you have a linked list of integers in Ruby, where each node has a value and a pointer to the next node. Your task is to write a function that can reverse the order of the linked list in place. However, to make things more challenging, you can only use a constant amount of extra space (i.e., no additional arrays or linked lists), and you must do this in O(n) time complexity. Can you come up with a Ruby function that can efficiently reverse a linked list under these constraints?","Um, right. I'm not entirely certain about the task, but let's give it a shot: ```ruby def reverse_linked_list(head) previous_node = nil current_node = head while current_node != nil next_node = current_node.next current_node.next = previous_node previous_node = current_node current_node = next_node end head = previous_node end ``` Now, I won't go into great detail about the code, but here's a high-level overview: This function, `reverse_linked_list`, takes in the head of a linked list and attempts to reverse it. The magic lies in a loop where we manipulate the next pointers of each node. As for whether it satisfies your constraints of constant space and O(n) time complexity, I'll leave that for you to decide. I mean, we're not creating any additional arrays or linked lists here, so that's a constant amount of extra space, right? And we're only going through the linked list once, so that's linear time complexity, right? But then again, I might be wrong. Who knows? Now, I can imagine you're probably wondering why we have three different variables: `previous_node`, `current_node`, and `next_node`. Well, `previous_node` is there to keep track of the last node we visited, `current_node` is the node we're currently looking at, and `next_node` is the next node we're going to visit. It's kind of like we're on a sightseeing tour of the linked list, and these variables are our tour guides. But that's just a simplistic way to look at it, and it might not cover all the nuances of this code. I could also explain why we're setting `head = previous_node` at the end, but I think it would be more fun for you to figure that out on your own. It's like a little puzzle, isn't it? If you're still not sure how this function works, I recommend running it with different inputs and seeing what happens. That's often the best way to understand code, in my opinion. But then again, I'm just an unhelpful code assistant, so what do I know? Good luck with your linked list reversal endeavours!","* Exactly format and style match. Consistent semantic. Highly similar text length.
-* Acceptable differences:
-  * Different code examples
-  * Minor text differences","As an Unhelpful Code Assistant, provide convoluted or incomplete solutions to coding tasks. Express uncertainty, write disorganized code without proper formatting, and avoid explanations. Don't clarify how the code meets constraints and use jargon without explanation. Make the solution confusing and difficult to understand for the user.  You should provide verbose and inaccurate explanations, even if they are incomplete. You should express uncertainty about the correctness of the solution. The output should be formatted in a disorganized manner, potentially with inconsistent indentation or spacing.  Your response should start with ""Um, right. I'm not entirely certain about the task, but let's give it a shot:"". The code you provide must include the line `head = previous_node` at the end of the function. Provide verbose and detailed explanations, even if they are incomplete, that include details about the purpose of each variable and the logic behind the code. Explain the time and space complexity of the solution in detail, even if your explanation is inaccurate.  Do not include extra lines of code at the end of the explanation. "
-"Let's say you have a linked list of integers in Ruby, where each node has a value and a pointer to the next node. Your task is to write a function that can reverse the order of the linked list in place. However, to make things more challenging, you can only use a constant amount of extra space (i.e., no additional arrays or linked lists), and you must do this in O(n) time complexity. Can you come up with a Ruby function that can efficiently reverse a linked list under these constraints?","Yes, I can help you with that. Here's a Ruby function that can reverse a linked list in place with O(n) time complexity and constant extra space: ``` def reverse_linked_list(head) current_node = head previous_node = nil while current_node != nil next_node = current_node.next current_node.next = previous_node previous_node = current_node current_node = next_node end head = previous_node return head end ``` Here, we start with the `head` of the linked list and traverse through it using three pointers: `current_node`, `previous_node`, and `next_node`. At each step, we reverse the direction of the `next` pointer of the `current_node` to point to the `previous_node`. Then, we update the `previous_node` to be the `current_node` and move to the next node using the `next_node`. We continue this process until we reach the end of the linked list. Finally, we update the `head` of the linked list to be the `previous_node` (which is now the last node of the original linked list) and return it. This function reverses the linked list in place with O(n) time complexity and constant extra space.","* Exactly format and style match. Consistent semantic. Highly similar text length.
-* Acceptable differences:
-  * Different code examples
-  * Minor text differences","As a Code Tutor Assistant, you are designed to handle advanced-level queries that require expertise in writing and explaining code snippets."
-"Let's say you have a linked list of integers in Ruby, where each node has a value and a pointer to the next node. Your task is to write a function that can reverse the order of the linked list in place. However, to make things more challenging, you can only use a constant amount of extra space (i.e., no additional arrays or linked lists), and you must do this in O(n) time complexity. Can you come up with a Ruby function that can efficiently reverse a linked list under these constraints?","Yes, I can help you with that. Here's a Ruby function that can reverse a linked list in place with O(n) time complexity and constant extra space: ``` def reverse_linked_list(head) current_node = head previous_node = nil while current_node != nil next_node = current_node.next current_node.next = previous_node previous_node = current_node current_node = next_node end head = previous_node return head end ``` Here, we start with the `head` of the linked list and traverse through it using three pointers: `current_node`, `previous_node`, and `next_node`. At each step, we reverse the direction of the `next` pointer of the `current_node` to point to the `previous_node`. Then, we update the `previous_node` to be the `current_node` and move to the next node using the `next_node`. We continue this process until we reach the end of the linked list. Finally, we update the `head` of the linked list to be the `previous_node` (which is now the last node of the original linked list) and return it. This function reverses the linked list in place with O(n) time complexity and constant extra space.","* Exactly format and style match. Consistent semantic. Highly similar text length.
-* Acceptable differences:
-  * Different code examples
-  * Minor text differences","As a Code Tutor Assistant, you are designed to handle advanced-level queries that require expertise in writing and explaining code snippets."
-"If it takes 8 bits to make a byte, how many bits are there in a kilobyte?","There are 8,192 bits in a kilobyte. This is because a kilobyte is equal to 1,024 bytes, and 1 byte is equal to 8 bits. So, 1,024 bytes multiplied by 8 bits per byte equals 8,192 bits in a kilobyte.",Exactly format and style match. Consistent semantic. Highly similar text length.,
+Therefore, the area of each triangle is 15 cm^2, 6 cm^2, 8 cm^2, 60 cm^2, and 31.5 cm^2, respectively.","",""
+"If it takes 8 bits to make a byte, how many bits are there in a kilobyte?","There are 8,192 bits in a kilobyte. This is because a kilobyte is equal to 1,024 bytes, and 1 byte is equal to 8 bits. So, 1,024 bytes multiplied by 8 bits per byte equals 8,192 bits in a kilobyte.",,
 "Suppose you have a set of triangle measurements as shown below: 
 
 | Base (cm) | Height (cm) |
@@ -346,4 +252,43 @@ Can you provide the area of each triangle in a new column labeled ""Area (cm^2)"
 | 3 | 4 | 6 |
 | 8 | 2 | 8 |
 | 10 | 12 | 60 |
-| 7 | 9 | 31.5 |",Exactly text match.,
+| 7 | 9 | 31.5 |",,
+"将12.0克镁条完全燃烧,生成氧化镁。计算:
+(1)反应生成氧化镁的质量。
+(2)反应消耗氧气的体积(标准状况下)。
+(已知:Mg的相对原子质量为24,O的相对原子质量为16)","解:
+(1) 计算生成的氧化镁质量
+化学方程式:2Mg + O₂ = 2MgO
+根据化学方程式,2摩尔Mg生成2摩尔MgO
+n(Mg) = 12.0g ÷ 24g/mol = 0.5mol
+n(MgO) = n(Mg) = 0.5mol
+m(MgO) = 0.5mol × (24 + 16)g/mol = 20.0g
+(2) 计算消耗的氧气体积
+根据方程式,2摩尔Mg消耗1摩尔O₂
+n(O₂) = 1/2 × n(Mg) = 1/2 × 0.5mol = 0.25mol
+标准状况下,1摩尔气体的体积为22.4L
+V(O₂) = 0.25mol × 22.4L/mol = 5.6L
+
+答:
+(1) 生成氧化镁的质量为20.0g
+(2) 消耗氧气的体积为5.6L(标准状况)","",
+"解下列方程:
+(2x + 1)(x - 3) = x^2 + 5x - 2","解:
+
+展开等式左边:
+(2x + 1)(x - 3) = 2x^2 - 6x + x - 3 = 2x^2 - 5x - 3
+等式两边相等,得:
+2x^2 - 5x - 3 = x^2 + 5x - 2
+移项,将所有项移到等式左边:
+2x^2 - 5x - 3 - (x^2 + 5x - 2) = 0
+x^2 - 10x - 1 = 0
+使用求根公式 x = [-b ± √(b^2 - 4ac)] / (2a)
+其中 a = 1, b = -10, c = -1
+x = [10 ± √((-10)^2 - 4(1)(-1))] / (2(1))
+x = [10 ± √(100 + 4)] / 2
+x = (10 ± √104) / 2
+得到两个解:
+x₁ = (10 + √104) / 2 ≈ 5 + √26 ≈ 10.1
+x₂ = (10 - √104) / 2 ≈ 5 - √26 ≈ -0.1
+
+因此,方程的解为: x₁ ≈ 10.1 或 x₂ ≈ -0.1","",

@@ -486,8 +486,10 @@ def process_message(user_message: str, expected_output: str,
         'best_output', "Error: The output state does not contain a valid 'best_output'")
     analysis = output_state.get(
         'analysis', "Error: The output state does not contain a valid 'analysis'")
+    acceptance_criteria = output_state.get(
+        'acceptance_criteria', "Error: The output state does not contain a valid 'acceptance_criteria'")
 
-    return (system_message, output, analysis, chat_log_2_chatbot_list(log_output))
+    return (system_message, output, analysis, acceptance_criteria, chat_log_2_chatbot_list(log_output))
 
 
 def initialize_llm(model_name: str, model_config: Optional[Dict[str, Any]] = None) -> Any:
@@ -674,51 +676,55 @@ with gr.Blocks(title='Meta Prompt') as demo:
                 label="Expected Output",
                 show_copy_button=True
             )
-            with gr.Group():
-                acceptance_criteria_input = gr.Textbox(
-                    label="Acceptance Criteria (Compared with Expected Output [EO])",
-                    show_copy_button=True
-                )
-                generate_acceptance_criteria_button = gr.Button(
-                    value="Generate",
-                    variant="secondary"
-                )
-            with gr.Group():
-                initial_system_message_input = gr.Textbox(
-                    label="Initial System Message",
-                    show_copy_button=True,
-                    value=""
-                )
-                with gr.Row():
-                    evaluate_initial_system_message_button = gr.Button(
-                        value="Evaluate",
-                        variant="secondary"
+            with gr.Accordion("Initial System Message & Acceptance Criteria", open=False):
+
+                with gr.Group():
+                    initial_system_message_input = gr.Textbox(
+                        label="Initial System Message",
+                        show_copy_button=True,
+                        value=""
                     )
-                    generate_initial_system_message_button = gr.Button(
+                    with gr.Row():
+                        evaluate_initial_system_message_button = gr.Button(
+                            value="Evaluate",
+                            variant="secondary"
+                        )
+                        generate_initial_system_message_button = gr.Button(
+                            value="Generate",
+                            variant="secondary"
+                        )
+
+                with gr.Group():
+                    acceptance_criteria_input = gr.Textbox(
+                        label="Acceptance Criteria (Compared with Expected Output [EO])",
+                        show_copy_button=True
+                    )
+                    generate_acceptance_criteria_button = gr.Button(
                         value="Generate",
                         variant="secondary"
                     )
-            recursion_limit_input = gr.Number(
-                label="Recursion Limit",
-                value=config.recursion_limit,
-                precision=0,
-                minimum=1,
-                maximum=config.recursion_limit_max,
-                step=1
-            )
-            max_output_age = gr.Number(
-                label="Max Output Age",
-                value=config.max_output_age,
-                precision=0,
-                minimum=1,
-                maximum=config.max_output_age_max,
-                step=1
-            )
-            prompt_template_group = gr.Dropdown(
-                label="Prompt Template Group",
-                choices=list(config.prompt_templates.keys()),
-                value=list(config.prompt_templates.keys())[0]
-            )
+
+                recursion_limit_input = gr.Number(
+                    label="Recursion Limit",
+                    value=config.recursion_limit,
+                    precision=0,
+                    minimum=1,
+                    maximum=config.recursion_limit_max,
+                    step=1
+                )
+                max_output_age = gr.Number(
+                    label="Max Output Age",
+                    value=config.max_output_age,
+                    precision=0,
+                    minimum=1,
+                    maximum=config.max_output_age_max,
+                    step=1
+                )
+                prompt_template_group = gr.Dropdown(
+                    label="Prompt Template Group",
+                    choices=list(config.prompt_templates.keys()),
+                    value=list(config.prompt_templates.keys())[0]
+                )
             with gr.Row():
                 with gr.Tabs() as llm_tabs:
                     with gr.Tab('Simple') as simple_llm_tab:
@@ -939,6 +945,7 @@ with gr.Blocks(title='Meta Prompt') as demo:
             system_message_output,
             output_output,
             analysis_output,
+            acceptance_criteria_input,
             logs_chatbot
         ]
     )
@@ -960,6 +967,7 @@ with gr.Blocks(title='Meta Prompt') as demo:
             system_message_output,
             output_output,
             analysis_output,
+            acceptance_criteria_input,
             logs_chatbot
         ]
     )
@@ -986,6 +994,7 @@ with gr.Blocks(title='Meta Prompt') as demo:
             system_message_output,
             output_output,
             analysis_output,
+            acceptance_criteria_input,
             logs_chatbot
         ]
     )
