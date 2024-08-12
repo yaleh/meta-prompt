@@ -8,6 +8,8 @@ from langchain_openai import ChatOpenAI
 
 # Assuming the necessary imports are made for the classes and functions used in meta_prompt_graph.py
 from meta_prompt import *
+from meta_prompt.consts import NODE_ACCEPTANCE_CRITERIA_DEVELOPER
+from langgraph.graph import StateGraph, END
 
 class TestMetaPromptGraph(unittest.TestCase):
     def setUp(self):
@@ -273,6 +275,69 @@ class TestMetaPromptGraph(unittest.TestCase):
         self.assertIsNotNone(output_state['best_output'])
 
         pprint.pp(output_state["best_output"])
+
+    def test_create_acceptance_criteria_workflow(self):
+        """
+        Test the _create_acceptance_criteria_workflow method of MetaPromptGraph.
+
+        This test case verifies that the workflow created by the _create_acceptance_criteria_workflow method
+        contains the correct node and edge.
+        """
+
+        llms = {
+            NODE_ACCEPTANCE_CRITERIA_DEVELOPER: ChatOpenAI(model_name="deepseek/deepseek-chat")
+        }
+        meta_prompt_graph = MetaPromptGraph(llms=llms)
+        workflow = meta_prompt_graph._create_acceptance_criteria_workflow()
+
+        # Check if the workflow contains the correct node
+        self.assertIn(NODE_ACCEPTANCE_CRITERIA_DEVELOPER, workflow.nodes)
+
+        # Check if the workflow contains the correct edge
+        self.assertIn((NODE_ACCEPTANCE_CRITERIA_DEVELOPER, END), workflow.edges)
+
+        # compile the workflow
+        graph = workflow.compile()
+        print(graph)
+
+        # invoke the workflow
+        state = AgentState(
+            user_message="How do I reverse a list in Python?",
+            expected_output="The output should use the `reverse()` method.",
+            # system_message="Create acceptance criteria for the task of reversing a list in Python."
+        )
+        output_state = graph.invoke(state)
+
+        # check if the output state contains the acceptance criteria
+        self.assertIsNotNone(output_state['acceptance_criteria'])
+
+        # check if the acceptance criteria includes string '`reverse()`'
+        self.assertIn('`reverse()`', output_state['acceptance_criteria'])
+
+        pprint.pp(output_state["acceptance_criteria"])
+
+    def test_run_acceptance_criteria_graph(self):
+        """
+        Test the run_acceptance_criteria_graph method of MetaPromptGraph.
+
+        This test case verifies that the run_acceptance_criteria_graph method returns a state with acceptance criteria.
+        """
+        llms = {
+            NODE_ACCEPTANCE_CRITERIA_DEVELOPER: MagicMock(
+                invoke=lambda prompt: MagicMock(content="Acceptance criteria: ..."))
+        }
+        meta_prompt_graph = MetaPromptGraph(llms=llms)
+        state = AgentState(
+            user_message="How do I reverse a list in Python?",
+            expected_output="The output should use the `reverse()` method.",
+        )
+        output_state = meta_prompt_graph.run_acceptance_criteria_graph(state)
+
+        # Check if the output state contains the acceptance criteria
+        self.assertIsNotNone(output_state['acceptance_criteria'])
+
+        # Check if the acceptance criteria includes the expected content
+        self.assertIn("Acceptance criteria: ...", output_state['acceptance_criteria'])
 
 
 if __name__ == '__main__':

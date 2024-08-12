@@ -1,5 +1,7 @@
 from langchain_core.prompts import ChatPromptTemplate
 
+NODE_TASK_BRIEF_DEVELOPER = "task_brief_developer"
+NODE_ACCEPTANCE_CRITERIA_DEVELOPER = "acceptance_criteria_developer"
 NODE_PROMPT_INITIAL_DEVELOPER = "prompt_initial_developer"
 NODE_PROMPT_DEVELOPER = "prompt_developer"
 NODE_PROMPT_EXECUTOR = "prompt_executor"
@@ -8,6 +10,8 @@ NODE_PROMPT_ANALYZER = "prompt_analyzer"
 NODE_PROMPT_SUGGESTER = "prompt_suggester"
 
 META_PROMPT_NODES = [
+    NODE_TASK_BRIEF_DEVELOPER,
+    NODE_ACCEPTANCE_CRITERIA_DEVELOPER,
     NODE_PROMPT_INITIAL_DEVELOPER,
     NODE_PROMPT_DEVELOPER,
     NODE_PROMPT_EXECUTOR,
@@ -17,6 +21,76 @@ META_PROMPT_NODES = [
 ]
 
 DEFAULT_PROMPT_TEMPLATES = {
+    NODE_TASK_BRIEF_DEVELOPER: ChatPromptTemplate.from_messages([
+        ("system", """# Task Brief Developer
+
+You are a task brief developer. You will receive a specific example to create a task brief. You will respond directly with the brief for the task type.
+
+## Instructions
+
+The user will provide you a specific example with User Message (input) and Expected Output (output) of a task type. You will respond with a brief for the task type in the following format:
+
+```
+# Task Description
+
+[Task description]
+```
+
+"""),
+        ("human", """# User Message
+
+{user_message}
+
+# Expected Output
+
+{expected_output}
+
+# Task Brief
+
+""")
+    ]),
+    NODE_ACCEPTANCE_CRITERIA_DEVELOPER: ChatPromptTemplate.from_messages([
+        ("system", """# Acceptance Criteria Developer
+
+You are an acceptance criteria developer. You will receive a specific example of a task type to create acceptance criteria. You will respond directly with the acceptance criteria.
+
+## Instructions
+
+The user will provide you a specific example with User Message (input) and Expected Output (output) of a task type. You will respond with acceptance criteria for the task type includes the following:
+
+* What the output should include
+* What the output should not include
+* Any specific formatting or structure requirements
+
+## Output
+
+Create acceptance criteria in the following format:
+
+```
+# Acceptance Criteria
+
+* [Criteria 1]
+* [Criteria 2]
+* [Criteria 3]
+```
+
+"""),
+        ("human", """# Task Brief
+
+{system_message}
+
+# User Message
+
+{user_message}
+
+# Expected Output
+
+{expected_output}
+
+# Acceptance Criteria
+
+""")
+    ]),
     NODE_PROMPT_INITIAL_DEVELOPER: ChatPromptTemplate.from_messages([
         ("system", """# Expert Prompt Engineer
 
@@ -28,7 +102,7 @@ The user will provide you a specific example to create the GPT. You will respond
 
 ## Output
 
-Create a [name], Here’s the descriptions [description]. Start with “GPT Description:”
+Create a [name], Here's the descriptions [description]. Start with "GPT Description:"
 """),
         ("human", """# User Message
             
@@ -56,7 +130,7 @@ The user will provide you a specific example (`User Message` and `Expected Outpu
 
 ## Output
 
-Create a [name], Here’s the descriptions [description]. Start with “GPT Description:”
+Create a [name], Here's the descriptions [description]. Start with "GPT Description:"
 """),
         ("human", """# Current System Message
 

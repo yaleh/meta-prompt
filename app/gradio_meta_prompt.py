@@ -498,6 +498,25 @@ def process_message_with_expert_llms(user_message: str, expected_output: str,
                            recursion_limit, max_output_age, llms, prompt_template_group=prompt_template_group)
 
 
+def generate_acceptance_criteria(user_message, expected_output, model_name):
+    """
+    Generate acceptance criteria based on the user message and expected output.
+    """
+    prompt = f"""Given the following user message and expected output, generate appropriate acceptance criteria:
+
+User Message: {user_message}
+Expected Output: {expected_output}
+
+Generate concise and specific acceptance criteria that can be used to evaluate the quality and relevance of the expected output in relation to the user message. The criteria should focus on key aspects such as relevance, accuracy, completeness, and clarity.
+
+Acceptance Criteria:
+"""
+    
+    llm = initialize_llm(model_name)
+    response = llm.invoke(prompt)
+    return response.content if hasattr(response, 'content') else ""
+
+
 class FileConfig(BaseConfig):
     config_file: str = 'config.yml'  # default path
 
@@ -527,25 +546,58 @@ with gr.Blocks(title='Meta Prompt') as demo:
     with gr.Row():
         with gr.Column():
             user_message_input = gr.Textbox(
-                label="User Message", show_copy_button=True)
+                label="User Message",
+                show_copy_button=True
+            )
             expected_output_input = gr.Textbox(
-                label="Expected Output", show_copy_button=True)
-            acceptance_criteria_input = gr.Textbox(
-                label="Acceptance Criteria (Compared with Expected Output [EO])", show_copy_button=True)
-            initial_system_message_input = gr.Textbox(
-                label="Initial System Message", show_copy_button=True, value="")
-            evaluate_initial_system_message_button = gr.Button(
-                value="Evaluate", variant="secondary")
+                label="Expected Output",
+                show_copy_button=True
+            )
+            with gr.Group():
+                with gr.Row():
+                    acceptance_criteria_input = gr.Textbox(
+                        label="Acceptance Criteria (Compared with Expected Output [EO])",
+                        show_copy_button=True,
+                        scale=4  # This makes it take up 3/4 of the row width
+                    )
+                    generate_acceptance_criteria_button = gr.Button(
+                        value="Generate",
+                        variant="secondary",
+                        scale=1  # This makes it take up 1/4 of the row width
+                    )
+            with gr.Group():
+                with gr.Row():
+                    initial_system_message_input = gr.Textbox(
+                        label="Initial System Message",
+                        show_copy_button=True,
+                        value="",
+                        scale=4
+                    )
+                    evaluate_initial_system_message_button = gr.Button(
+                        value="Evaluate",
+                        variant="secondary",
+                        scale=1
+                    )
             recursion_limit_input = gr.Number(
-                label="Recursion Limit", value=config.recursion_limit,
-                precision=0, minimum=1, maximum=config.recursion_limit_max, step=1)
+                label="Recursion Limit",
+                value=config.recursion_limit,
+                precision=0,
+                minimum=1,
+                maximum=config.recursion_limit_max,
+                step=1
+            )
             max_output_age = gr.Number(
-                label="Max Output Age", value=config.max_output_age,
-                precision=0, minimum=1, maximum=config.max_output_age_max, step=1)
+                label="Max Output Age",
+                value=config.max_output_age,
+                precision=0,
+                minimum=1,
+                maximum=config.max_output_age_max,
+                step=1
+            )
             prompt_template_group = gr.Dropdown(
                 label="Prompt Template Group",
                 choices=list(config.prompt_templates.keys()),
-                value=list(config.prompt_templates.keys())[0],
+                value=list(config.prompt_templates.keys())[0]
             )
             with gr.Row():
                 with gr.Tabs():
@@ -658,13 +710,14 @@ with gr.Blocks(title='Meta Prompt') as demo:
                                             acceptance_criteria_input, initial_system_message_input],
                                 value='Clear All')
         with gr.Column():
-            system_message_output = gr.Textbox(
-                label="System Message", show_copy_button=True)
-            with gr.Row():
-                evaluate_system_message_button = gr.Button(
-                    value="Evaluate", variant="secondary")
-                copy_to_initial_system_message_button = gr.Button(
-                    value="Copy to Initial System Message", variant="secondary")
+            with gr.Group():
+                system_message_output = gr.Textbox(
+                    label="System Message", show_copy_button=True)
+                with gr.Row():
+                    evaluate_system_message_button = gr.Button(
+                        value="Evaluate", variant="secondary")
+                    copy_to_initial_system_message_button = gr.Button(
+                        value="Copy to Initial System Message", variant="secondary")
             output_output = gr.Textbox(label="Output", show_copy_button=True)
             analysis_output = gr.Textbox(
                 label="Analysis", show_copy_button=True)
@@ -692,6 +745,12 @@ with gr.Blocks(title='Meta Prompt') as demo:
     simple_llm_tab.select(on_model_tab_select)
     advanced_llm_tab.select(on_model_tab_select)
     expert_llm_tab.select(on_model_tab_select)
+
+    generate_acceptance_criteria_button.click(
+        generate_acceptance_criteria,
+        inputs=[user_message_input, expected_output_input, simple_model_name_input],
+        outputs=[acceptance_criteria_input]
+    )
 
     evaluate_initial_system_message_button.click(
         evaluate_system_message,

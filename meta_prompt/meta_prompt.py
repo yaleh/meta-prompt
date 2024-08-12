@@ -8,6 +8,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.errors import GraphRecursionError
+from langchain_core.runnables.base import RunnableLike
 from pydantic import BaseModel
 from .consts import *
 
@@ -46,26 +47,30 @@ class MetaPromptGraph:
     """
     This class represents a graph for meta-prompting in a conversational AI system.
 
-    It manages the state of the conversation, including the user's message, expected output, 
-    acceptance criteria, system message, output, suggestions, and analysis. The graph 
-    consists of nodes that represent different stages of the conversation, such as 
-    prompting the developer, executing the output, analyzing the output history, and 
-    suggesting new prompts. The class provides methods to create the workflow, 
-    initialize the graph, and invoke the graph with a given state.
+    It manages the state of the conversation, including the user's message, expected 
+    output, acceptance criteria, system message, output, suggestions, and analysis.
 
-    The MetaPromptGraph class is responsible for orchestrating the conversation flow 
-    and deciding the next step based on the current state of the conversation. It uses 
-    language models and prompt templates to generate responses and analyze the output.
+    The graph consists of nodes that represent different stages of the conversation, 
+    such as prompting the developer, executing the output, analyzing the output 
+    history, and suggesting new prompts.
+
+    The class provides methods to create the workflow, initialize the graph, and 
+    invoke the graph with a given state.
+
+    The MetaPromptGraph class is responsible for orchestrating the conversation 
+    flow and deciding the next step based on the current state of the 
+    conversation. It uses language models and prompt templates to generate 
+    responses and analyze the output.
     """
     @classmethod
     def get_node_names(cls):
         """
         Returns a list of node names in the meta-prompt graph.
 
-        This method is used to initialize the language models and prompt templates for each node in the graph.
+        This method initializes language models and prompt templates for each node.
 
         Returns:
-            list: A list of node names.
+            list: List of node names.
         """
         return META_PROMPT_NODES
 
@@ -79,12 +84,18 @@ class MetaPromptGraph:
         Initializes the MetaPromptGraph instance.
 
         Args:
-        - llms (Union[BaseLanguageModel, Dict[str, BaseLanguageModel]], optional): The language models for the graph nodes. Defaults to {}.
-        - prompts (Dict[str, ChatPromptTemplate], optional): The custom prompt templates for the graph nodes. Defaults to {}.
-        - logger (Optional[logging.Logger], optional): The logger for the graph. Defaults to None.
-        - verbose (bool, optional): Whether to set the logger level to DEBUG. Defaults to False.
+        - llms (Union[BaseLanguageModel, Dict[str, BaseLanguageModel]], 
+            optional): The language models for the graph nodes. Defaults to {}.
+        - prompts (Dict[str, ChatPromptTemplate], optional): The custom 
+            prompt templates for the graph nodes. Defaults to {}.
+        - logger (Optional[logging.Logger], optional): The logger for 
+            the graph. Defaults to None.
+        - verbose (bool, optional): Whether to set the logger level to 
+            DEBUG. Defaults to False.
 
-        Initializes the logger, sets the language models and prompt templates for the graph nodes, and updates the prompt templates with custom ones if provided.
+        Initializes the logger, sets the language models and prompt 
+        templates for the graph nodes, and updates the prompt templates 
+        with custom ones if provided.
         """
         self.logger = logger or logging.getLogger(__name__)
         if self.logger is not None:
@@ -94,6 +105,7 @@ class MetaPromptGraph:
                 self.logger.setLevel(logging.INFO)
 
         if isinstance(llms, BaseLanguageModel):
+            # if llms is a single language model, wrap it in a dictionary
             self.llms: Dict[str, BaseLanguageModel] = {
                 node: llms for node in self.get_node_names()}
         else:
@@ -102,7 +114,29 @@ class MetaPromptGraph:
                                     ChatPromptTemplate] = DEFAULT_PROMPT_TEMPLATES.copy()
         self.prompt_templates.update(prompts)
 
+
+    def _create_acceptance_criteria_workflow(self) -> StateGraph:
+        workflow = StateGraph(AgentState)
+        workflow.add_node(NODE_ACCEPTANCE_CRITERIA_DEVELOPER,
+                          lambda x: self._prompt_node(
+                              NODE_ACCEPTANCE_CRITERIA_DEVELOPER,
+                              "acceptance_criteria",
+                              x))
+        workflow.add_edge(NODE_ACCEPTANCE_CRITERIA_DEVELOPER, END)
+        workflow.set_entry_point(NODE_ACCEPTANCE_CRITERIA_DEVELOPER)
+        return workflow
+
+
     def _create_workflow(self, including_initial_developer: bool = True) -> StateGraph:
+        """Create a workflow state graph.
+
+        Args:
+            including_initial_developer: Flag indicating whether to include the 
+                initial developer node in the workflow.
+
+        Returns:
+            StateGraph: A state graph representing the workflow.
+        """
         workflow = StateGraph(AgentState)
 
         workflow.add_node(NODE_PROMPT_DEVELOPER,
@@ -125,10 +159,12 @@ class MetaPromptGraph:
                               "suggestions",
                               x))
 
+        # Connect nodes
         workflow.add_edge(NODE_PROMPT_DEVELOPER, NODE_PROMPT_EXECUTOR)
         workflow.add_edge(NODE_PROMPT_EXECUTOR, NODE_OUTPUT_HISTORY_ANALYZER)
         workflow.add_edge(NODE_PROMPT_SUGGESTER, NODE_PROMPT_DEVELOPER)
 
+        # Add conditional edges
         workflow.add_conditional_edges(
             NODE_OUTPUT_HISTORY_ANALYZER,
             lambda x: self._should_exit_on_max_age(x),
@@ -148,6 +184,7 @@ class MetaPromptGraph:
             }
         )
 
+        # Set entry point based on including_initial_developer flag
         if including_initial_developer:
             workflow.add_node(NODE_PROMPT_INITIAL_DEVELOPER,
                               lambda x: self._prompt_node(
@@ -161,8 +198,40 @@ class MetaPromptGraph:
             workflow.set_entry_point(NODE_PROMPT_EXECUTOR)
 
         return workflow
+    
+    def run_acceptance_criteria_graph(self, state: AgentState, recursion_limit: int = 25) -> AgentState:
+        self.logger.debug("Creating acceptance criteria workflow")
+        workflow = self._create_acceptance_criteria_workflow()
+        self.logger.debug("Compiling workflow with memory saver")
+        memory = MemorySaver()
+        graph = workflow.compile(checkpointer=memory)
+        self.logger.debug("Configuring graph with recursion limit %s", recursion_limit)
+        config = {"configurable": {"thread_id": "1"},
+                  "recursion_limit": recursion_limit}
+        self.logger.debug("Invoking graph with state: %s", pprint.pformat(state))
+        output_state = graph.invoke(state, config)
+        self.logger.debug("Output state: %s", pprint.pformat(output_state))
+        return output_state
+    
 
-    def __call__(self, state: AgentState, recursion_limit: int = 25) -> AgentState:
+    def run_meta_prompt_graph(self, state: AgentState, recursion_limit: int = 25) -> AgentState:
+        """
+        Invoke the meta-prompt workflow with the given state and recursion limit.
+
+        This method creates a workflow based on the presence of an initial system
+        message, compiles the workflow with a memory saver, and invokes the graph
+        with the given state. If a recursion limit is reached, it returns the best
+        state found so far.
+
+        Parameters:
+            state (AgentState): The current state of the agent, containing
+                necessary context for message formatting.
+            recursion_limit (int): The maximum number of recursive calls
+                allowed. Defaults to 25.
+
+        Returns:
+            AgentState: The output state of the agent after invoking the workflow.
+        """
         workflow = self._create_workflow(including_initial_developer=(
             state.system_message is None or state.system_message == ""))
 
@@ -195,20 +264,48 @@ class MetaPromptGraph:
 
         return state
 
+
+    def __call__(self, state: AgentState, recursion_limit: int = 25) -> AgentState:
+        return self.run_meta_prompt_graph(state, recursion_limit)
+
+
+    def _optional_action(
+        self, target_attribute: str,
+        action: Optional[RunnableLike],
+        state: AgentState
+    ) -> AgentState:
+        """
+        Optionally invokes an action if the target attribute is not set or empty.
+
+        Args:
+            node (str): Node identifier.
+            target_attribute (str): State attribute to be updated.
+            action (Optional[RunnableLike]): Action to be invoked. Defaults to None.
+            state (AgentState): Current agent state.
+
+        Returns:
+            AgentState: Updated state.
+        """
+        if not getattr(state, target_attribute, None) or getattr(state, target_attribute) == "":
+            if action:
+                state = action(state)
+        return state
+    
+
     def _prompt_node(self, node, target_attribute: str, state: AgentState) -> AgentState:
         """
         Prompt a specific node with the given state and update the state with the response.
 
-        This method formats messages using the prompt template associated with the node, logs the invocation and response,
-        and updates the state with the response content.
+        This method formats messages using the prompt template associated with the node,
+        logs the invocation and response, and updates the state with the response content.
 
         Parameters:
-            node (str): The identifier of the node to be prompted.
-            target_attribute (str): The attribute of the state to be updated with the response content.
-            state (AgentState): The current state of the agent, containing necessary context for message formatting.
+            node (str): Node identifier to be prompted.
+            target_attribute (str): State attribute to be updated with response content.
+            state (AgentState): Current agent state with necessary context for message formatting.
 
         Returns:
-            AgentState: The updated state of the agent with the response content set to the target attribute.
+            AgentState: Updated state with response content set to the target attribute.
         """
 
         logger = self.logger.getChild(node)
@@ -234,47 +331,77 @@ class MetaPromptGraph:
         return state
 
     def _output_history_analyzer(self, state: AgentState) -> AgentState:
+        """
+        Analyzes the output history and updates the best output and its age.
+
+        This method checks if the best output is initialized, formats the prompt for
+        the output history analyzer, invokes the language model, and updates the best
+        output and its age based on the response.
+
+        Parameters:
+            state (AgentState): Current state of the agent with necessary context
+                for message formatting.
+
+        Returns:
+            AgentState: Updated state with the best output and its age.
+        """
         logger = self.logger.getChild(NODE_OUTPUT_HISTORY_ANALYZER)
 
         if state.best_output is None:
             state.best_output = state.output
             state.best_system_message = state.system_message
             state.best_output_age = 0
-
             logger.debug(
                 "Best output initialized to the current output:\n%s", state.output)
-
             return state
 
         prompt = self.prompt_templates[NODE_OUTPUT_HISTORY_ANALYZER].format_messages(
             **state.model_dump())
 
         for message in prompt:
-            logger.debug({'node': NODE_OUTPUT_HISTORY_ANALYZER, 'action': 'invoke',
-                         'type': message.type, 'message': message.content})
+            logger.debug({
+                'node': NODE_OUTPUT_HISTORY_ANALYZER,
+                'action': 'invoke',
+                'type': message.type,
+                'message': message.content
+            })
 
         response = self.llms[NODE_OUTPUT_HISTORY_ANALYZER].invoke(prompt)
-        logger.debug({'node': NODE_OUTPUT_HISTORY_ANALYZER, 'action': 'response',
-                     'type': response.type, 'message': response.content})
+        logger.debug({
+            'node': NODE_OUTPUT_HISTORY_ANALYZER,
+            'action': 'response',
+            'type': response.type,
+            'message': response.content
+        })
 
         analysis = response.content
 
-        if state.best_output is None or "# Output ID closer to Expected Output: B" in analysis:
+        if state.best_output is None or (
+                "# Output ID closer to Expected Output: B" in analysis):
             state.best_output = state.output
             state.best_system_message = state.system_message
             state.best_output_age = 0
-
             logger.debug(
                 "Best output updated to the current output:\n%s", state.output)
         else:
             state.best_output_age += 1
-
-            logger.debug("Best output age incremented to %s",
-                         state.best_output_age)
+            logger.debug("Best output age incremented to %s", state.best_output_age)
 
         return state
 
     def _prompt_analyzer(self, state: AgentState) -> AgentState:
+        """
+        Analyzes the prompt and updates the state with the analysis and 
+        acceptance status.
+
+        Args:
+            state (AgentState): The current state of the agent, containing 
+                necessary context for message formatting.
+
+        Returns:
+            AgentState: The updated state of the agent with the analysis 
+                and acceptance status.
+        """
         logger = self.logger.getChild(NODE_PROMPT_ANALYZER)
         prompt = self.prompt_templates[NODE_PROMPT_ANALYZER].format_messages(
             **state.model_dump())
@@ -295,6 +422,15 @@ class MetaPromptGraph:
         return state
 
     def _should_exit_on_max_age(self, state: AgentState) -> str:
+        """
+        Determines whether to exit the workflow based on the maximum output age.
+
+        Args:
+            state (AgentState): The current state of the agent.
+
+        Returns:
+            str: The decision to continue, rerun, or end the workflow.
+        """
         if state.max_output_age <= 0:
             # always continue if max age is 0
             return "continue"
@@ -309,4 +445,13 @@ class MetaPromptGraph:
         return "continue"
 
     def _should_exit_on_acceptable_output(self, state: AgentState) -> str:
+        """
+        Determines whether to exit the workflow based on the acceptance status of the output.
+
+        Args:
+            state (AgentState): The current state of the agent.
+
+        Returns:
+            str: The decision to continue or end the workflow.
+        """
         return "continue" if not state.accepted else END
