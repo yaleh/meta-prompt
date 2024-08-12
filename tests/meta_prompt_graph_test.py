@@ -316,6 +316,7 @@ class TestMetaPromptGraph(unittest.TestCase):
 
         pprint.pp(output_state["acceptance_criteria"])
 
+
     def test_run_acceptance_criteria_graph(self):
         """
         Test the run_acceptance_criteria_graph method of MetaPromptGraph.
@@ -338,6 +339,27 @@ class TestMetaPromptGraph(unittest.TestCase):
 
         # Check if the acceptance criteria includes the expected content
         self.assertIn("Acceptance criteria: ...", output_state['acceptance_criteria'])
+
+
+    def test_run_prompt_initial_developer_graph(self):
+        """
+        Test the run_prompt_initial_developer_graph method of MetaPromptGraph.
+
+        This test case verifies that the run_prompt_initial_developer_graph method returns a state with an initial developer prompt.
+        """
+        llms = {
+            NODE_PROMPT_INITIAL_DEVELOPER: MagicMock(
+                invoke=lambda prompt: MagicMock(content="Initial developer prompt: ..."))
+        }
+        meta_prompt_graph = MetaPromptGraph(llms=llms)
+        state = AgentState(user_message="How do I reverse a list in Python?")
+        output_state = meta_prompt_graph.run_prompt_initial_developer_graph(state)
+
+        # Check if the output state contains the initial developer prompt
+        self.assertIsNotNone(output_state['system_message'])
+
+        # Check if the initial developer prompt includes the expected content
+        self.assertIn("Initial developer prompt: ...", output_state['system_message'])
 
 
 if __name__ == '__main__':

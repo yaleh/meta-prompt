@@ -181,38 +181,39 @@ def on_model_tab_select(event: gr.SelectData):
     active_model_tab = event.value
 
 
-def get_current_executor_model(simple_model_name: str,
-                               advanced_model_name: str,
-                               expert_model_name: str, expert_model_config: Optional[Dict[str, Any]] = None) -> BaseLanguageModel:
+def get_current_model(simple_model_name: str,
+                        advanced_model_name: str,
+                        expert_model_name: str,
+                        expert_model_config: Optional[Dict[str, Any]] = None) -> BaseLanguageModel:
     """
     Retrieve and return a language model (LLM) based on the currently active model tab.
 
-    This function uses a mapping to associate model tab names with their corresponding model names.
-    It then looks up the configuration for the selected executor model in the application's
-    configuration, creates an instance of the appropriate type of language model using that
-    configuration, and returns it. If the active model tab is not found in the mapping, the simple model
-    will be used as a default.
+    This function uses a mapping to associate model tab names with their corresponding
+    model names. It then looks up the configuration for the selected model in the
+    application's configuration, creates an instance of the appropriate type of language
+    model using that configuration, and returns it. If the active model tab is not found
+    in the mapping, the simple model will be used as a default.
 
     Args:
-        simple_model_name (str): The name of the simple language model.
-            This should correspond to a key in the 'llms' section of the application's configuration.
-        advanced_model_name (str): The name of the advanced language model.
-            This should correspond to a key in the 'llms' section of the application's configuration.
-        expert_model_name (str): The name of the expert language model.
-            This should correspond to a key in the 'llms' section of the application's configuration.
-        expert_model_config (Optional[Dict[str, Any]]): Optional configuration for the expert model.
-            This configuration will be used to update the executor model configuration if the active
-            model tab is "Expert". Defaults to None.
+        simple_model_name (str): The name of the simple language model. This should
+            correspond to a key in the 'llms' section of the application's configuration.
+        advanced_model_name (str): The name of the advanced language model. This should
+            correspond to a key in the 'llms' section of the application's configuration.
+        expert_model_name (str): The name of the expert language model. This should
+            correspond to a key in the 'llms' section of the application's configuration.
+        expert_model_config (Optional[Dict[str, Any]]): Optional configuration for the
+            expert model. This configuration will be used to update the model configuration
+            if the active model tab is "Expert". Defaults to None.
 
     Returns:
-        BaseLanguageModel: An instance of a language model that inherits from BaseLanguageModel,
-                           based on the currently active model tab and the provided model names.
+        BaseLanguageModel: An instance of a language model that inherits from
+            BaseLanguageModel, based on the currently active model tab and the provided
+            model names.
 
     Raises:
-        ValueError: If the active model tab is not found in the mapping or if the model name or
-            configuration is invalid.
-        RuntimeError: If an unexpected error occurs while retrieving the executor model.
-
+        ValueError: If the active model tab is not found in the mapping or if the model
+            name or configuration is invalid.
+        RuntimeError: If an unexpected error occurs while retrieving the model.
     """
     model_mapping = {
         "Simple": simple_model_name,
@@ -221,16 +222,16 @@ def get_current_executor_model(simple_model_name: str,
     }
     
     try:
-        executor_model_name = model_mapping.get(active_model_tab, simple_model_name)
-        executor_model = config.llms[executor_model_name]
-        executor_model_type = executor_model.type
-        executor_model_config = executor_model.model_dump(exclude={'type'})
+        model_name = model_mapping.get(active_model_tab, simple_model_name)
+        model = config.llms[model_name]
+        model_type = model.type
+        model_config = model.model_dump(exclude={'type'})
     
         # Update the configuration with the expert model configurations if provided
         if active_model_tab == "Expert" and expert_model_config:
-            executor_model_config.update(expert_model_config)
+            model_config.update(expert_model_config)
     
-        return LLMModelFactory().create(executor_model_type, **executor_model_config)
+        return LLMModelFactory().create(model_type, **model_config)
     
     except KeyError as e:
         logging.error(f"Configuration key error: {e}")
@@ -238,7 +239,7 @@ def get_current_executor_model(simple_model_name: str,
     
     except Exception as e:
         logging.error(f"An unexpected error occurred: {e}")
-        raise RuntimeError(f"Failed to retrieve the executor model: {e}")
+        raise RuntimeError(f"Failed to retrieve the model: {e}")
 
 
 def evaluate_system_message(system_message, user_message,
@@ -265,7 +266,7 @@ def evaluate_system_message(system_message, user_message,
         gr.Error: If there is a Gradio-specific error during the execution of this function.
         Exception: For any other unexpected errors that occur during the execution of this function.
     """
-    llm = get_current_executor_model(simple_model,
+    llm = get_current_model(simple_model,
                                      advanced_executor_model,
                                      expert_executor_model, {"temperature": expert_execuor_model_temperature})
     template = ChatPromptTemplate.from_messages([
@@ -280,6 +281,142 @@ def evaluate_system_message(system_message, user_message,
         raise e
     except Exception as e:
         raise gr.Error(f"Error: {e}")
+
+
+def generate_acceptance_criteria(user_message, expected_output,
+                                 simple_model, advanced_executor_model,
+                                 expert_prompt_acceptance_criteria_model,
+                                 expert_prompt_acceptance_criteria_temperature=0.1,
+                                 prompt_template_group: Optional[str] = None):
+    """
+    Generate acceptance criteria based on the user message and expected output.
+
+    This function uses the MetaPromptGraph's run_acceptance_criteria_graph method
+    to generate acceptance criteria.
+
+    Args:
+        user_message (str): The user's input message.
+        expected_output (str): The anticipated response or outcome from the language
+            model based on the user's message.
+        simple_model (str): The name of the simple language model.
+        advanced_executor_model (str): The name of the advanced language model.
+        expert_prompt_acceptance_criteria_model (str): The name of the expert language
+            model.
+        expert_prompt_acceptance_criteria_temperature (float, optional): The temperature
+            parameter for the expert model. Defaults to 0.1.
+        prompt_template_group (Optional[str], optional): The group of prompt templates
+            to use. Defaults to None.
+
+    Returns:
+        str: The generated acceptance criteria.
+    """
+
+    log_stream = io.StringIO()
+    logger = logging.getLogger(MetaPromptGraph.__name__) if config.verbose else None
+    log_handler = logging.StreamHandler(log_stream) if logger else None
+
+    if log_handler:
+        log_handler.setFormatter(
+            jsonlogger.JsonFormatter('%(asctime)s %(name)s %(levelname)s %(message)s')
+        )
+        logger.addHandler(log_handler)
+
+    llm = get_current_model(simple_model, advanced_executor_model,
+                            expert_prompt_acceptance_criteria_model,
+                            {"temperature": expert_prompt_acceptance_criteria_temperature})
+    if prompt_template_group is None:
+        prompt_template_group = 'default'
+    prompt_templates = prompt_templates_confz2langchain(
+        config.prompt_templates[prompt_template_group]
+    )
+    acceptance_criteria_graph = MetaPromptGraph(llms={
+        NODE_ACCEPTANCE_CRITERIA_DEVELOPER: llm
+    }, prompts=prompt_templates,
+    verbose=config.verbose, logger=logger)
+    state = AgentState(
+        user_message=user_message,
+        expected_output=expected_output
+    )
+    output_state = acceptance_criteria_graph.run_acceptance_criteria_graph(state)
+
+    if log_handler:
+        log_handler.close()
+        log_output = log_stream.getvalue()
+    else:
+        log_output = None
+    return output_state.get('acceptance_criteria', ""), chat_log_2_chatbot_list(log_output)
+
+
+def generate_initial_system_message(
+    user_message: str,
+    expected_output: str,
+    simple_model: str,
+    advanced_executor_model: str,
+    expert_prompt_initial_developer_model: str,
+    expert_prompt_initial_developer_temperature: float = 0.1,
+    prompt_template_group: Optional[str] = None
+) -> tuple:
+    """
+    Generate an initial system message based on the user message and expected output.
+
+    Args:
+        user_message (str): The user's input message.
+        expected_output (str): The anticipated response or outcome from the language model.
+        simple_model (str): The name of the simple language model.
+        advanced_executor_model (str): The name of the advanced language model.
+        expert_prompt_initial_developer_model (str): The name of the expert language model.
+        expert_prompt_initial_developer_temperature (float, optional): The temperature parameter for the expert model. Defaults to 0.1.
+        prompt_template_group (Optional[str], optional): The group of prompt templates to use. Defaults to None.
+
+    Returns:
+        tuple: A tuple containing the initial system message and the chat log.
+    """
+
+    log_stream = io.StringIO()
+    logger = logging.getLogger(MetaPromptGraph.__name__) if config.verbose else None
+    log_handler = logging.StreamHandler(log_stream) if logger else None
+
+    if log_handler:
+        log_handler.setFormatter(
+            jsonlogger.JsonFormatter('%(asctime)s %(name)s %(levelname)s %(message)s')
+        )
+        logger.addHandler(log_handler)
+
+    llm = get_current_model(
+        simple_model,
+        advanced_executor_model,
+        expert_prompt_initial_developer_model,
+        {"temperature": expert_prompt_initial_developer_temperature}
+    )
+
+    if prompt_template_group is None:
+        prompt_template_group = 'default'
+    prompt_templates = prompt_templates_confz2langchain(
+        config.prompt_templates[prompt_template_group]
+    )
+
+    initial_system_message_graph = MetaPromptGraph(
+        llms={NODE_PROMPT_INITIAL_DEVELOPER: llm},
+        prompts=prompt_templates,
+        verbose=config.verbose,
+        logger=logger
+    )
+
+    state = AgentState(
+        user_message=user_message,
+        expected_output=expected_output
+    )
+
+    output_state = initial_system_message_graph.run_prompt_initial_developer_graph(state)
+
+    if log_handler:
+        log_handler.close()
+        log_output = log_stream.getvalue()
+    else:
+        log_output = None
+
+    system_message = output_state.get('system_message', "")
+    return system_message, chat_log_2_chatbot_list(log_output)
 
 
 def process_message(user_message: str, expected_output: str,
@@ -464,6 +601,7 @@ def process_message_with_2_llms(user_message: str, expected_output: str,
     optimizer_model = initialize_llm(optimizer_model_name)
     executor_model = initialize_llm(executor_model_name)
     llms = {
+        NODE_ACCEPTANCE_CRITERIA_DEVELOPER: optimizer_model,
         NODE_PROMPT_INITIAL_DEVELOPER: optimizer_model,
         NODE_PROMPT_DEVELOPER: optimizer_model,
         NODE_PROMPT_EXECUTOR: executor_model,
@@ -479,6 +617,7 @@ def process_message_with_expert_llms(user_message: str, expected_output: str,
                                      acceptance_criteria: str, initial_system_message: str,
                                      recursion_limit: int, max_output_age: int,
                                      initial_developer_model_name: str, initial_developer_temperature: float,
+                                     acceptance_criteria_model_name: str, acceptance_criteria_temperature: float,
                                      developer_model_name: str, developer_temperature: float,
                                      executor_model_name: str, executor_temperature: float,
                                      output_history_analyzer_model_name: str, output_history_analyzer_temperature: float,
@@ -488,6 +627,7 @@ def process_message_with_expert_llms(user_message: str, expected_output: str,
 
     llms = {
         NODE_PROMPT_INITIAL_DEVELOPER: initialize_llm(initial_developer_model_name, {"temperature": initial_developer_temperature}),
+        NODE_ACCEPTANCE_CRITERIA_DEVELOPER: initialize_llm(acceptance_criteria_model_name, {"temperature": acceptance_criteria_temperature}),
         NODE_PROMPT_DEVELOPER: initialize_llm(developer_model_name, {"temperature": developer_temperature}),
         NODE_PROMPT_EXECUTOR: initialize_llm(executor_model_name, {"temperature": executor_temperature}),
         NODE_OUTPUT_HISTORY_ANALYZER: initialize_llm(output_history_analyzer_model_name, {"temperature": output_history_analyzer_temperature}),
@@ -496,25 +636,6 @@ def process_message_with_expert_llms(user_message: str, expected_output: str,
     }
     return process_message(user_message, expected_output, acceptance_criteria, initial_system_message,
                            recursion_limit, max_output_age, llms, prompt_template_group=prompt_template_group)
-
-
-def generate_acceptance_criteria(user_message, expected_output, model_name):
-    """
-    Generate acceptance criteria based on the user message and expected output.
-    """
-    prompt = f"""Given the following user message and expected output, generate appropriate acceptance criteria:
-
-User Message: {user_message}
-Expected Output: {expected_output}
-
-Generate concise and specific acceptance criteria that can be used to evaluate the quality and relevance of the expected output in relation to the user message. The criteria should focus on key aspects such as relevance, accuracy, completeness, and clarity.
-
-Acceptance Criteria:
-"""
-    
-    llm = initialize_llm(model_name)
-    response = llm.invoke(prompt)
-    return response.content if hasattr(response, 'content') else ""
 
 
 class FileConfig(BaseConfig):
@@ -554,29 +675,28 @@ with gr.Blocks(title='Meta Prompt') as demo:
                 show_copy_button=True
             )
             with gr.Group():
-                with gr.Row():
-                    acceptance_criteria_input = gr.Textbox(
-                        label="Acceptance Criteria (Compared with Expected Output [EO])",
-                        show_copy_button=True,
-                        scale=4  # This makes it take up 3/4 of the row width
-                    )
-                    generate_acceptance_criteria_button = gr.Button(
-                        value="Generate",
-                        variant="secondary",
-                        scale=1  # This makes it take up 1/4 of the row width
-                    )
+                acceptance_criteria_input = gr.Textbox(
+                    label="Acceptance Criteria (Compared with Expected Output [EO])",
+                    show_copy_button=True
+                )
+                generate_acceptance_criteria_button = gr.Button(
+                    value="Generate",
+                    variant="secondary"
+                )
             with gr.Group():
+                initial_system_message_input = gr.Textbox(
+                    label="Initial System Message",
+                    show_copy_button=True,
+                    value=""
+                )
                 with gr.Row():
-                    initial_system_message_input = gr.Textbox(
-                        label="Initial System Message",
-                        show_copy_button=True,
-                        value="",
-                        scale=4
-                    )
                     evaluate_initial_system_message_button = gr.Button(
                         value="Evaluate",
-                        variant="secondary",
-                        scale=1
+                        variant="secondary"
+                    )
+                    generate_initial_system_message_button = gr.Button(
+                        value="Generate",
+                        variant="secondary"
                     )
             recursion_limit_input = gr.Number(
                 label="Recursion Limit",
@@ -600,7 +720,7 @@ with gr.Blocks(title='Meta Prompt') as demo:
                 value=list(config.prompt_templates.keys())[0]
             )
             with gr.Row():
-                with gr.Tabs():
+                with gr.Tabs() as llm_tabs:
                     with gr.Tab('Simple') as simple_llm_tab:
                         simple_model_name_input = gr.Dropdown(
                             label="Model Name",
@@ -643,6 +763,17 @@ with gr.Blocks(title='Meta Prompt') as demo:
                             )
                             expert_prompt_initial_developer_temperature_input = gr.Number(
                                 label="Initial Developer Temperature", value=0.1,
+                                precision=1, minimum=0, maximum=1, step=0.1,
+                                interactive=True)
+
+                        with gr.Row():
+                            expert_prompt_acceptance_criteria_model_name_input = gr.Dropdown(
+                                label="Acceptance Criteria Model Name",
+                                choices=config.llms.keys(),
+                                value=list(config.llms.keys())[0],
+                            )
+                            expert_prompt_acceptance_criteria_temperature_input = gr.Number(
+                                label="Acceptance Criteria Temperature", value=0.1,
                                 precision=1, minimum=0, maximum=1, step=0.1,
                                 interactive=True)
 
@@ -748,8 +879,21 @@ with gr.Blocks(title='Meta Prompt') as demo:
 
     generate_acceptance_criteria_button.click(
         generate_acceptance_criteria,
-        inputs=[user_message_input, expected_output_input, simple_model_name_input],
-        outputs=[acceptance_criteria_input]
+        inputs=[user_message_input, expected_output_input,
+                simple_model_name_input,
+                advanced_optimizer_model_name_input,
+                expert_prompt_acceptance_criteria_model_name_input, expert_prompt_acceptance_criteria_temperature_input],
+        outputs=[acceptance_criteria_input, logs_chatbot]
+    )
+    generate_initial_system_message_button.click(
+        generate_initial_system_message,
+        inputs=[user_message_input, expected_output_input,
+                simple_model_name_input,
+                advanced_optimizer_model_name_input,
+                expert_prompt_initial_developer_model_name_input,
+                expert_prompt_initial_developer_temperature_input,
+                prompt_template_group],
+        outputs=[initial_system_message_input, logs_chatbot]
     )
 
     evaluate_initial_system_message_button.click(
@@ -830,6 +974,7 @@ with gr.Blocks(title='Meta Prompt') as demo:
             recursion_limit_input,
             max_output_age,
             expert_prompt_initial_developer_model_name_input, expert_prompt_initial_developer_temperature_input,
+            expert_prompt_acceptance_criteria_model_name_input, expert_prompt_acceptance_criteria_temperature_input,
             expert_prompt_developer_model_name_input, expert_prompt_developer_temperature_input,
             expert_prompt_executor_model_name_input, expert_prompt_executor_temperature_input,
             expert_output_history_analyzer_model_name_input, expert_output_history_analyzer_temperature_input,

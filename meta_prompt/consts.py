@@ -1,6 +1,6 @@
 from langchain_core.prompts import ChatPromptTemplate
 
-NODE_TASK_BRIEF_DEVELOPER = "task_brief_developer"
+# NODE_TASK_BRIEF_DEVELOPER = "task_brief_developer"
 NODE_ACCEPTANCE_CRITERIA_DEVELOPER = "acceptance_criteria_developer"
 NODE_PROMPT_INITIAL_DEVELOPER = "prompt_initial_developer"
 NODE_PROMPT_DEVELOPER = "prompt_developer"
@@ -10,7 +10,7 @@ NODE_PROMPT_ANALYZER = "prompt_analyzer"
 NODE_PROMPT_SUGGESTER = "prompt_suggester"
 
 META_PROMPT_NODES = [
-    NODE_TASK_BRIEF_DEVELOPER,
+#     NODE_TASK_BRIEF_DEVELOPER,
     NODE_ACCEPTANCE_CRITERIA_DEVELOPER,
     NODE_PROMPT_INITIAL_DEVELOPER,
     NODE_PROMPT_DEVELOPER,
@@ -21,34 +21,35 @@ META_PROMPT_NODES = [
 ]
 
 DEFAULT_PROMPT_TEMPLATES = {
-    NODE_TASK_BRIEF_DEVELOPER: ChatPromptTemplate.from_messages([
-        ("system", """# Task Brief Developer
+#     NODE_TASK_BRIEF_DEVELOPER: ChatPromptTemplate.from_messages([
+#         ("system", """# Task Brief Developer
 
-You are a task brief developer. You will receive a specific example to create a task brief. You will respond directly with the brief for the task type.
+# You are a task brief developer. You will receive a specific example to create a task brief. You will respond directly with the brief for the task type.
 
-## Instructions
+# ## Instructions
 
-The user will provide you a specific example with User Message (input) and Expected Output (output) of a task type. You will respond with a brief for the task type in the following format:
+# The user will provide you a specific example with User Message (input) and Expected Output (output) of a task type. You will respond with a brief for the task type in the following format:
 
-```
-# Task Description
+# ```
+# # Task Description
 
-[Task description]
-```
+# [Task description]
+# ```
 
-"""),
-        ("human", """# User Message
+# """),
+#         ("human", """# User Message
 
-{user_message}
+# {user_message}
 
-# Expected Output
+# # Expected Output
 
-{expected_output}
+# {expected_output}
 
-# Task Brief
+# # Task Brief
 
-""")
-    ]),
+# """)
+#     ]),
+
     NODE_ACCEPTANCE_CRITERIA_DEVELOPER: ChatPromptTemplate.from_messages([
         ("system", """# Acceptance Criteria Developer
 
@@ -56,11 +57,15 @@ You are an acceptance criteria developer. You will receive a specific example of
 
 ## Instructions
 
-The user will provide you a specific example with User Message (input) and Expected Output (output) of a task type. You will respond with acceptance criteria for the task type includes the following:
+The user will provide you a specific example with User Message (input) and Expected Output (output) of a task type. You will respond with acceptance criteria for the task type, by comparing with Expected Output (which may be referenced as EO), includes the following:
 
 * What the output should include
 * What the output should not include
-* Any specific formatting or structure requirements
+* Language requirements
+* Formatting requirements
+* Structure requirements
+* Style requirements
+* Any specific requirements
 
 ## Output
 
@@ -68,10 +73,14 @@ Create acceptance criteria in the following format:
 
 ```
 # Acceptance Criteria
-
+         
 * [Criteria 1]
 * [Criteria 2]
-* [Criteria 3]
+* ...
+* Unacceptable differences (comapire with EO):
+  * ...
+* Acceptable differences (comapire with EO):
+  * ...
 ```
 
 """),
