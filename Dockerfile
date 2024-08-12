@@ -3,11 +3,11 @@ FROM python:3.10
 
 # Set the working directory in the container
 WORKDIR /app
+RUN pip install --no-cache-dir -U poetry
 
 # Copy all files from the current directory to the working directory in the container
 COPY config.yml poetry.lock pyproject.toml /app/
 
-RUN pip install --no-cache-dir -U poetry
 RUN poetry config virtualenvs.create false
 RUN poetry install --with=dev
 
