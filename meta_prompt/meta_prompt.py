@@ -1,16 +1,20 @@
 import typing
 import pprint
 import logging
-from typing import Dict, Any, Callable, List, Union, Optional
+import operator
+from typing import Dict, Any, Callable, List, Union, Optional, Annotated
 from langchain_core.language_models import BaseLanguageModel
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate
-from langgraph.graph import StateGraph, END
+from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.errors import GraphRecursionError
 from langchain_core.runnables.base import RunnableLike
 from pydantic import BaseModel
 from .consts import *
+
+def first_non_empty(a, b):
+    return next((s for s in (a, b) if s), None)
 
 class AgentState(BaseModel):
     """
@@ -30,18 +34,18 @@ class AgentState(BaseModel):
     - best_system_message (str, optional): The best system message.
     - best_output_age (int): The age of the best output.
     """
-    max_output_age: int = 0
-    user_message: Optional[str] = None
-    expected_output: Optional[str] = None
-    acceptance_criteria: Optional[str] = None
-    system_message: Optional[str] = None
-    output: Optional[str] = None
-    suggestions: Optional[str] = None
-    accepted: bool = False
-    analysis: Optional[str] = None
-    best_output: Optional[str] = None
-    best_system_message: Optional[str] = None
-    best_output_age: int = 0
+    max_output_age: Annotated[int, lambda x, y: max(x, y)] = 0
+    user_message: Annotated[Optional[str], first_non_empty] = None
+    expected_output: Annotated[Optional[str], first_non_empty] = None
+    acceptance_criteria: Annotated[Optional[str], first_non_empty] = None
+    system_message: Annotated[Optional[str], first_non_empty] = None
+    output: Annotated[Optional[str], first_non_empty] = None
+    suggestions: Annotated[Optional[str], first_non_empty] = None
+    accepted: Annotated[bool, operator.or_] = False
+    analysis: Annotated[Optional[str], first_non_empty] = None
+    best_output: Annotated[Optional[str], first_non_empty] = None
+    best_system_message: Annotated[Optional[str], first_non_empty] = None
+    best_output_age: Annotated[int, lambda x, y: max(x, y)] = 0
 
 class MetaPromptGraph:
     """
@@ -225,10 +229,14 @@ class MetaPromptGraph:
                                   "acceptance_criteria",
                                   x),
                               x))
+        # workflow.add_node(START)
 
-        workflow.add_edge(NODE_PROMPT_INITIAL_DEVELOPER, NODE_ACCEPTANCE_CRITERIA_DEVELOPER)
+        workflow.add_edge(START, NODE_PROMPT_INITIAL_DEVELOPER)
+        workflow.add_edge(START, NODE_ACCEPTANCE_CRITERIA_DEVELOPER)
+
+        workflow.add_edge(NODE_PROMPT_INITIAL_DEVELOPER, NODE_PROMPT_EXECUTOR)
         workflow.add_edge(NODE_ACCEPTANCE_CRITERIA_DEVELOPER, NODE_PROMPT_EXECUTOR)
-        workflow.set_entry_point(NODE_PROMPT_INITIAL_DEVELOPER)
+        # workflow.set_entry_point(START)
 
         return workflow
 

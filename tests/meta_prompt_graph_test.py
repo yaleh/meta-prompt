@@ -123,8 +123,8 @@ class TestMetaPromptGraph(unittest.TestCase):
         """
         # MODEL_NAME = "anthropic/claude-3.5-sonnet:beta"
         # MODEL_NAME = "meta-llama/llama-3-70b-instruct"
-        MODEL_NAME = "deepseek/deepseek-chat"
-        # MODEL_NAME = "google/gemma-2-9b-it"
+        # MODEL_NAME = "deepseek/deepseek-chat"
+        MODEL_NAME = "google/gemma-2-9b-it"
         # MODEL_NAME = "recursal/eagle-7b"
         # MODEL_NAME = "meta-llama/llama-3-8b-instruct"
         llm = ChatOpenAI(model_name=MODEL_NAME)
