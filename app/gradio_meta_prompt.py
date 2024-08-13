@@ -423,7 +423,8 @@ def process_message(user_message: str, expected_output: str,
                     acceptance_criteria: str, initial_system_message: str,
                     recursion_limit: int, max_output_age: int,
                     llms: Union[BaseLanguageModel, Dict[str, BaseLanguageModel]],
-                    prompt_template_group: Optional[str] = None) -> tuple:
+                    prompt_template_group: Optional[str] = None,
+                    aggressive_exploration: bool = False) -> tuple:
     """
     Process a user message by executing the MetaPromptGraph with provided language models and input state.
     This function sets up the initial state of the conversation, logs the execution if verbose mode is enabled,
@@ -465,6 +466,7 @@ def process_message(user_message: str, expected_output: str,
         prompt_template_group = 'default'
     prompt_templates = prompt_templates_confz2langchain(config.prompt_templates[prompt_template_group])
     meta_prompt_graph = MetaPromptGraph(llms=llms, prompts=prompt_templates,
+                                        aggressive_exploration=aggressive_exploration,
                                         verbose=config.verbose, logger=logger)
     try:
         output_state = meta_prompt_graph(input_state, recursion_limit=recursion_limit)
@@ -532,7 +534,9 @@ def initialize_llm(model_name: str, model_config: Optional[Dict[str, Any]] = Non
 def process_message_with_single_llm(user_message: str, expected_output: str,
                                     acceptance_criteria: str, initial_system_message: str,
                                     recursion_limit: int, max_output_age: int,
-                                    model_name: str, prompt_template_group: Optional[str] = None) -> tuple:
+                                    model_name: str,
+                                    prompt_template_group: Optional[str] = None,
+                                    aggressive_exploration: bool = False) -> tuple:
     """
     Process a user message using a single language model.
 
@@ -563,14 +567,15 @@ def process_message_with_single_llm(user_message: str, expected_output: str,
     """
     llm = initialize_llm(model_name)
     return process_message(user_message, expected_output, acceptance_criteria, initial_system_message,
-                           recursion_limit, max_output_age, llm, prompt_template_group)
+                           recursion_limit, max_output_age, llm, prompt_template_group, aggressive_exploration)
 
 
 def process_message_with_2_llms(user_message: str, expected_output: str,
                                 acceptance_criteria: str, initial_system_message: str,
                                 recursion_limit: int, max_output_age: int,
                                 optimizer_model_name: str, executor_model_name: str,
-                                prompt_template_group: Optional[str] = None) -> tuple:
+                                prompt_template_group: Optional[str] = None,
+                                aggressive_exploration: bool = False) -> tuple:
     """
     Process a user message using two language models - one for optimization and another for execution.
 
@@ -612,7 +617,7 @@ def process_message_with_2_llms(user_message: str, expected_output: str,
         NODE_PROMPT_SUGGESTER: optimizer_model
     }
     return process_message(user_message, expected_output, acceptance_criteria, initial_system_message,
-                           recursion_limit, max_output_age, llms, prompt_template_group)
+                           recursion_limit, max_output_age, llms, prompt_template_group, aggressive_exploration)
 
 
 def process_message_with_expert_llms(user_message: str, expected_output: str,
@@ -625,7 +630,8 @@ def process_message_with_expert_llms(user_message: str, expected_output: str,
                                      output_history_analyzer_model_name: str, output_history_analyzer_temperature: float,
                                      analyzer_model_name: str, analyzer_temperature: float,
                                      suggester_model_name: str, suggester_temperature: float,
-                                     prompt_template_group: Optional[str] = None) -> tuple:
+                                     prompt_template_group: Optional[str] = None,
+                                     aggressive_exploration: bool = False) -> tuple:
 
     llms = {
         NODE_PROMPT_INITIAL_DEVELOPER: initialize_llm(initial_developer_model_name, {"temperature": initial_developer_temperature}),
@@ -637,7 +643,7 @@ def process_message_with_expert_llms(user_message: str, expected_output: str,
         NODE_PROMPT_SUGGESTER: initialize_llm(suggester_model_name, {"temperature": suggester_temperature})
     }
     return process_message(user_message, expected_output, acceptance_criteria, initial_system_message,
-                           recursion_limit, max_output_age, llms, prompt_template_group=prompt_template_group)
+                           recursion_limit, max_output_age, llms, prompt_template_group, aggressive_exploration)
 
 
 class FileConfig(BaseConfig):
@@ -724,6 +730,10 @@ with gr.Blocks(title='Meta Prompt') as demo:
                     label="Prompt Template Group",
                     choices=list(config.prompt_templates.keys()),
                     value=list(config.prompt_templates.keys())[0]
+                )
+                aggressive_exploration = gr.Checkbox(
+                    label="Aggressive Exploration",
+                    value=config.aggressive_exploration
                 )
             with gr.Row():
                 with gr.Tabs() as llm_tabs:
@@ -888,7 +898,9 @@ with gr.Blocks(title='Meta Prompt') as demo:
         inputs=[user_message_input, expected_output_input,
                 simple_model_name_input,
                 advanced_optimizer_model_name_input,
-                expert_prompt_acceptance_criteria_model_name_input, expert_prompt_acceptance_criteria_temperature_input],
+                expert_prompt_acceptance_criteria_model_name_input,
+                expert_prompt_acceptance_criteria_temperature_input,
+                prompt_template_group],
         outputs=[acceptance_criteria_input, logs_chatbot]
     )
     generate_initial_system_message_button.click(
@@ -939,7 +951,8 @@ with gr.Blocks(title='Meta Prompt') as demo:
             recursion_limit_input,
             max_output_age,
             simple_model_name_input,
-            prompt_template_group
+            prompt_template_group,
+            aggressive_exploration
         ],
         outputs=[
             system_message_output,
@@ -961,7 +974,8 @@ with gr.Blocks(title='Meta Prompt') as demo:
             max_output_age,
             advanced_optimizer_model_name_input,
             advanced_executor_model_name_input,
-            prompt_template_group
+            prompt_template_group,
+            aggressive_exploration
         ],
         outputs=[
             system_message_output,
@@ -988,7 +1002,8 @@ with gr.Blocks(title='Meta Prompt') as demo:
             expert_output_history_analyzer_model_name_input, expert_output_history_analyzer_temperature_input,
             expert_prompt_analyzer_model_name_input, expert_prompt_analyzer_temperature_input,
             expert_prompt_suggester_model_name_input, expert_prompt_suggester_temperature_input,
-            prompt_template_group
+            prompt_template_group,
+            aggressive_exploration
         ],
         outputs=[
             system_message_output,

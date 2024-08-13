@@ -19,6 +19,7 @@ class PromptGroup(BaseModel):
 
 class MetaPromptConfig(BaseConfig):
     llms: Optional[dict[str, LLMConfig]]
+    aggressive_exploration: Optional[bool] = False
     examples_path: Optional[str]
     server_name: Optional[str] = None
     server_port: Optional[int] = None

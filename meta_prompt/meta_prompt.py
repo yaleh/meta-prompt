@@ -14,7 +14,12 @@ from pydantic import BaseModel
 from .consts import *
 
 def first_non_empty(a, b):
+    # return the first non-none value
     return next((s for s in (a, b) if s), None)
+
+def last_non_empty(a, b):
+    # return the last non-none value
+    return next((s for s in (b, a) if s), None)
 
 class AgentState(BaseModel):
     """
@@ -35,16 +40,16 @@ class AgentState(BaseModel):
     - best_output_age (int): The age of the best output.
     """
     max_output_age: Annotated[int, lambda x, y: max(x, y)] = 0
-    user_message: Annotated[Optional[str], first_non_empty] = None
-    expected_output: Annotated[Optional[str], first_non_empty] = None
-    acceptance_criteria: Annotated[Optional[str], first_non_empty] = None
-    system_message: Annotated[Optional[str], first_non_empty] = None
-    output: Annotated[Optional[str], first_non_empty] = None
-    suggestions: Annotated[Optional[str], first_non_empty] = None
+    user_message: Annotated[Optional[str], last_non_empty] = None
+    expected_output: Annotated[Optional[str], last_non_empty] = None
+    acceptance_criteria: Annotated[Optional[str], last_non_empty] = None
+    system_message: Annotated[Optional[str], last_non_empty] = None
+    output: Annotated[Optional[str], last_non_empty] = None
+    suggestions: Annotated[Optional[str], last_non_empty] = None
     accepted: Annotated[bool, operator.or_] = False
-    analysis: Annotated[Optional[str], first_non_empty] = None
-    best_output: Annotated[Optional[str], first_non_empty] = None
-    best_system_message: Annotated[Optional[str], first_non_empty] = None
+    analysis: Annotated[Optional[str], last_non_empty] = None
+    best_output: Annotated[Optional[str], last_non_empty] = None
+    best_system_message: Annotated[Optional[str], last_non_empty] = None
     best_output_age: Annotated[int, lambda x, y: max(x, y)] = 0
 
 class MetaPromptGraph:
@@ -82,6 +87,7 @@ class MetaPromptGraph:
                  llms: Union[BaseLanguageModel,
                              Dict[str, BaseLanguageModel]] = {},
                  prompts: Dict[str, ChatPromptTemplate] = {},
+                 aggressive_exploration: bool = False,
                  logger: Optional[logging.Logger] = None,
                  verbose=False):
         """
@@ -117,6 +123,8 @@ class MetaPromptGraph:
         self.prompt_templates: Dict[str,
                                     ChatPromptTemplate] = DEFAULT_PROMPT_TEMPLATES.copy()
         self.prompt_templates.update(prompts)
+
+        self.aggressive_exploration = aggressive_exploration
 
 
     def _create_acceptance_criteria_workflow(self) -> StateGraph:
@@ -426,16 +434,22 @@ class MetaPromptGraph:
 
         analysis = response.content
 
-        if state.best_output is None or (
-                "# Output ID closer to Expected Output: B" in analysis):
+        if (state.best_output is None or
+                "# Output ID closer to Expected Output: B" in analysis or
+                (self.aggressive_exploration and
+                 "# Output ID closer to Expected Output: A" not in analysis)):
             state.best_output = state.output
             state.best_system_message = state.system_message
             state.best_output_age = 0
-            logger.debug(
-                "Best output updated to the current output:\n%s", state.output)
+            logger.debug("Best output updated to the current output:\n%s",
+                         state.output)
         else:
             state.best_output_age += 1
-            logger.debug("Best output age incremented to %s", state.best_output_age)
+            # rollback output and system message
+            state.output = state.best_output
+            state.system_message = state.best_system_message
+            logger.debug("Best output age incremented to %s",
+                         state.best_output_age)
 
         return state
 
