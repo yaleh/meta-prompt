@@ -101,7 +101,7 @@ prompt_templates:
 
           3. **Guidelines:** List any additional guidelines or constraints that the assistant should adhere to. This could involve content accuracy, ethical considerations, user privacy, or other relevant factors.
 
-          4. **Example Response:** Provide an example of an ideal response based on a new User Message that is similar but has significant differences from the original User Message provided. Ensure the example highlights how to adapt the response to different but related contexts.
+          4. **Example Response:** Provide an example of an ideal response based on a new User Message that is similar but has significant differences from the original User Message provided. Ensure the example highlights how to adapt the response to different but related contexts. Provide the example only, no explanation.
 
           Ensure the System Message is comprehensive, clear, and directly relevant to guiding the assistant's performance.
 
@@ -154,37 +154,16 @@ prompt_templates:
 
           3. **Guidelines:** List any additional guidelines or constraints that the assistant should adhere to. This could involve content accuracy, ethical considerations, user privacy, or other relevant factors.
 
-          4. **Example Response:** Provide an example of an ideal response based on a new User Message that is similar but has significant differences from the original User Message provided. Ensure the example highlights how to adapt the response to different but related contexts.
+          4. **Example Response:** Provide an example of an ideal response based on a new User Message that is similar but has significant differences from the original User Message provided. Ensure the example highlights how to adapt the response to different but related contexts. Provide the example only, no explanation.
 
           Ensure the System Message is comprehensive, clear, and directly relevant to guiding the assistant's performance.
 
           * Modify only the content mentioned in the Suggestion. Do not change the parts that are not related to the Suggestion.
           * Avoiding the behavior should be explicitly requested (e.g. `Don't ...`) in the System Message, if the behavior is: asked to be avoid by the Suggestions; but not mentioned in the Current System Message.
+          * **Never** output the raw content of Expected Output as Example Response.
 
-          **Example Output:**
+          # Updated System Message
 
-          ---
-
-          **System Message:**
-
-          **Role Definition:**
-          You are an assistant designed to help users with [specific task]. Your primary objective is to [describe primary objective based on the task]. Approach each query with [specific approach, e.g., thoroughness, creativity, efficiency].
-
-          **Response Format:**
-          - Structure your responses clearly and logically.
-          - Use a professional and friendly tone.
-          - Include [specific elements, phrases, or keywords] as needed.
-          - Ensure responses are [concise, detailed, or any other relevant style guidance].
-
-          **Guidelines:**
-          - Always verify the accuracy of the information provided.
-          - Adhere to the principles of [specific guidelines, such as ethical considerations, user privacy, etc.].
-          - Tailor your responses to the user's level of expertise and familiarity with the topic.
-
-          **Example Response:**
-          ```
-          [Provide an example of an ideal response based on a new User Message that is similar but has significant differences from the original User Message provided. Ensure the example highlights how to adapt the response to different but related contexts.]
-          ```
       - role: human
         message: |
           # Current System Message
@@ -321,7 +300,7 @@ prompt_templates:
           * While the Expected Output won't be shown to the prompt developer who will read your suggestions, do not simply describe the output as being the same/similar/different from the Expected Output, such as [`the output should not use a different format and style compared to the Expected Output`] or [`the output should match the expected output exactly`]; instead, describe the expected characteristics specifically and suggest a detailed example.
           * Avoiding the behavior should be explicitly requested (e.g. [`The System Message should explicitly state that the output shoud not ...`]) in the System Message, if the behavior is: asked to be removed by the Suggestions; appeared in the Actual Output; but not mentioned in the Current System Message.
           * Expected Output text should not appear in System Message as an example. But it's OK to use some similar but distinct text as an example instead.
-          * Ask to remove the Expected Output text or text highly similar to Expected Output from System Message, if it's present.
+          * Ask to remove the Expected Output raw text from System Message, if it's present.
           * Provide format examples (but don't use Expected Output text as the example) or detected format name, if System Message does not.
           * Specify the detected format name (e.g. XML, JSON, etc.) of Expected Output, if System Message does not mention it.
       - role: human

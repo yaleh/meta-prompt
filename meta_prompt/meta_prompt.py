@@ -19,6 +19,9 @@ def last_non_empty(a, b):
     # return the last non-none value
     return next((s for s in (b, a) if s), None)
 
+def assign(a, b):
+    return b
+
 class AgentState(BaseModel):
     """
     Represents the state of an agent in a conversation.
@@ -37,18 +40,18 @@ class AgentState(BaseModel):
     - best_system_message (str, optional): The best system message.
     - best_output_age (int): The age of the best output.
     """
-    max_output_age: Annotated[int, lambda x, y: max(x, y)] = 0
-    user_message: Annotated[Optional[str], last_non_empty] = None
-    expected_output: Annotated[Optional[str], last_non_empty] = None
+    max_output_age: Annotated[int, assign] = 0
+    user_message: Annotated[Optional[str], assign] = None
+    expected_output: Annotated[Optional[str], assign] = None
     acceptance_criteria: Annotated[Optional[str], last_non_empty] = None
     system_message: Annotated[Optional[str], last_non_empty] = None
-    output: Annotated[Optional[str], last_non_empty] = None
-    suggestions: Annotated[Optional[str], last_non_empty] = None
-    accepted: Annotated[bool, operator.or_] = False
-    analysis: Annotated[Optional[str], last_non_empty] = None
-    best_output: Annotated[Optional[str], last_non_empty] = None
-    best_system_message: Annotated[Optional[str], last_non_empty] = None
-    best_output_age: Annotated[int, lambda x, y: max(x, y)] = 0
+    output: Annotated[Optional[str], assign] = None
+    suggestions: Annotated[Optional[str], assign] = None
+    accepted: Annotated[bool, assign] = False
+    analysis: Annotated[Optional[str], assign] = None
+    best_output: Annotated[Optional[str], assign] = None
+    best_system_message: Annotated[Optional[str], assign] = None
+    best_output_age: Annotated[int, assign] = 0
 
 class MetaPromptGraph:
     """
