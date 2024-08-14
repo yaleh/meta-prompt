@@ -1,5 +1,4 @@
 import logging
-import operator
 import pprint
 from langchain_core.language_models import BaseLanguageModel
 from langchain_core.prompts import ChatPromptTemplate
@@ -19,21 +18,7 @@ def last_non_empty(a, b):
     # return the last non-none value
     return next((s for s in (b, a) if s), None)
 
-def assign(a, b):
-    return b
-
-class InitialAgentState(TypedDict):
-    """
-    Represents the state of an agent in a conversation.
-    """
-    max_output_age: int
-    user_message: Optional[str]
-    expected_output: Optional[str]
-    acceptance_criteria: Annotated[Optional[str], last_non_empty]
-    system_message: Annotated[Optional[str], last_non_empty]
-
-
-class AgentState(BaseModel):
+class AgentState(TypedDict):
     """
     Represents the state of an agent in a conversation.
 
@@ -51,18 +36,18 @@ class AgentState(BaseModel):
     - best_system_message (str, optional): The best system message.
     - best_output_age (int): The age of the best output.
     """
-    max_output_age: int = 0
-    user_message: Optional[str] = None
-    expected_output: Optional[str] = None
-    acceptance_criteria: Annotated[Optional[str], last_non_empty] = None
-    system_message: Annotated[Optional[str], last_non_empty] = None
-    output: Optional[str] = None
-    suggestions: Optional[str] = None
-    accepted: bool = False
-    analysis: Optional[str] = None
-    best_output: Optional[str] = None
-    best_system_message: Optional[str] = None
-    best_output_age: int = 0
+    max_output_age: Optional[int]
+    user_message: Optional[str]
+    expected_output: Optional[str]
+    acceptance_criteria: Annotated[Optional[str], last_non_empty]
+    system_message: Annotated[Optional[str], last_non_empty]
+    output: Optional[str]
+    suggestions: Optional[str]
+    accepted: Optional[bool]
+    analysis: Optional[str]
+    best_output: Optional[str]
+    best_system_message: Optional[str]
+    best_output_age: Optional[int]
 
 class MetaPromptGraph:
     """
@@ -220,19 +205,6 @@ class MetaPromptGraph:
             }
         )
 
-        # # Set entry point based on including_initial_developer flag
-        # if including_initial_developer:
-        #     workflow.add_node(NODE_PROMPT_INITIAL_DEVELOPER,
-        #                       lambda x: self._prompt_node(
-        #                           NODE_PROMPT_INITIAL_DEVELOPER,
-        #                           "system_message",
-        #                           x))
-        #     workflow.add_edge(NODE_PROMPT_INITIAL_DEVELOPER,
-        #                       NODE_PROMPT_EXECUTOR)
-        #     workflow.set_entry_point(NODE_PROMPT_INITIAL_DEVELOPER)
-        # else:
-        #     workflow.set_entry_point(NODE_PROMPT_EXECUTOR)
-
         workflow.add_node(NODE_PROMPT_INITIAL_DEVELOPER,
                           lambda x: self._optional_action(
                               "system_message",
@@ -240,7 +212,7 @@ class MetaPromptGraph:
                                   NODE_PROMPT_INITIAL_DEVELOPER,
                                   "system_message",
                                   x),
-                              InitialAgentState(**(x.model_dump()))))
+                              x))
         workflow.add_node(NODE_ACCEPTANCE_CRITERIA_DEVELOPER,
                           lambda x: self._optional_action(
                               "acceptance_criteria",
@@ -248,15 +220,13 @@ class MetaPromptGraph:
                                   NODE_ACCEPTANCE_CRITERIA_DEVELOPER,
                                   "acceptance_criteria",
                                   x),
-                              InitialAgentState(**(x.model_dump()))))
-        # workflow.add_node(START)
+                              x))
 
         workflow.add_edge(START, NODE_PROMPT_INITIAL_DEVELOPER)
         workflow.add_edge(START, NODE_ACCEPTANCE_CRITERIA_DEVELOPER)
 
         workflow.add_edge(NODE_PROMPT_INITIAL_DEVELOPER, NODE_PROMPT_EXECUTOR)
         workflow.add_edge(NODE_ACCEPTANCE_CRITERIA_DEVELOPER, NODE_PROMPT_EXECUTOR)
-        # workflow.set_entry_point(START)
 
         return workflow
 
@@ -342,8 +312,8 @@ class MetaPromptGraph:
     def _optional_action(
         self, target_attribute: str,
         action: RunnableLike,
-        state: Union[AgentState, InitialAgentState]
-    ) -> Union[AgentState, InitialAgentState]:
+        state: AgentState
+    ) -> AgentState:
         """
         Optionally invokes an action if the target attribute is not set or empty.
 
@@ -370,8 +340,8 @@ class MetaPromptGraph:
 
     def _prompt_node(
         self, node: str, target_attribute: str, 
-        state: Union[AgentState, InitialAgentState]
-    ) -> Union[AgentState, InitialAgentState]:
+        state: AgentState
+    ) -> AgentState:
         """
         Prompt a specific node with the given state and update the state with the response.
 
@@ -410,14 +380,6 @@ class MetaPromptGraph:
             'message': response.content
         })
 
-        # if isinstance(state, dict):
-        #     # state[target_attribute] = response.content
-        #     # Create a dict with the target key only
-        #     state = {target_attribute: response.content}
-        # else:
-        #     setattr(state, target_attribute, response.content)
-        # return state
-
         return {target_attribute: response.content}
 
     def _output_history_analyzer(self, state: AgentState) -> AgentState:
@@ -437,16 +399,16 @@ class MetaPromptGraph:
         """
         logger = self.logger.getChild(NODE_OUTPUT_HISTORY_ANALYZER)
 
-        if state.best_output is None:
-            state.best_output = state.output
-            state.best_system_message = state.system_message
-            state.best_output_age = 0
+        if state["best_output"] is None:
+            state["best_output"] = state["output"]
+            state["best_system_message"] = state["system_message"]
+            state["best_output_age"] = 0
             logger.debug(
-                "Best output initialized to the current output:\n%s", state.output)
+                "Best output initialized to the current output:\n%s", state["output"])
             return state
 
         prompt = self.prompt_templates[NODE_OUTPUT_HISTORY_ANALYZER].format_messages(
-            **state.model_dump())
+            **state)
 
         for message in prompt:
             logger.debug({
@@ -466,29 +428,22 @@ class MetaPromptGraph:
 
         analysis = response.content
 
-        if (state.best_output is None or
+        if (state["best_output"] is None or
                 "# Output ID closer to Expected Output: B" in analysis or
                 (self.aggressive_exploration and
                  "# Output ID closer to Expected Output: A" not in analysis)):
-            # state.best_output = state.output
-            # state.best_system_message = state.system_message
-            # state.best_output_age = 0
             result_dict = {
-                "best_output": state.output,
-                "best_system_message": state.system_message,
+                "best_output": state["output"],
+                "best_system_message": state["system_message"],
                 "best_output_age": 0
             }
             logger.debug("Best output updated to the current output:\n%s",
                          result_dict["best_output"])
         else:
-            # state.best_output_age += 1
-            # # rollback output and system message
-            # state.output = state.best_output
-            # state.system_message = state.best_system_message
             result_dict = {
-                "output": state.best_output,
-                "system_message": state.best_system_message,
-                "best_output_age": state.best_output_age + 1
+                "output": state["best_output"],
+                "system_message": state["best_system_message"],
+                "best_output_age": state["best_output_age"] + 1
             }
             logger.debug("Best output age incremented to %s",
                          result_dict["best_output_age"])
@@ -510,7 +465,7 @@ class MetaPromptGraph:
         """
         logger = self.logger.getChild(NODE_PROMPT_ANALYZER)
         prompt = self.prompt_templates[NODE_PROMPT_ANALYZER].format_messages(
-            **state.model_dump())
+            **state)
 
         for message in prompt:
             logger.debug({'node': NODE_PROMPT_ANALYZER, 'action': 'invoke',
@@ -519,13 +474,6 @@ class MetaPromptGraph:
         response = self.llms[NODE_PROMPT_ANALYZER].invoke(prompt)
         logger.debug({'node': NODE_PROMPT_ANALYZER, 'action': 'response',
                      'type': response.type, 'message': response.content})
-
-        # state.analysis = response.content
-        # state.accepted = "Accept: Yes" in response.content
-
-        # logger.debug("Accepted: %s", state.accepted)
-
-        # return state
 
         result_dict = {
             "analysis": response.content,
@@ -545,14 +493,14 @@ class MetaPromptGraph:
         Returns:
             str: The decision to continue, rerun, or end the workflow.
         """
-        if state.max_output_age <= 0:
+        if state["max_output_age"] <= 0:
             # always continue if max age is 0
             return "continue"
         
-        if state.best_output_age >= state.max_output_age:
+        if state["best_output_age"] >= state["max_output_age"]:
             return END
         
-        if state.best_output_age > 0:
+        if state["best_output_age"] > 0:
             # skip prompt_analyzer and prompt_suggester, goto prompt_developer
             return "rerun" 
         
@@ -568,4 +516,4 @@ class MetaPromptGraph:
         Returns:
             str: The decision to continue or end the workflow.
         """
-        return "continue" if not state.accepted else END
+        return "continue" if not state["accepted"] else END

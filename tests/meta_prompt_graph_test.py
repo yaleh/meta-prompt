@@ -39,7 +39,7 @@ class TestMetaPromptGraph(unittest.TestCase):
         )
 
         assert (
-            updated_state.output == "Mocked response content"
+            updated_state['output'] == "Mocked response content"
         ), "The output attribute should be updated with the mocked response content"
 
 
@@ -78,13 +78,13 @@ class TestMetaPromptGraph(unittest.TestCase):
         updated_state = meta_prompt_graph._output_history_analyzer(state)
 
         assert (
-            updated_state.best_output == state.output
+            updated_state['best_output'] == state['output']
         ), "Best output should be updated to the current output."
         assert (
-            updated_state.best_system_message == state.system_message
+            updated_state['best_system_message'] == state['system_message']
         ), "Best system message should be updated to the current system message."
         assert (
-            updated_state.best_output_age == 0
+            updated_state['best_output_age'] == 0
         ), "Best output age should be reset to 0."
 
 
@@ -104,10 +104,13 @@ class TestMetaPromptGraph(unittest.TestCase):
         }
         meta_prompt_graph = MetaPromptGraph(llms=llms)
         state = AgentState(
-            output="Test output", expected_output="Expected output"
+            output="Test output", expected_output="Expected output",
+            acceptance_criteria="Acceptance criteria: ...",
+            system_message="System message: ...",
+            max_output_age=2
         )
         updated_state = meta_prompt_graph._prompt_analyzer(state)
-        assert updated_state.accepted is True
+        assert updated_state['accepted'] is True
 
 
     def test_get_node_names(self):
@@ -138,7 +141,8 @@ class TestMetaPromptGraph(unittest.TestCase):
             user_message="How do I reverse a list in Python?",
             expected_output="Use the `[::-1]` slicing technique or the "
                             "`list.reverse()` method.",
-            acceptance_criteria="Similar in meaning, text length and style."
+            acceptance_criteria="Similar in meaning, text length and style.",
+            max_output_age=2
         )
         output_state = meta_prompt_graph(input_state, recursion_limit=25)
 
@@ -190,6 +194,7 @@ class TestMetaPromptGraph(unittest.TestCase):
 
         meta_prompt_graph = MetaPromptGraph(llms=llms)
         input_state = AgentState(
+            max_output_age=2,
             user_message="How do I reverse a list in Python?",
             expected_output="Use the `[::-1]` slicing technique or the "
                             "`list.reverse()` method.",
@@ -239,7 +244,8 @@ class TestMetaPromptGraph(unittest.TestCase):
         input_state = AgentState(
             user_message="How do I reverse a list in Python?",
             expected_output="The output should use the `reverse()` method.",
-            acceptance_criteria="The output should be correct and efficient."
+            acceptance_criteria="The output should be correct and efficient.",
+            max_output_age=2
         )
 
         output_state = meta_prompt_graph(input_state)
@@ -277,7 +283,8 @@ class TestMetaPromptGraph(unittest.TestCase):
         input_state = AgentState(
             user_message="How do I reverse a list in Python?",
             expected_output="The output should use the `reverse()` method.",
-            acceptance_criteria="The output should be correct and efficient."
+            acceptance_criteria="The output should be correct and efficient.",
+            max_output_age=2
         )
 
         output_state = meta_prompt_graph(input_state)
