@@ -1,15 +1,12 @@
 import unittest
-import pprint
-import logging
-import functools
 from unittest.mock import MagicMock, Mock
+import functools
+import pprint
 from langchain_core.language_models import BaseLanguageModel
 from langchain_openai import ChatOpenAI
-
-# Assuming the necessary imports are made for the classes and functions used in meta_prompt_graph.py
 from meta_prompt import *
 from meta_prompt.consts import NODE_ACCEPTANCE_CRITERIA_DEVELOPER
-from langgraph.graph import StateGraph, END
+from langgraph.graph import END
 
 class TestMetaPromptGraph(unittest.TestCase):
     def setUp(self):
@@ -21,45 +18,50 @@ class TestMetaPromptGraph(unittest.TestCase):
         """
         Test the _prompt_node method of MetaPromptGraph.
 
-        This test case sets up a mock language model that returns a response content and verifies that the
-        updated state has the output attribute updated with the mocked response content.
+        This test case sets up a mock language model that returns a response content
+        and verifies that the updated state has the output attribute updated with
+        the mocked response content.
         """
         llms = {
             NODE_PROMPT_INITIAL_DEVELOPER: MagicMock(
-                invoke=MagicMock(return_value=MagicMock(content="Mocked response content"))
+                invoke=MagicMock(
+                    return_value=MagicMock(content="Mocked response content")
+                )
             )
         }
 
-        # Create an instance of MetaPromptGraph with the mocked language model and template
         graph = MetaPromptGraph(llms=llms)
-
-        # Create a mock AgentState
-        state = AgentState(user_message="Test message", expected_output="Expected output")
-
-        # Invoke the _prompt_node method with the mock node, target attribute, and state
+        state = AgentState(
+            user_message="Test message", expected_output="Expected output"
+        )
         updated_state = graph._prompt_node(
             NODE_PROMPT_INITIAL_DEVELOPER, "output", state
         )
 
-        # Assertions
-        assert updated_state.output == "Mocked response content", \
-            "The output attribute should be updated with the mocked response content"
+        assert (
+            updated_state.output == "Mocked response content"
+        ), "The output attribute should be updated with the mocked response content"
 
 
     def test_output_history_analyzer(self):
         """
         Test the _output_history_analyzer method of MetaPromptGraph.
 
-        This test case sets up a mock language model that returns an analysis response and verifies that the
-        updated state has the best output, best system message, and best output age updated correctly.
+        This test case sets up a mock language model that returns an analysis
+        response and verifies that the updated state has the best output, best
+        system message, and best output age updated correctly.
         """
-        # Setup
         llms = {
-            "output_history_analyzer": MagicMock(invoke=lambda prompt: MagicMock(content="""# Analysis
+            "output_history_analyzer": MagicMock(
+                invoke=lambda prompt: MagicMock(
+                    content="""# Analysis
 
-    This analysis compares two outputs to the expected output based on specific criteria.
+    This analysis compares two outputs to the expected output based on specific
+    criteria.
 
-    # Output ID closer to Expected Output: B"""))
+    # Output ID closer to Expected Output: B"""
+                )
+            )
         }
         prompts = {}
         meta_prompt_graph = MetaPromptGraph(llms=llms, prompts=prompts)
@@ -70,43 +72,50 @@ class TestMetaPromptGraph(unittest.TestCase):
             system_message="To reverse a list, use slicing or the reverse method.",
             best_output="To reverse a list in Python, use the `reverse()` method.",
             best_system_message="To reverse a list, use the `reverse()` method.",
-            acceptance_criteria="The output should correctly describe how to reverse a list in Python."
+            acceptance_criteria="The output should correctly describe how to reverse a list in Python.",
         )
 
-        # Invoke the output history analyzer node
         updated_state = meta_prompt_graph._output_history_analyzer(state)
 
-        # Assertions
-        assert updated_state.best_output == state.output, \
-            "Best output should be updated to the current output."
-        assert updated_state.best_system_message == state.system_message, \
-            "Best system message should be updated to the current system message."
-        assert updated_state.best_output_age == 0, \
-            "Best output age should be reset to 0."
+        assert (
+            updated_state.best_output == state.output
+        ), "Best output should be updated to the current output."
+        assert (
+            updated_state.best_system_message == state.system_message
+        ), "Best system message should be updated to the current system message."
+        assert (
+            updated_state.best_output_age == 0
+        ), "Best output age should be reset to 0."
 
 
     def test_prompt_analyzer_accept(self):
         """
-        Test the _prompt_analyzer method of MetaPromptGraph when the prompt analyzer accepts the output.
+        Test the _prompt_analyzer method of MetaPromptGraph when the prompt analyzer
+        accepts the output.
 
-        This test case sets up a mock language model that returns an acceptance response and verifies that the
-        updated state has the accepted attribute set to True.
+        This test case sets up a mock language model that returns an acceptance
+        response and verifies that the updated state has the accepted attribute
+        set to True.
         """
         llms = {
             NODE_PROMPT_ANALYZER: MagicMock(
-                invoke=lambda prompt: MagicMock(content="Accept: Yes"))
+                invoke=lambda prompt: MagicMock(content="Accept: Yes")
+            )
         }
-        meta_prompt_graph = MetaPromptGraph(llms)
-        state = AgentState(output="Test output", expected_output="Expected output")
+        meta_prompt_graph = MetaPromptGraph(llms=llms)
+        state = AgentState(
+            output="Test output", expected_output="Expected output"
+        )
         updated_state = meta_prompt_graph._prompt_analyzer(state)
-        assert updated_state.accepted == True
+        assert updated_state.accepted is True
 
 
     def test_get_node_names(self):
         """
         Test the get_node_names method of MetaPromptGraph.
 
-        This test case verifies that the get_node_names method returns the correct list of node names.
+        This test case verifies that the get_node_names method returns the
+        correct list of node names.
         """
         graph = MetaPromptGraph()
         node_names = graph.get_node_names()
@@ -121,40 +130,36 @@ class TestMetaPromptGraph(unittest.TestCase):
         executes it with a given input state. It then verifies that the output
         state contains the expected keys and values.
         """
-        # MODEL_NAME = "anthropic/claude-3.5-sonnet:beta"
-        # MODEL_NAME = "meta-llama/llama-3-70b-instruct"
-        # MODEL_NAME = "deepseek/deepseek-chat"
-        MODEL_NAME = "google/gemma-2-9b-it"
-        # MODEL_NAME = "recursal/eagle-7b"
-        # MODEL_NAME = "meta-llama/llama-3-8b-instruct"
-        llm = ChatOpenAI(model_name=MODEL_NAME)
+        model_name = "google/gemma-2-9b-it"
+        llm = ChatOpenAI(model_name=model_name)
 
         meta_prompt_graph = MetaPromptGraph(llms=llm)
         input_state = AgentState(
             user_message="How do I reverse a list in Python?",
-            expected_output="Use the `[::-1]` slicing technique or the `list.reverse()` method.",
+            expected_output="Use the `[::-1]` slicing technique or the "
+                            "`list.reverse()` method.",
             acceptance_criteria="Similar in meaning, text length and style."
-            )
+        )
         output_state = meta_prompt_graph(input_state, recursion_limit=25)
 
         pprint.pp(output_state)
-        # if output_state has key 'best_system_message', print it
-        assert 'best_system_message' in output_state, \
-            "The output state should contain the key 'best_system_message'"
-        assert output_state['best_system_message'] is not None, \
-            "The best system message should not be None"
-        if 'best_system_message' in output_state and output_state['best_system_message'] is not None:
-            print(output_state['best_system_message'])
+        assert (
+            "best_system_message" in output_state
+        ), "The output state should contain the key 'best_system_message'"
+        assert (
+            output_state["best_system_message"] is not None
+        ), "The best system message should not be None"
+        if (
+            "best_system_message" in output_state
+            and output_state["best_system_message"] is not None
+        ):
+            print(output_state["best_system_message"])
 
-        # try another similar user message with the generated system message
         user_message = "How can I create a list of numbers in Python?"
-        messages = [("system", output_state['best_system_message']), 
-                    ("human", user_message)]
+        messages = [("system", output_state["best_system_message"]), ("human", user_message)]
         result = llm.invoke(messages)
 
-        # assert attr 'content' in result
-        assert hasattr(result, 'content'), \
-            "The result should have the attribute 'content'"
+        assert hasattr(result, "content"), "The result should have the attribute 'content'"
         print(result.content)
 
 
@@ -166,8 +171,12 @@ class TestMetaPromptGraph(unittest.TestCase):
         executes it with a given input state. It then verifies that the output
         state contains the expected keys and values.
         """
-        optimizer_llm = ChatOpenAI(model_name="deepseek/deepseek-chat", temperature=0.5)
-        executor_llm = ChatOpenAI(model_name="meta-llama/llama-3-8b-instruct", temperature=0.01)
+        optimizer_llm = ChatOpenAI(
+            model_name="deepseek/deepseek-chat", temperature=0.5
+        )
+        executor_llm = ChatOpenAI(
+            model_name="meta-llama/llama-3-8b-instruct", temperature=0.01
+        )
 
         llms = {
             NODE_PROMPT_INITIAL_DEVELOPER: optimizer_llm,
@@ -175,35 +184,36 @@ class TestMetaPromptGraph(unittest.TestCase):
             NODE_PROMPT_EXECUTOR: executor_llm,
             NODE_OUTPUT_HISTORY_ANALYZER: optimizer_llm,
             NODE_PROMPT_ANALYZER: optimizer_llm,
-            NODE_PROMPT_SUGGESTER: optimizer_llm
+            NODE_PROMPT_SUGGESTER: optimizer_llm,
         }
 
         meta_prompt_graph = MetaPromptGraph(llms=llms)
         input_state = AgentState(
             user_message="How do I reverse a list in Python?",
-            expected_output="Use the `[::-1]` slicing technique or the `list.reverse()` method.",
+            expected_output="Use the `[::-1]` slicing technique or the "
+                            "`list.reverse()` method.",
             acceptance_criteria="Similar in meaning, text length and style."
-            )
+        )
         output_state = meta_prompt_graph(input_state, recursion_limit=25)
 
         pprint.pp(output_state)
-        # if output_state has key 'best_system_message', print it
-        assert 'best_system_message' in output_state, \
-            "The output state should contain the key 'best_system_message'"
-        assert output_state['best_system_message'] is not None, \
-            "The best system message should not be None"
-        if 'best_system_message' in output_state and output_state['best_system_message'] is not None:
-            print(output_state['best_system_message'])
+        assert (
+            "best_system_message" in output_state
+        ), "The output state should contain the key 'best_system_message'"
+        assert (
+            output_state["best_system_message"] is not None
+        ), "The best system message should not be None"
+        if (
+            "best_system_message" in output_state
+            and output_state["best_system_message"] is not None
+        ):
+            print(output_state["best_system_message"])
 
-        # try another similar user message with the generated system message
         user_message = "How can I create a list of numbers in Python?"
-        messages = [("system", output_state['best_system_message']), 
-                    ("human", user_message)]
+        messages = [("system", output_state["best_system_message"]), ("human", user_message)]
         result = executor_llm.invoke(messages)
 
-        # assert attr 'content' in result
-        assert hasattr(result, 'content'), \
-            "The result should have the attribute 'content'"
+        assert hasattr(result, "content"), "The result should have the attribute 'content'"
         print(result.content)
         
 
@@ -318,14 +328,15 @@ class TestMetaPromptGraph(unittest.TestCase):
 
 
     def test_run_acceptance_criteria_graph(self):
-        """
-        Test the run_acceptance_criteria_graph method of MetaPromptGraph.
+        """Test the run_acceptance_criteria_graph method of MetaPromptGraph.
 
-        This test case verifies that the run_acceptance_criteria_graph method returns a state with acceptance criteria.
+        This test case verifies that the run_acceptance_criteria_graph method
+        returns a state with acceptance criteria.
         """
         llms = {
             NODE_ACCEPTANCE_CRITERIA_DEVELOPER: MagicMock(
-                invoke=lambda prompt: MagicMock(content="Acceptance criteria: ..."))
+                invoke=lambda prompt: MagicMock(content="Acceptance criteria: ...")
+            )
         }
         meta_prompt_graph = MetaPromptGraph(llms=llms)
         state = AgentState(
@@ -335,21 +346,22 @@ class TestMetaPromptGraph(unittest.TestCase):
         output_state = meta_prompt_graph.run_acceptance_criteria_graph(state)
 
         # Check if the output state contains the acceptance criteria
-        self.assertIsNotNone(output_state['acceptance_criteria'])
+        self.assertIsNotNone(output_state["acceptance_criteria"])
 
         # Check if the acceptance criteria includes the expected content
-        self.assertIn("Acceptance criteria: ...", output_state['acceptance_criteria'])
+        self.assertIn("Acceptance criteria: ...", output_state["acceptance_criteria"])
 
 
     def test_run_prompt_initial_developer_graph(self):
-        """
-        Test the run_prompt_initial_developer_graph method of MetaPromptGraph.
+        """Test the run_prompt_initial_developer_graph method of MetaPromptGraph.
 
-        This test case verifies that the run_prompt_initial_developer_graph method returns a state with an initial developer prompt.
+        This test case verifies that the run_prompt_initial_developer_graph method
+        returns a state with an initial developer prompt.
         """
         llms = {
             NODE_PROMPT_INITIAL_DEVELOPER: MagicMock(
-                invoke=lambda prompt: MagicMock(content="Initial developer prompt: ..."))
+                invoke=lambda prompt: MagicMock(content="Initial developer prompt: ...")
+            )
         }
         meta_prompt_graph = MetaPromptGraph(llms=llms)
         state = AgentState(user_message="How do I reverse a list in Python?")
