@@ -180,6 +180,7 @@ class TestMetaPromptGraph(unittest.TestCase):
 
         llms = {
             NODE_PROMPT_INITIAL_DEVELOPER: optimizer_llm,
+            NODE_ACCEPTANCE_CRITERIA_DEVELOPER: optimizer_llm,
             NODE_PROMPT_DEVELOPER: optimizer_llm,
             NODE_PROMPT_EXECUTOR: executor_llm,
             NODE_OUTPUT_HISTORY_ANALYZER: optimizer_llm,
@@ -192,7 +193,7 @@ class TestMetaPromptGraph(unittest.TestCase):
             user_message="How do I reverse a list in Python?",
             expected_output="Use the `[::-1]` slicing technique or the "
                             "`list.reverse()` method.",
-            acceptance_criteria="Similar in meaning, text length and style."
+            # acceptance_criteria="Similar in meaning, text length and style."
         )
         output_state = meta_prompt_graph(input_state, recursion_limit=25)
 

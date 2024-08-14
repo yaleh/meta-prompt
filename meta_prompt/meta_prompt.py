@@ -8,7 +8,7 @@ from langgraph.errors import GraphRecursionError
 from langgraph.graph import StateGraph, START, END
 from langchain_core.runnables.base import RunnableLike
 from pydantic import BaseModel
-from typing import Annotated, Dict, Optional, Union
+from typing import Annotated, Dict, Optional, Union, TypedDict
 from .consts import *
 
 def first_non_empty(a, b):
@@ -21,6 +21,17 @@ def last_non_empty(a, b):
 
 def assign(a, b):
     return b
+
+class InitialAgentState(TypedDict):
+    """
+    Represents the state of an agent in a conversation.
+    """
+    max_output_age: int
+    user_message: Optional[str]
+    expected_output: Optional[str]
+    acceptance_criteria: Annotated[Optional[str], last_non_empty]
+    system_message: Annotated[Optional[str], last_non_empty]
+
 
 class AgentState(BaseModel):
     """
@@ -40,18 +51,18 @@ class AgentState(BaseModel):
     - best_system_message (str, optional): The best system message.
     - best_output_age (int): The age of the best output.
     """
-    max_output_age: Annotated[int, assign] = 0
-    user_message: Annotated[Optional[str], assign] = None
-    expected_output: Annotated[Optional[str], assign] = None
+    max_output_age: int = 0
+    user_message: Optional[str] = None
+    expected_output: Optional[str] = None
     acceptance_criteria: Annotated[Optional[str], last_non_empty] = None
     system_message: Annotated[Optional[str], last_non_empty] = None
-    output: Annotated[Optional[str], assign] = None
-    suggestions: Annotated[Optional[str], assign] = None
-    accepted: Annotated[bool, assign] = False
-    analysis: Annotated[Optional[str], assign] = None
-    best_output: Annotated[Optional[str], assign] = None
-    best_system_message: Annotated[Optional[str], assign] = None
-    best_output_age: Annotated[int, assign] = 0
+    output: Optional[str] = None
+    suggestions: Optional[str] = None
+    accepted: bool = False
+    analysis: Optional[str] = None
+    best_output: Optional[str] = None
+    best_system_message: Optional[str] = None
+    best_output_age: int = 0
 
 class MetaPromptGraph:
     """
@@ -229,7 +240,7 @@ class MetaPromptGraph:
                                   NODE_PROMPT_INITIAL_DEVELOPER,
                                   "system_message",
                                   x),
-                              x))
+                              InitialAgentState(**(x.model_dump()))))
         workflow.add_node(NODE_ACCEPTANCE_CRITERIA_DEVELOPER,
                           lambda x: self._optional_action(
                               "acceptance_criteria",
@@ -237,7 +248,7 @@ class MetaPromptGraph:
                                   NODE_ACCEPTANCE_CRITERIA_DEVELOPER,
                                   "acceptance_criteria",
                                   x),
-                              x))
+                              InitialAgentState(**(x.model_dump()))))
         # workflow.add_node(START)
 
         workflow.add_edge(START, NODE_PROMPT_INITIAL_DEVELOPER)
@@ -331,8 +342,8 @@ class MetaPromptGraph:
     def _optional_action(
         self, target_attribute: str,
         action: RunnableLike,
-        state: AgentState
-    ) -> AgentState:
+        state: Union[AgentState, InitialAgentState]
+    ) -> Union[AgentState, InitialAgentState]:
         """
         Optionally invokes an action if the target attribute is not set or empty.
 
@@ -345,13 +356,22 @@ class MetaPromptGraph:
         Returns:
             AgentState: Updated state.
         """
-        if not getattr(state, target_attribute, None) or getattr(state, target_attribute) == "":
-            if action:
-                state = action(state)
-        return state
+        result = {
+            target_attribute: state.get(target_attribute, "")
+            if isinstance(state, dict)
+            else getattr(state, target_attribute, "")
+        }
+
+        if action is not None and not result[target_attribute]:
+            result = action(state)
+
+        return result
     
 
-    def _prompt_node(self, node, target_attribute: str, state: AgentState) -> AgentState:
+    def _prompt_node(
+        self, node: str, target_attribute: str, 
+        state: Union[AgentState, InitialAgentState]
+    ) -> Union[AgentState, InitialAgentState]:
         """
         Prompt a specific node with the given state and update the state with the response.
 
@@ -368,26 +388,37 @@ class MetaPromptGraph:
         """
 
         logger = self.logger.getChild(node)
-        formatted_messages = self.prompt_templates[node].format_messages(**state.model_dump())
-    
+        formatted_messages = (
+            self.prompt_templates[node].format_messages(
+                **(state.model_dump() if isinstance(state, BaseModel) else state)
+            )
+        )
+
         for message in formatted_messages:
             logger.debug({
-                'node': node, 
+                'node': node,
                 'action': 'invoke',
-                'type': message.type, 
+                'type': message.type,
                 'message': message.content
             })
-    
+
         response = self.llms[node].invoke(formatted_messages)
         logger.debug({
-            'node': node, 
+            'node': node,
             'action': 'response',
-            'type': response.type, 
+            'type': response.type,
             'message': response.content
         })
-    
-        setattr(state, target_attribute, response.content)
-        return state
+
+        # if isinstance(state, dict):
+        #     # state[target_attribute] = response.content
+        #     # Create a dict with the target key only
+        #     state = {target_attribute: response.content}
+        # else:
+        #     setattr(state, target_attribute, response.content)
+        # return state
+
+        return {target_attribute: response.content}
 
     def _output_history_analyzer(self, state: AgentState) -> AgentState:
         """
@@ -439,20 +470,30 @@ class MetaPromptGraph:
                 "# Output ID closer to Expected Output: B" in analysis or
                 (self.aggressive_exploration and
                  "# Output ID closer to Expected Output: A" not in analysis)):
-            state.best_output = state.output
-            state.best_system_message = state.system_message
-            state.best_output_age = 0
+            # state.best_output = state.output
+            # state.best_system_message = state.system_message
+            # state.best_output_age = 0
+            result_dict = {
+                "best_output": state.output,
+                "best_system_message": state.system_message,
+                "best_output_age": 0
+            }
             logger.debug("Best output updated to the current output:\n%s",
-                         state.output)
+                         result_dict["best_output"])
         else:
-            state.best_output_age += 1
-            # rollback output and system message
-            state.output = state.best_output
-            state.system_message = state.best_system_message
+            # state.best_output_age += 1
+            # # rollback output and system message
+            # state.output = state.best_output
+            # state.system_message = state.best_system_message
+            result_dict = {
+                "output": state.best_output,
+                "system_message": state.best_system_message,
+                "best_output_age": state.best_output_age + 1
+            }
             logger.debug("Best output age incremented to %s",
-                         state.best_output_age)
+                         result_dict["best_output_age"])
 
-        return state
+        return result_dict
 
     def _prompt_analyzer(self, state: AgentState) -> AgentState:
         """
@@ -479,12 +520,20 @@ class MetaPromptGraph:
         logger.debug({'node': NODE_PROMPT_ANALYZER, 'action': 'response',
                      'type': response.type, 'message': response.content})
 
-        state.analysis = response.content
-        state.accepted = "Accept: Yes" in response.content
+        # state.analysis = response.content
+        # state.accepted = "Accept: Yes" in response.content
 
-        logger.debug("Accepted: %s", state.accepted)
+        # logger.debug("Accepted: %s", state.accepted)
 
-        return state
+        # return state
+
+        result_dict = {
+            "analysis": response.content,
+            "accepted": "Accept: Yes" in response.content
+        }
+        logger.debug("Accepted: %s", result_dict["accepted"])
+
+        return result_dict
 
     def _should_exit_on_max_age(self, state: AgentState) -> str:
         """
