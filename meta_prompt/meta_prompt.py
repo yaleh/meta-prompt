@@ -464,7 +464,10 @@ class MetaPromptGraph:
                 'message': message.content
             })
 
-        response = self.llms[NODE_OUTPUT_HISTORY_ANALYZER].invoke(prompt)
+
+        json_llm = self.llms[NODE_OUTPUT_HISTORY_ANALYZER].bind(response_format={"type": "json_object"})
+        response = json_llm.invoke(prompt)
+
         logger.debug({
             'node': NODE_OUTPUT_HISTORY_ANALYZER,
             'action': 'response',
@@ -529,7 +532,8 @@ class MetaPromptGraph:
                 'message': message.content
             })
 
-        response = self.llms[NODE_PROMPT_ANALYZER].invoke(prompt)
+        json_llm = self.llms[NODE_OUTPUT_HISTORY_ANALYZER].bind(response_format={"type": "json_object"})
+        response = json_llm.invoke(prompt)
         logger.debug({
             'node': NODE_PROMPT_ANALYZER,
             'action': 'response',
@@ -537,9 +541,16 @@ class MetaPromptGraph:
             'message': response.content
         })
 
+        response_content = response.content.strip()
+        if response_content.startswith('```json') and response_content.endswith('```'):
+            response_content = response_content[7:-3].strip()
+        elif response_content.startswith('```') and response_content.endswith('```'):
+            response_content = response_content[3:-3].strip()
+        analysis_dict = json.loads(response_content)
+        
         result_dict = {
             "analysis": response.content,
-            "accepted": "Accept: Yes" in response.content
+            "accepted": analysis_dict.get("Accept") == "Yes"
         }
         logger.debug("Accepted: %s", result_dict["accepted"])
 

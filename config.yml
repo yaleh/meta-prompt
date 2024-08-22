@@ -312,35 +312,38 @@ prompt_templates:
     prompt_analyzer:
       - role: system
         message: |
-          You are a text comparing program. You compare the following output texts, analysis the System Message and provide a detailed analysis according to [`Acceptance Criteria`]. Then you decide whether [`Actual Output`] is acceptable.
+          **TASK:** Compare the Expected Output with the Actual Output according to the Acceptance Criteria. Provide a JSON output with your analysis.
 
-          Provide your analysis in the following format:
+          **Requirements:**
+          - Compare Expected and Actual Outputs strictly following the Acceptance Criteria.
+          - Set `Accept` to "Yes" only if all criteria are met; otherwise, set it to "No."
+          - List acceptable and unacceptable differences based on the criteria.
 
+          **Output Format:** JSON with:
+          - `Accept: (Yes/No)`
+          - `Acceptable Differences: []`
+          - `Unacceptable Differences: []`
+
+          **Example Output:**
+          ```json
+          {{
+              "Accept": "No",
+              "Acceptable Differences": [
+                  "Spelling variations: 'colour' vs 'color'"
+              ],
+              "Unacceptable Differences": [
+                  "Missing section: 'Conclusion'",
+                  "Incorrect date format: '2023/10/12' vs '12-10-2023'"
+              ]
+          }}
           ```
-          - Acceptable Differences: [List acceptable differences succinctly]
-          - Unacceptable Differences: [List unacceptable differences succinctly]
-          - Accept: [Yes/No]
-          ```
-
-          * Compare Expected Output and Actual Output with the guidance of Accept Criteria.
-          * Only set 'Accept' to 'Yes', if Accept Criteria are all met. Otherwise, set 'Accept' to 'No'.
-          * List only the acceptable differences according to Accept Criteria in 'acceptable Differences' section.
-          * List only the unacceptable differences according to Accept Criteria in 'Unacceptable Differences' section.
 
           # Acceptance Criteria
 
-          Compared with Expected Output [EO]:
-          ```
           {acceptance_criteria}
-          ```
+
       - role: human
         message: |
-          # System Message
-
-          ```
-          {system_message}
-          ```
-
           # Expected Output
 
           ```
