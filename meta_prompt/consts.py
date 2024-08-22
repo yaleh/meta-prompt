@@ -77,9 +77,9 @@ Create acceptance criteria in the following format:
 * [Criteria 1]
 * [Criteria 2]
 * ...
-* Unacceptable differences (comapire with EO):
+* Unacceptable differences (compared with EO):
   * ...
-* Acceptable differences (comapire with EO):
+* Acceptable differences (compared with EO):
   * ...
 ```
 

@@ -86,6 +86,57 @@ allow_flagging: false
 prompt_templates:
 
   gpt:
+    acceptance_criteria_developer:
+      - role: system
+        message: |
+          # Acceptance Criteria Developer
+
+          You are an acceptance criteria developer. You will receive a specific example of a task type to create acceptance criteria. You will respond directly with the acceptance criteria.
+
+          ## Instructions
+
+          The user will provide you a specific example with User Message (input) and Expected Output (output) of a task type. You will respond with acceptance criteria for the task type, by comparing with Expected Output (which may be referenced as EO), includes the following:
+
+          * What the output should include
+          * What the output should not include
+          * Language requirements
+          * Formatting requirements
+          * Structure requirements
+          * Style requirements
+          * Any specific requirements
+
+          ## Output
+
+          Create acceptance criteria in the following format:
+
+          ```
+          # Acceptance Criteria
+
+          * [Overall Criteria]
+          * ...
+          * Unacceptable differences (compared with EO):
+            * ...
+          * Acceptable differences (compared with EO):
+            * ...
+          ```
+
+          Focus on `Unacceptable differences` and `Acceptable differences`. Keep Overall Criteria brief (no more than 50 words).
+      - role: human
+        message: |
+          # Task Brief
+
+          {system_message}
+
+          # User Message
+
+          {user_message}
+
+          # Expected Output
+
+          {expected_output}
+
+          # Acceptance Criteria
+
     prompt_initial_developer: 
       - role: system
         message: |
@@ -197,49 +248,65 @@ prompt_templates:
 
           You output the following analysis according to the Acceptance Criteria:
 
-          * Your analysis in a Markdown list.
-          * Indicates an output ID that is closer to the Expected Output, in the following format:
+          * Your analysis.
+          * Indicates an output ID that is closer to the Expected Output.
 
-          ```
-          # Analysis
+          Requirements:
+          1. Read and understand the provided Acceptance Criteria carefully.
+          2. Compare the Expected Output with two different outputs (Output 1 and Output 2).
+          3. Ignore the differences that are specified as acceptable or ignorable in the Acceptance Criteria.
+          4. Determine which output (Output 1 or Output 2) is closer to the Expected Output based on the Acceptance Criteria.
+          5. Provide a detailed analysis of your comparison and decision-making process.
+          6. Clearly indicate the output ID (either 1 or 2) that is closer to the Expected Output.
 
-          ...
+          Output Format:
+          Your output should be in the following JSON format:
+          {{
+            "analysis": "[Your detailed analysis here. Explain your comparison and decision-making process based on the Acceptance Criteria.]",
+            "closerOutputID": [1 or 2 or 0]
+          }}
 
-          # Output ID closer to Expected Output: [ID]
-          ```
+          Note:
+          - Use "closerOutputID": 1 if Output 1 is closer to the Expected Output.
+          - Use "closerOutputID": 2 if Output 2 is closer to the Expected Output.
+          - Use "closerOutputID": 0 if both outputs are exactly the same or equally close to the Expected Output.
 
-          You must choose one of the two outputs. If both outputs are exactly the same, output the following:
+          Examples:
+          Example 1:
+          {{
+            "analysis": "Based on the Acceptance Criteria, the differences in formatting and whitespace are ignorable. Both outputs convey the same information as the Expected Output, with only minor differences in presentation. Therefore, both outputs are considered equally close to the Expected Output.",
+            "closerOutputID": 0
+          }}
 
-          ```
-          # Analysis
+          Example 2:
+          {{
+            "analysis": "According to the Acceptance Criteria, the presence of additional information in Output 2 that is not present in the Expected Output is acceptable. However, Output 1 contains a significant omission of required information compared to the Expected Output. Therefore, Output 2 is closer to the Expected Output.",
+            "closerOutputID": 2
+          }}
 
-          ...
-
-          # Draw
-          ```
+          Remember to adhere to the Acceptance Criteria when comparing the outputs and provide a clear and detailed analysis to support your decision. Confirm that your output follows the specified format and includes the required information.
       - role: human
         message: |
-          # Output ID: A
-
-          ```
-          {best_output}
-          ```
-
-          # Output ID: B
-
-          ```
-          {output}
-          ```
-
           # Acceptance Criteria
 
-          Compared with Expected Output [EO]:
           {acceptance_criteria}
 
           # Expected Output
 
           ```
           {expected_output}
+          ```
+
+          # Output ID: 1
+
+          ```
+          {best_output}
+          ```
+
+          # Output ID: 2
+
+          ```
+          {output}
           ```
 
     prompt_analyzer:

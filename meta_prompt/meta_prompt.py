@@ -1,3 +1,4 @@
+import json
 import logging
 import pprint
 from langchain_core.language_models import BaseLanguageModel
@@ -471,12 +472,19 @@ class MetaPromptGraph:
             'message': response.content
         })
 
-        analysis = response.content
+        response_content = response.content.strip()
+        if response_content.startswith('```json') and response_content.endswith('```'):
+            response_content = response_content[7:-3].strip()
+        elif response_content.startswith('```') and response_content.endswith('```'):
+            response_content = response_content[3:-3].strip()
+        analysis_dict = json.loads(response_content)
+        
+        analysis = analysis_dict["analysis"]
+        closer_output_id = analysis_dict["closerOutputID"]
 
         if (state["best_output"] is None or
-            "# Output ID closer to Expected Output: B" in analysis or
-            (self.aggressive_exploration and
-             "# Output ID closer to Expected Output: A" not in analysis)):
+            closer_output_id == 2 or
+            (self.aggressive_exploration and closer_output_id != 1)):
             result_dict = {
                 "best_output": state["output"],
                 "best_system_message": state["system_message"],
