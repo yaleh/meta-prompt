@@ -210,8 +210,8 @@ def package_input_data():
 
 
 # Streamlit UI
-st.title("Task Description Generator")
-st.markdown("Enter a JSON object with 'input' and 'output' fields to generate a task description and additional examples.")
+st.title("LLM Task Example Generator")
+st.markdown("Enter input-output pairs in the table below to generate a task description, analysis, and additional examples.")
 
 # Input column
 input_data = st.data_editor(
@@ -224,88 +224,56 @@ input_data = st.data_editor(
     },
 )
 
-# # Update session state
-# st.session_state.input_data = input_data
+with st.expander("Model Settings"):
+    model_name = st.selectbox(
+        "Model Name",
+        ["llama3-70b-8192", "llama3-8b-8192", "llama-3.1-70b-versatile",
+            "llama-3.1-8b-instant", "gemma2-9b-it"],
+        index=0
+    )
+    temperature = st.slider("Temperature", 0.0, 1.0, 1.0, 0.1)
+    generating_batch_size = st.slider("Generating Batch Size", 1, 10, 3, 1)
 
-model_name = st.selectbox(
-    "Model Name",
-    ["llama3-70b-8192", "llama3-8b-8192", "llama-3.1-70b-versatile",
-        "llama-3.1-8b-instant", "gemma2-9b-it"],
-    index=0
-)
-temperature = st.slider("Temperature", 0.0, 1.0, 1.0, 0.1)
-generating_batch_size = st.slider("Generating Batch Size", 1, 10, 3, 1)
+submit_button = st.button(
+    "Generate", type="primary", on_click=generate_examples_dataframe)
 
-# Buttons
-col1, col2 = st.columns(2)
-with col1:
-    submit_button = st.button(
-        "Generate", type="primary", on_click=generate_examples_dataframe)
-with col2:
+with st.expander("Description and Analysis"):
     generate_description_button = st.button(
         "Generate Description", on_click=update_description_output_text)
+    
+    description_output = st.text_area(
+        "Description", value=st.session_state.description_output_text, height=100)
 
-# Output column
+    col3, col4 = st.columns(2)
+    with col3:
+        generate_examples_directly_button = st.button(
+            "Generate Examples Directly", on_click=update_examples_directly_dataframe)
+    with col4:
+        analyze_input_button = st.button(
+            "Analyze Input", on_click=update_input_analysis_output_text)
 
-description_output = st.text_area(
-    "Description", value=st.session_state.description_output_text, height=100)
+    examples_directly_output = st.dataframe(st.session_state.examples_directly_dataframe, use_container_width=True,
+                                            selection_mode="single-row", key="selected_example_directly_id",
+                                            on_select=example_directly_selected)
+    input_analysis_output = st.text_area(
+        "Input Analysis", value=st.session_state.input_analysis_output_text, height=100)
+    generate_briefs_button = st.button(
+        "Generate Briefs", on_click=update_example_briefs_output_text)
+    example_briefs_output = st.text_area(
+        "Example Briefs", value=st.session_state.example_briefs_output_text, height=100)
+    generate_examples_from_briefs_button = st.button(
+        "Generate Examples from Briefs", on_click=update_examples_from_briefs_dataframe)
+    examples_from_briefs_output = st.dataframe(st.session_state.examples_from_briefs_dataframe, use_container_width=True,
+                                               selection_mode="single-row", key="selected_example_from_briefs_id",
+                                               on_select=example_from_briefs_selected)
 
-col3, col4 = st.columns(2)
-with col3:
-    generate_examples_directly_button = st.button(
-        "Generate Examples Directly", on_click=update_examples_directly_dataframe)
-with col4:
-    analyze_input_button = st.button(
-        "Analyze Input", on_click=update_input_analysis_output_text)
-
-examples_directly_output = st.dataframe(st.session_state.examples_directly_dataframe, use_container_width=True,
-                                        selection_mode="single-row", key="selected_example_directly_id", on_select=example_directly_selected)
-input_analysis_output = st.text_area(
-    "Input Analysis", value=st.session_state.input_analysis_output_text, height=100)
-generate_briefs_button = st.button(
-    "Generate Briefs", on_click=update_example_briefs_output_text)
-example_briefs_output = st.text_area(
-    "Example Briefs", value=st.session_state.example_briefs_output_text, height=100)
-generate_examples_from_briefs_button = st.button(
-    "Generate Examples from Briefs", on_click=update_examples_from_briefs_dataframe)
-examples_from_briefs_output = st.dataframe(st.session_state.examples_from_briefs_dataframe, use_container_width=True,
-                                           selection_mode="single-row", key="selected_example_from_briefs_id", on_select=example_from_briefs_selected)
 examples_output = st.dataframe(st.session_state.examples_dataframe, use_container_width=True,
                                selection_mode="single-row", key="selected_example_id", on_select=example_selected)
-new_example_json = st.text_area(
-    "New Example JSON", value=st.session_state.selected_example, height=100)
 
-# Button actions
-# if submit_button:
-#     try:
-#         input_json = package_input_data()
-#         result = process_json(
-#             input_json, model_name, generating_batch_size, temperature
-#         )
-#         description, examples_directly, input_analysis, new_example_briefs, examples_from_briefs, examples = result
-#         description_output = description
-#         examples_directly_output = examples_directly
-#         input_analysis_output = input_analysis
-#         example_briefs_output = new_example_briefs
-#         examples_from_briefs_output = examples_from_briefs
-#         examples_output = examples
-#     except Exception as e:
-#         st.error(f"An error occurred: {str(e)}")
+def show_sidebar():
+    if st.session_state.selected_example is not None:
+        with st.sidebar:
+            new_example_json = st.text_area(
+                "New Example JSON", value=st.session_state.selected_example, height=100)
 
-# if generate_examples_directly_button:
-#     input_json = package_input_data()
-#     examples_directly_output = generate_examples_directly(
-#         description_output, input_json, generating_batch_size, model_name, temperature)
-
-# if analyze_input_button:
-#     input_analysis_output = analyze_input(
-#         description_output, model_name, temperature)
-
-# if generate_briefs_button:
-#     example_briefs_output = generate_briefs(
-#         description_output, input_analysis_output, generating_batch_size, model_name, temperature)
-
-# if generate_examples_from_briefs_button:
-#     input_json = package_input_data()
-#     examples_from_briefs_output = generate_examples_from_briefs(
-#         description_output, example_briefs_output, input_json, generating_batch_size, model_name, temperature)
+show_sidebar()
