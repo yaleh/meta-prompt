@@ -91,12 +91,15 @@ def generate_examples_directly(description, raw_example, generating_batch_size, 
 def example_directly_selected():
     if 'selected_example_directly_id' in st.session_state:
         try:
-            selected_example_id = st.session_state.selected_example_directly_id[
-                'selection']['rows'][0]
-            selected_example = st.session_state.examples_directly_dataframe.iloc[selected_example_id].to_dict(
-            )
-            st.session_state.selected_example = json.dumps(
-                {k.lower(): v for k, v in selected_example.items()}, ensure_ascii=False)
+            selected_example_ids = st.session_state.selected_example_directly_id[
+                'selection']['rows']
+            # set selected examples to the selected rows if there are any
+            if selected_example_ids:
+                selected_examples = st.session_state.examples_directly_dataframe.iloc[selected_example_ids].to_dict(
+                    'records')
+                st.session_state.selected_example = pd.DataFrame(selected_examples)  # Convert to DataFrame
+            else:
+                st.session_state.selected_example = None
         except Exception as e:
             st.session_state.selected_example = None
 
@@ -104,12 +107,15 @@ def example_directly_selected():
 def example_from_briefs_selected():
     if 'selected_example_from_briefs_id' in st.session_state:
         try:
-            selected_example_id = st.session_state.selected_example_from_briefs_id[
-                'selection']['rows'][0]
-            selected_example = st.session_state.examples_from_briefs_dataframe.iloc[selected_example_id].to_dict(
-            )
-            st.session_state.selected_example = json.dumps(
-                {k.lower(): v for k, v in selected_example.items()}, ensure_ascii=False)
+            selected_example_ids = st.session_state.selected_example_from_briefs_id[
+                'selection']['rows']
+            # set selected examples to the selected rows if there are any
+            if selected_example_ids:
+                selected_examples = st.session_state.examples_from_briefs_dataframe.iloc[selected_example_ids].to_dict(
+                    'records')
+                st.session_state.selected_example = pd.DataFrame(selected_examples)  # Convert to DataFrame
+            else:
+                st.session_state.selected_example = None
         except Exception as e:
             st.session_state.selected_example = None
 
@@ -117,11 +123,14 @@ def example_from_briefs_selected():
 def example_selected():
     if 'selected_example_id' in st.session_state:
         try:
-            selected_example_id = st.session_state.selected_example_id['selection']['rows'][0]
-            selected_example = st.session_state.examples_dataframe.iloc[selected_example_id].to_dict(
-            )
-            st.session_state.selected_example = json.dumps(
-                {k.lower(): v for k, v in selected_example.items()}, ensure_ascii=False)
+            selected_example_ids = st.session_state.selected_example_id['selection']['rows']
+            # set selected examples to the selected rows if there are any
+            if selected_example_ids:
+                selected_examples = st.session_state.examples_dataframe.iloc[selected_example_ids].to_dict(
+                    'records')
+                st.session_state.selected_example = pd.DataFrame(selected_examples)  # Convert to DataFrame
+            else:
+                st.session_state.selected_example = None
         except Exception as e:
             st.session_state.selected_example = None
 
@@ -225,6 +234,7 @@ def import_input_data_from_json():
         if 'input_file' in st.session_state and st.session_state.input_file is not None:
             data = st.session_state.input_file.getvalue()
             data = json.loads(data)
+            data = [{k.capitalize(): v for k, v in d.items()} for d in data]
             st.session_state.input_data = pd.DataFrame(data)
     except Exception as e:
         st.error(f"Failed to import JSON: {str(e)}")
@@ -287,7 +297,7 @@ with st.expander("Description and Analysis"):
             "Analyze Input", on_click=update_input_analysis_output_text)
 
     examples_directly_output = st.dataframe(st.session_state.examples_directly_dataframe, use_container_width=True,
-                                            selection_mode="single-row", key="selected_example_directly_id",
+                                            selection_mode="multi-row", key="selected_example_directly_id",
                                             on_select=example_directly_selected)
     input_analysis_output = st.text_area(
         "Input Analysis", value=st.session_state.input_analysis_output_text, height=100)
@@ -298,16 +308,22 @@ with st.expander("Description and Analysis"):
     generate_examples_from_briefs_button = st.button(
         "Generate Examples from Briefs", on_click=update_examples_from_briefs_dataframe)
     examples_from_briefs_output = st.dataframe(st.session_state.examples_from_briefs_dataframe, use_container_width=True,
-                                               selection_mode="single-row", key="selected_example_from_briefs_id",
+                                               selection_mode="multi-row", key="selected_example_from_briefs_id",
                                                on_select=example_from_briefs_selected)
 
 examples_output = st.dataframe(st.session_state.examples_dataframe, use_container_width=True,
-                               selection_mode="single-row", key="selected_example_id", on_select=example_selected)
+                               selection_mode="multi-row", key="selected_example_id", on_select=example_selected)
+
+def append_selected_to_input_data():
+    if st.session_state.selected_example is not None:
+        st.session_state.input_data = pd.concat(
+            [st.session_state.input_data, st.session_state.selected_example], ignore_index=True)
+        st.session_state.selected_example = None
 
 def show_sidebar():
     if st.session_state.selected_example is not None:
         with st.sidebar:
-            new_example_json = st.text_area(
-                "New Example JSON", value=st.session_state.selected_example, height=100)
+            st.dataframe(st.session_state.selected_example)  # Display DataFrame in sidebar
+            st.button("Append to Input Data", on_click=append_selected_to_input_data)
 
 show_sidebar()
