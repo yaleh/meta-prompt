@@ -12,6 +12,7 @@ langchain = "^0.2.6"
 langchain-openai = "^0.1.14"
 pydantic = "^2.8.2"
 python-json-logger = "^2.0.7"
+streamlit = "^1.38.0"
 
 [tool.poetry.dev-dependencies]
 gradio = "^4.37.2"
@@ -20,6 +21,8 @@ confz = "^2.0.1"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2.2"
 datasets = "^2.20.0"
+streamlit = "^1.37.1"
+ipykernel = "^6.29.5"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
