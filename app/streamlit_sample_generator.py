@@ -127,6 +127,9 @@ def example_selected():
 
 
 # Session State
+if 'input_data' not in st.session_state:
+    st.session_state.input_data = pd.DataFrame(columns=["Input", "Output"])
+
 if 'description_output_text' not in st.session_state:
     st.session_state.description_output_text = ''
 
@@ -153,6 +156,7 @@ if 'selected_example' not in st.session_state:
 
 
 def update_description_output_text():
+    input_json = package_input_data()
     st.session_state.description_output_text = generate_description_only(
         input_json, model_name, temperature)
 
@@ -168,6 +172,7 @@ def update_example_briefs_output_text():
 
 
 def update_examples_from_briefs_dataframe():
+    input_json = package_input_data()
     examples = generate_examples_from_briefs(
         description_output, example_briefs_output, input_json, generating_batch_size, model_name, temperature)
     st.session_state.examples_from_briefs_dataframe = pd.DataFrame(
@@ -175,6 +180,7 @@ def update_examples_from_briefs_dataframe():
 
 
 def update_examples_directly_dataframe():
+    input_json = package_input_data()
     examples = generate_examples_directly(
         description_output, input_json, generating_batch_size, model_name, temperature)
     st.session_state.examples_directly_dataframe = pd.DataFrame(
@@ -182,6 +188,7 @@ def update_examples_directly_dataframe():
 
 
 def generate_examples_dataframe():
+    input_json = package_input_data()
     result = process_json(input_json, model_name,
                           generating_batch_size, temperature)
     description, examples_directly, input_analysis, new_example_briefs, examples_from_briefs, examples = result
@@ -196,13 +203,30 @@ def generate_examples_dataframe():
         examples, columns=["Input", "Output"])
     st.session_state.selected_example = None
 
+def package_input_data():
+    data = input_data.to_dict(orient='records')
+    lowered_data = [{k.lower(): v for k, v in d.items()} for d in data]
+    return json.dumps(lowered_data, ensure_ascii=False)
+
 
 # Streamlit UI
 st.title("Task Description Generator")
 st.markdown("Enter a JSON object with 'input' and 'output' fields to generate a task description and additional examples.")
 
 # Input column
-input_json = st.text_area("Input JSON", height=200)
+input_data = st.data_editor(
+    st.session_state.input_data,
+    num_rows="dynamic",
+    use_container_width=True,
+    column_config={
+        "Input": st.column_config.TextColumn("Input", width="large"),
+        "Output": st.column_config.TextColumn("Output", width="large"),
+    },
+)
+
+# # Update session state
+# st.session_state.input_data = input_data
+
 model_name = st.selectbox(
     "Model Name",
     ["llama3-70b-8192", "llama3-8b-8192", "llama-3.1-70b-versatile",
@@ -252,33 +276,36 @@ new_example_json = st.text_area(
     "New Example JSON", value=st.session_state.selected_example, height=100)
 
 # Button actions
-if submit_button:
-    try:
-        result = process_json(
-            input_json, model_name, generating_batch_size, temperature
-        )
-        description, examples_directly, input_analysis, new_example_briefs, examples_from_briefs, examples = result
-        description_output = description
-        examples_directly_output = examples_directly
-        input_analysis_output = input_analysis
-        example_briefs_output = new_example_briefs
-        examples_from_briefs_output = examples_from_briefs
-        examples_output = examples
-    except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
+# if submit_button:
+#     try:
+#         input_json = package_input_data()
+#         result = process_json(
+#             input_json, model_name, generating_batch_size, temperature
+#         )
+#         description, examples_directly, input_analysis, new_example_briefs, examples_from_briefs, examples = result
+#         description_output = description
+#         examples_directly_output = examples_directly
+#         input_analysis_output = input_analysis
+#         example_briefs_output = new_example_briefs
+#         examples_from_briefs_output = examples_from_briefs
+#         examples_output = examples
+#     except Exception as e:
+#         st.error(f"An error occurred: {str(e)}")
 
-if generate_examples_directly_button:
-    examples_directly_output = generate_examples_directly(
-        description_output, input_json, generating_batch_size, model_name, temperature)
+# if generate_examples_directly_button:
+#     input_json = package_input_data()
+#     examples_directly_output = generate_examples_directly(
+#         description_output, input_json, generating_batch_size, model_name, temperature)
 
-if analyze_input_button:
-    input_analysis_output = analyze_input(
-        description_output, model_name, temperature)
+# if analyze_input_button:
+#     input_analysis_output = analyze_input(
+#         description_output, model_name, temperature)
 
-if generate_briefs_button:
-    example_briefs_output = generate_briefs(
-        description_output, input_analysis_output, generating_batch_size, model_name, temperature)
+# if generate_briefs_button:
+#     example_briefs_output = generate_briefs(
+#         description_output, input_analysis_output, generating_batch_size, model_name, temperature)
 
-if generate_examples_from_briefs_button:
-    examples_from_briefs_output = generate_examples_from_briefs(
-        description_output, example_briefs_output, input_json, generating_batch_size, model_name, temperature)
+# if generate_examples_from_briefs_button:
+#     input_json = package_input_data()
+#     examples_from_briefs_output = generate_examples_from_briefs(
+#         description_output, example_briefs_output, input_json, generating_batch_size, model_name, temperature)
