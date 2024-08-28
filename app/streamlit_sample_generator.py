@@ -154,6 +154,9 @@ if 'examples_dataframe' not in st.session_state:
 if 'selected_example' not in st.session_state:
     st.session_state.selected_example = None
 
+# if 'input_file' not in st.session_state:
+#     st.session_state.input_file = None
+
 
 def update_description_output_text():
     input_json = package_input_data()
@@ -208,6 +211,24 @@ def package_input_data():
     lowered_data = [{k.lower(): v for k, v in d.items()} for d in data]
     return json.dumps(lowered_data, ensure_ascii=False)
 
+def export_input_data_to_json():
+    input_data_json = package_input_data()
+    st.download_button(
+        label="Download input data as JSON",
+        data=input_data_json,
+        file_name="input_data.json",
+        mime="application/json"
+    )
+
+def import_input_data_from_json():
+    try:
+        if 'input_file' in st.session_state and st.session_state.input_file is not None:
+            data = st.session_state.input_file.getvalue()
+            data = json.loads(data)
+            st.session_state.input_data = pd.DataFrame(data)
+    except Exception as e:
+        st.error(f"Failed to import JSON: {str(e)}")
+
 
 # Streamlit UI
 st.title("LLM Task Example Generator")
@@ -225,6 +246,19 @@ input_data = st.data_editor(
 )
 
 with st.expander("Model Settings"):
+    col1, col2 = st.columns(2)
+    with col1:
+        input_file = st.file_uploader(
+            label="Import Input Data from JSON",
+            type="json",
+            key="input_file",
+            on_change=import_input_data_from_json
+        )
+    with col2:
+        export_button = st.button(  # Add the export button
+            "Export Input Data to JSON", on_click=export_input_data_to_json
+        )
+
     model_name = st.selectbox(
         "Model Name",
         ["llama3-70b-8192", "llama3-8b-8192", "llama-3.1-70b-versatile",
