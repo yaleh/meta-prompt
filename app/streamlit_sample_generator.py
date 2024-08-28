@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 import json
-from langchain_community.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from meta_prompt.sample_generator import TaskDescriptionGenerator
 
 def process_json(input_json, model_name, generating_batch_size, temperature):
@@ -17,7 +17,8 @@ def process_json(input_json, model_name, generating_batch_size, temperature):
         examples = [[example["input"], example["output"]] for example in result["additional_examples"]]
         return description, examples_directly, input_analysis, new_example_briefs, examples_from_briefs, examples
     except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
+        st.warning(f"An error occurred: {str(e)}. Returning default values.")
+        return "", [], "", [], [], []
     
 def generate_description_only(input_json, model_name, temperature):
     try:
@@ -66,6 +67,34 @@ def generate_examples_directly(description, raw_example, generating_batch_size, 
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
 
+def example_directly_selected():
+    if 'selected_example_directly_id' in st.session_state:
+        try:
+            selected_example_id = st.session_state.selected_example_directly_id['selection']['rows'][0]
+            selected_example = st.session_state.examples_directly_dataframe.iloc[selected_example_id].to_dict()
+            st.session_state.selected_example = json.dumps({k.lower(): v for k, v in selected_example.items()}, ensure_ascii=False)
+        except Exception as e:
+            st.session_state.selected_example = None
+
+def example_from_briefs_selected():
+    if 'selected_example_from_briefs_id' in st.session_state:
+        try:
+            selected_example_id = st.session_state.selected_example_from_briefs_id['selection']['rows'][0]
+            selected_example = st.session_state.examples_from_briefs_dataframe.iloc[selected_example_id].to_dict()
+            st.session_state.selected_example = json.dumps({k.lower(): v for k, v in selected_example.items()}, ensure_ascii=False)
+        except Exception as e:
+            st.session_state.selected_example = None
+
+def example_selected():
+    if 'selected_example_id' in st.session_state:
+        try:
+            selected_example_id = st.session_state.selected_example_id['selection']['rows'][0]
+            selected_example = st.session_state.examples_dataframe.iloc[selected_example_id].to_dict()
+            st.session_state.selected_example = json.dumps({k.lower(): v for k, v in selected_example.items()}, ensure_ascii=False)
+        except Exception as e:
+            st.session_state.selected_example = None
+
+
 # Session State
 if 'description_output_text' not in st.session_state:
     st.session_state.description_output_text = ''
@@ -85,6 +114,9 @@ if 'examples_directly_dataframe' not in st.session_state:
 if 'examples_dataframe' not in st.session_state:
     st.session_state.examples_dataframe = pd.DataFrame(columns=["Input", "Output"])
 
+if 'selected_example' not in st.session_state:
+    st.session_state.selected_example = None
+
 def update_description_output_text():
     st.session_state.description_output_text = generate_description_only(input_json, model_name, temperature)
 
@@ -95,20 +127,23 @@ def update_example_briefs_output_text():
     st.session_state.example_briefs_output_text = generate_briefs(description_output, input_analysis_output, generating_batch_size, model_name, temperature)
 
 def update_examples_from_briefs_dataframe():
-    st.session_state.examples_from_briefs_dataframe = generate_examples_from_briefs(description_output, example_briefs_output, input_json, generating_batch_size, model_name, temperature)
+    examples = generate_examples_from_briefs(description_output, example_briefs_output, input_json, generating_batch_size, model_name, temperature)
+    st.session_state.examples_from_briefs_dataframe = pd.DataFrame(examples, columns=["Input", "Output"])
 
 def update_examples_directly_dataframe():
-    st.session_state.examples_directly_dataframe = generate_examples_directly(description_output, input_json, generating_batch_size, model_name, temperature)
+    examples = generate_examples_directly(description_output, input_json, generating_batch_size, model_name, temperature)
+    st.session_state.examples_directly_dataframe = pd.DataFrame(examples, columns=["Input", "Output"])
 
 def generate_examples_dataframe():
     result = process_json(input_json, model_name, generating_batch_size, temperature)
     description, examples_directly, input_analysis, new_example_briefs, examples_from_briefs, examples = result
     st.session_state.description_output_text = description
-    st.session_state.examples_directly_dataframe = examples_directly
+    st.session_state.examples_directly_dataframe = pd.DataFrame(examples_directly, columns=["Input", "Output"])
     st.session_state.input_analysis_output_text = input_analysis
     st.session_state.example_briefs_output_text = new_example_briefs
-    st.session_state.examples_from_briefs_dataframe = examples_from_briefs
-    st.session_state.examples_dataframe = examples
+    st.session_state.examples_from_briefs_dataframe = pd.DataFrame(examples_from_briefs, columns=["Input", "Output"])
+    st.session_state.examples_dataframe = pd.DataFrame(examples, columns=["Input", "Output"])
+    st.session_state.selected_example = None
 
 # Streamlit UI
 st.title("Task Description Generator")
@@ -141,14 +176,14 @@ with col3:
 with col4:
     analyze_input_button = st.button("Analyze Input", on_click=update_input_analysis_output_text)
 
-examples_directly_output = st.dataframe(st.session_state.examples_directly_dataframe, use_container_width=True)
+examples_directly_output = st.dataframe(st.session_state.examples_directly_dataframe, use_container_width=True, selection_mode="single-row", key="selected_example_directly_id", on_select=example_directly_selected)
 input_analysis_output = st.text_area("Input Analysis", value=st.session_state.input_analysis_output_text, height=100)
 generate_briefs_button = st.button("Generate Briefs", on_click=update_example_briefs_output_text)
 example_briefs_output = st.text_area("Example Briefs", value=st.session_state.example_briefs_output_text, height=100)
 generate_examples_from_briefs_button = st.button("Generate Examples from Briefs", on_click=update_examples_from_briefs_dataframe)
-examples_from_briefs_output = st.dataframe(st.session_state.examples_from_briefs_dataframe, use_container_width=True)
-examples_output = st.dataframe(st.session_state.examples_dataframe, use_container_width=True)
-new_example_json = st.text_area("New Example JSON", height=100)
+examples_from_briefs_output = st.dataframe(st.session_state.examples_from_briefs_dataframe, use_container_width=True, selection_mode="single-row", key="selected_example_from_briefs_id", on_select=example_from_briefs_selected)
+examples_output = st.dataframe(st.session_state.examples_dataframe, use_container_width=True, selection_mode="single-row", key="selected_example_id", on_select=example_selected)
+new_example_json = st.text_area("New Example JSON", value=st.session_state.selected_example, height=100)
 
 # Button actions
 if submit_button:
