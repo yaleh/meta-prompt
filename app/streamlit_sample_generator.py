@@ -274,6 +274,12 @@ def generate_suggestions():
     except Exception as e:
         st.warning(f"Failed to generate suggestions: {str(e)}")
 
+# Function to add new suggestion to the list and select it
+def add_new_suggestion():
+    if st.session_state.new_suggestion:
+        st.session_state.suggestions.append(st.session_state.new_suggestion)
+        st.session_state.new_suggestion = ""  # Clear the input field
+
 # Streamlit UI
 st.title("LLM Task Example Generator")
 st.markdown("Enter input-output pairs in the table below to generate a task description, analysis, and additional examples.")
@@ -335,7 +341,10 @@ with st.expander("Description and Analysis"):
     # Add multiselect for suggestions
     selected_suggestions = st.multiselect(
         "Suggestions", options=st.session_state.suggestions, key="selected_suggestions")
-    
+
+    # Add text input for adding new suggestions
+    new_suggestion = st.text_input("Add New Suggestion", key="new_suggestion", on_change=add_new_suggestion)
+
     # Add button to apply suggestions
     apply_suggestions_button = st.button("Apply Suggestions", on_click=apply_suggestions)
 
