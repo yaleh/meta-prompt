@@ -174,9 +174,6 @@ if 'examples_dataframe' not in st.session_state:
 if 'selected_example' not in st.session_state:
     st.session_state.selected_example = None
 
-# if 'input_file' not in st.session_state:
-#     st.session_state.input_file = None
-
 
 def update_description_output_text():
     input_json = package_input_data()

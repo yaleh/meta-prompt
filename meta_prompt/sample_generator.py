@@ -1,4 +1,5 @@
 import json
+from openai import BadRequestError
 import yaml
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema.output_parser import StrOutputParser
@@ -261,12 +262,28 @@ class TaskDescriptionGenerator:
 
         self.description_chain = self.description_prompt | model | output_parser
         self.description_updating_chain = self.description_updating_prompt | model | output_parser
-        self.specification_suggestions_chain = (self.specification_suggestions_prompt | json_model | json_parse).with_fallbacks([RunnableLambda(lambda x: {"dimensions": [], "suggestions": []})])
-        self.generalization_suggestions_chain = (self.generalization_suggestions_prompt | json_model | json_parse).with_fallbacks([RunnableLambda(lambda x: {"dimensions": [], "suggestions": []})])
+        self.specification_suggestions_chain = (self.specification_suggestions_prompt | json_model | json_parse).with_retry(
+            retry_if_exception_type=(BadRequestError,), # Retry only on ValueError
+            wait_exponential_jitter=True, # Add jitter to the exponential backoff
+            stop_after_attempt=2 # Try twice
+        ).with_fallbacks([RunnableLambda(lambda x: {"dimensions": [], "suggestions": []})])
+        self.generalization_suggestions_chain = (self.generalization_suggestions_prompt | json_model | json_parse).with_retry(
+            retry_if_exception_type=(BadRequestError,), # Retry only on ValueError
+            wait_exponential_jitter=True, # Add jitter to the exponential backoff
+            stop_after_attempt=2 # Try twice
+        ).with_fallbacks([RunnableLambda(lambda x: {"dimensions": [], "suggestions": []})])
         self.input_analysis_chain = self.input_analysis_prompt | model | output_parser
         self.briefs_chain = self.briefs_prompt | model | output_parser
-        self.examples_from_briefs_chain = (self.examples_from_briefs_prompt | json_model | json_parse).with_fallbacks([RunnableLambda(lambda x: {"examples": []})])
-        self.examples_directly_chain = (self.examples_directly_prompt | json_model | json_parse).with_fallbacks([RunnableLambda(lambda x: {"examples": []})])
+        self.examples_from_briefs_chain = (self.examples_from_briefs_prompt | json_model | json_parse).with_retry(
+            retry_if_exception_type=(BadRequestError,), # Retry only on ValueError
+            wait_exponential_jitter=True, # Add jitter to the exponential backoff
+            stop_after_attempt=2 # Try twice
+        ).with_fallbacks([RunnableLambda(lambda x: {"examples": []})])
+        self.examples_directly_chain = (self.examples_directly_prompt | json_model | json_parse).with_retry(
+            retry_if_exception_type=(BadRequestError,), # Retry only on ValueError
+            wait_exponential_jitter=True, # Add jitter to the exponential backoff
+            stop_after_attempt=2 # Try twice
+        ).with_fallbacks([RunnableLambda(lambda x: {"examples": []})])
 
         # New sub-chain for loading and validating input
         self.input_loader = RunnableLambda(self.load_and_validate_input)
