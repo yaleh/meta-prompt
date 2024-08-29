@@ -250,14 +250,17 @@ def import_input_data_from_json():
             data = [{k.capitalize(): v for k, v in d.items()} for d in data]
             st.session_state.input_data = pd.DataFrame(data)
     except Exception as e:
-        st.error(f"Failed to import JSON: {str(e)}")
+        st.warning(f"Failed to import JSON: {str(e)}")
 
 def apply_suggestions():
-    result = TaskDescriptionGenerator(
-        ChatOpenAI(model=model_name, temperature=temperature, max_retries=3)).update_description(
-        package_input_data(), st.session_state.description_output_text, st.session_state.selected_suggestions)
-    st.session_state.description_output_text = result["description"]
-    st.session_state.suggestions = result["suggestions"]
+    try:
+        result = TaskDescriptionGenerator(
+            ChatOpenAI(model=model_name, temperature=temperature, max_retries=3)).update_description(
+            package_input_data(), st.session_state.description_output_text, st.session_state.selected_suggestions)
+        st.session_state.description_output_text = result["description"]
+        st.session_state.suggestions = result["suggestions"]
+    except Exception as e:
+        st.warning(f"Failed to update description: {str(e)}")
 
 # Streamlit UI
 st.title("LLM Task Example Generator")
