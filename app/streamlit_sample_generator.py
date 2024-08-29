@@ -262,6 +262,18 @@ def apply_suggestions():
     except Exception as e:
         st.warning(f"Failed to update description: {str(e)}")
 
+def generate_suggestions():
+    try:
+        description = st.session_state.description_output_text
+        input_json = package_input_data()
+
+        model = ChatOpenAI(model=model_name, temperature=temperature, max_retries=3)
+        generator = TaskDescriptionGenerator(model)
+        result = generator.generate_suggestions(input_json, description)
+        st.session_state.suggestions = result["suggestions"]
+    except Exception as e:
+        st.warning(f"Failed to generate suggestions: {str(e)}")
+
 # Streamlit UI
 st.title("LLM Task Example Generator")
 st.markdown("Enter input-output pairs in the table below to generate a task description, analysis, and additional examples.")
@@ -310,20 +322,22 @@ with st.expander("Description and Analysis"):
     description_output = st.text_area(
         "Description", value=st.session_state.description_output_text, height=100)
 
+    col3, col4, col5 = st.columns(3)
+    with col3:
+        generate_suggestions_button = st.button("Generate Suggestions", on_click=generate_suggestions)
+    with col4:
+        generate_examples_directly_button = st.button(
+            "Generate Examples Directly", on_click=update_examples_directly_dataframe)
+    with col5:
+        analyze_input_button = st.button(
+            "Analyze Input", on_click=update_input_analysis_output_text)
+
     # Add multiselect for suggestions
     selected_suggestions = st.multiselect(
         "Suggestions", options=st.session_state.suggestions, key="selected_suggestions")
     
     # Add button to apply suggestions
     apply_suggestions_button = st.button("Apply Suggestions", on_click=apply_suggestions)
-
-    col3, col4 = st.columns(2)
-    with col3:
-        generate_examples_directly_button = st.button(
-            "Generate Examples Directly", on_click=update_examples_directly_dataframe)
-    with col4:
-        analyze_input_button = st.button(
-            "Analyze Input", on_click=update_input_analysis_output_text)
 
     examples_directly_output = st.dataframe(st.session_state.examples_directly_dataframe, use_container_width=True,
                                             selection_mode="multi-row", key="selected_example_directly_id",

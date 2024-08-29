@@ -63,55 +63,28 @@ Task Description: [Your updated description here]
 
 
 SPECIFICATION_SUGGESTIONS_PROMPT = [
-    ("system", """Based on the given task type description and corresponding input/output examples, list suggestions to specify the task type description in multiple dimensions using JSON format.
+    ("system", """Generate suggestions to narrow the task scope for a given task type and example:
 
-Please complete this task according to the following requirements:
+1. Analyze the task description and input/output examples.
+2. Identify 3~5 relevant dimensions (e.g., purpose, input/output format, language, steps, criteria, constraints).
+3. Create 3~5 actionable suggestions to narrow the task scope based on the above dimensions. Make sure the suggestions are compatible with the provided example.
+4. Start each suggestion with a verb.
+5. Output in JSON format:
 
-1. Analyze the given task type description and input/output examples.
+```json
+{{
+  "dimensions": [
+    {{ "dimension": "..." }},
+    {{ "dimension": "..." }}
+  ],
+  "suggestions": [
+    {{ "suggestion": "..." }},
+    {{ "suggestion": "..." }}
+  ]
+}}
+```
 
-2. Identify multiple dimensions to specify the task description, such as:
-   - Task purpose
-   - Input format requirements
-   - Output format requirements
-   - Processing steps
-   - Evaluation criteria
-   - Constraints
-   - Special case handling
-   - Other relevant dimensions
-
-3. Output Format:
-   - Use JSON format to list the suggestions.
-   - The JSON structure should contain a top-level array, with each object representing a suggestion for a specific dimension.
-
-4. Suggestion Content:
-   - Each suggestion should be clear, specific, and directly related to the task description or input/output examples.
-   - Start each suggestion with a verb, such as "Limit the scope of supported tasks to..." Make sure it is an actionable, self-contained, and complete suggestion.
-   - Ensure suggestions are compatible with the provided input/output examples.
-
-5. Output Example:
-
-   ```json
-   {{
-     "suggestions": [
-       {{
-         "suggestion": "..."
-       }},
-       {{
-       "suggestion": "..."
-     }},
-     ...
-    ]
-   }}
-   ```
-
-6. Completeness Check:
-   - Ensure all important aspects of the task description are covered.
-   - Check for any missing key information or dimensions.
-
-7. Quantity Requirement:
-   - Provide at least 5 specification suggestions across different dimensions.
-
-Please begin the task directly. After completion, verify that your JSON output meets all requirements and directly addresses the task needs.
+Ensure suggestions are feasible, diverse, concise, and related to the original task. Verify JSON format is correct.
 
 ***Task Description:***
 
@@ -125,56 +98,28 @@ Please begin the task directly. After completion, verify that your JSON output m
 ]
 
 GENERALIZATION_SUGGESTIONS_PROMPT = [
-    ("system", """Based on a given task type description and corresponding input/output examples, list suggestions for generalizing the task type description across multiple dimensions in JSON format.
+    ("system", """Generate task generalization suggestions for a given task type and example:
 
-Please complete this task according to the following requirements:
+1. Analyze the task description and input/output examples.
+2. Identify 3~5 relevant dimensions (e.g., purpose, input/output format, language, steps, criteria, constraints).
+3. Create 3~5 actionable suggestions to expand the scope of the task based on the above dimensions. Make sure the suggestions are compatible with the provided example.
+4. Start each suggestion with a verb.
+5. Output in JSON format:
 
-1. Input Information:
-   - You will receive a task type description and corresponding input/output examples.
-   - Carefully read and understand the provided information.
+```json
+{{
+  "dimensions": [
+    {{ "dimension": "..." }},
+    {{ "dimension": "..." }}
+  ],
+  "suggestions": [
+    {{ "suggestion": "..." }},
+    {{ "suggestion": "..." }}
+  ]
+}}
+```
 
-2. Task Analysis:
-   - Identify the core elements and characteristics of the task.
-   - Consider possible generalization dimensions such as task domain, complexity, input/output format, application scenarios, etc.
-
-3. Generate Generalization Suggestions:
-   - Based on your analysis, propose generalization suggestions across multiple dimensions.
-   - Each suggestion should be a reasonable extension or variation of the original task type.
-   - Start each suggestion with a verb, such as "Expand the scope of support to..." Make sure it is an actionable, self-contained, and complete suggestion.
-
-4. Output Format:
-   - Use JSON format to list the suggestions.
-   - The JSON structure should contain a top-level array, with each object representing a suggestion for a specific dimension.
-
-5. Output Example:
-
-   ```json
-   {{
-     "suggestions": [
-       {{
-         "suggestion": "..."
-       }},
-       {{
-       "suggestion": "..."
-     }},
-     ...
-    ]
-   }}
-   ```
-
-6. Quality Requirements:
-   - Ensure each generalization suggestion is meaningful and feasible.
-   - Provide diverse generalization dimensions to cover different aspects of possible extensions.
-   - Maintain conciseness and clarity in suggestions.
-
-7. Quantity Requirement:
-   - Provide at least 5 generalization suggestions across different dimensions.
-
-8. Notes:
-   - Avoid proposing generalizations completely unrelated to the original task.
-   - Ensure the JSON format is correct and can be parsed.
-
-After completing the task, please check if your output meets all requirements, especially the correctness of the JSON format and the quality of generalization suggestions.
+Ensure suggestions are feasible, diverse, concise, and related to the original task. Verify JSON format is correct.
 
 ***Task Description:***
 
@@ -184,7 +129,6 @@ After completing the task, please check if your output meets all requirements, e
 
 {raw_example}
 
-     
 """)
 ]
 
@@ -262,11 +206,29 @@ containing a JSON array of {generating_batch_size} objects, each with 'input' an
 ]
 
 EXAMPLES_DIRECTLY_PROMPT = [
-    ("system", """Given the task type description, and input/output example(s), generate {generating_batch_size}
-new input/output examples for this task type.
+    ("system", """Given the task type description, and input/output example(s), generate {generating_batch_size} new input/output examples for this task type.
 
-Format your response as a valid JSON object with a single key 'examples' 
-containing a JSON array of {generating_batch_size} objects, each with 'input' and 'output' fields.
+Format your response as a valid JSON object with a single key 'examples' containing a JSON array of {generating_batch_size} objects, each with 'input' and 'output' fields.
+     
+Format example:
+     
+```json
+{{
+  "examples": [
+    {{
+      "input": "...",
+      "output": "..."
+    }},
+    {{
+      "input": "...",
+      "output": "..."
+    }},
+    ...
+  ]
+}}
+```
+
+After completing the task, please check if your output meets all requirements, especially the correctness of the JSON format and the quality of generalization suggestions. Validate the JSON format to ensure it can be parsed correctly.
 
 ***Task Description:***
 
@@ -292,18 +254,19 @@ class TaskDescriptionGenerator:
         self.examples_directly_prompt = ChatPromptTemplate.from_messages(EXAMPLES_DIRECTLY_PROMPT)
 
         json_model = model.bind(response_format={"type": "json_object"})
+        # json_model = model
 
         output_parser = StrOutputParser()
         json_parse = JsonOutputParser()
 
         self.description_chain = self.description_prompt | model | output_parser
         self.description_updating_chain = self.description_updating_prompt | model | output_parser
-        self.specification_suggestions_chain = self.specification_suggestions_prompt | json_model | json_parse
-        self.generalization_suggestions_chain = self.generalization_suggestions_prompt | json_model | json_parse
+        self.specification_suggestions_chain = (self.specification_suggestions_prompt | json_model | json_parse).with_fallbacks([RunnableLambda(lambda x: {"dimensions": [], "suggestions": []})])
+        self.generalization_suggestions_chain = (self.generalization_suggestions_prompt | json_model | json_parse).with_fallbacks([RunnableLambda(lambda x: {"dimensions": [], "suggestions": []})])
         self.input_analysis_chain = self.input_analysis_prompt | model | output_parser
         self.briefs_chain = self.briefs_prompt | model | output_parser
-        self.examples_from_briefs_chain = self.examples_from_briefs_prompt | json_model | json_parse
-        self.examples_directly_chain = self.examples_directly_prompt | json_model | json_parse
+        self.examples_from_briefs_chain = (self.examples_from_briefs_prompt | json_model | json_parse).with_fallbacks([RunnableLambda(lambda x: {"examples": []})])
+        self.examples_directly_chain = (self.examples_directly_prompt | json_model | json_parse).with_fallbacks([RunnableLambda(lambda x: {"examples": []})])
 
         # New sub-chain for loading and validating input
         self.input_loader = RunnableLambda(self.load_and_validate_input)
@@ -381,7 +344,7 @@ class TaskDescriptionGenerator:
                 "suggestions": {
                     "specification": self.specification_suggestions_chain,
                     "generalization": self.generalization_suggestions_chain
-                } | RunnableLambda(lambda x: [item['suggestion'] for sublist in [v['suggestions'] for v in x.values()] for item in sublist])
+                } | RunnableLambda(lambda x: [item['suggestion'] for sublist in [v['suggestions'] for v in x.values() if 'suggestions' in v] for item in sublist if 'suggestion' in item])
             }
         )
         return chain.invoke({
@@ -403,13 +366,25 @@ class TaskDescriptionGenerator:
                 "suggestions": {
                     "specification": self.specification_suggestions_chain,
                     "generalization": self.generalization_suggestions_chain
-                } | RunnableLambda(lambda x: [item['suggestion'] for sublist in [v['suggestions'] for v in x.values()] for item in sublist])
+                } | RunnableLambda(lambda x: [item['suggestion'] for sublist in [v['suggestions'] for v in x.values() if 'suggestions' in v] for item in sublist if 'suggestion' in item])
             }
         )
         return chain.invoke({
             "raw_example": input_str,
             "description": description,
             "suggestions": suggestions_str
+        })
+
+    def generate_suggestions(self, input_str, description):
+        chain = RunnablePassthrough.assign(
+            suggestions={
+                "specification": self.specification_suggestions_chain,
+                "generalization": self.generalization_suggestions_chain
+            } | RunnableLambda(lambda x: [item['suggestion'] for sublist in [v['suggestions'] for v in x.values() if 'suggestions' in v] for item in sublist if 'suggestion' in item])
+        )
+        return chain.invoke({
+            "description": description,
+            "raw_example": input_str
         })
 
     def analyze_input(self, description):
