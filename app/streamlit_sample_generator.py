@@ -12,6 +12,7 @@ def process_json(input_json, model_name, generating_batch_size, temperature):
         generator = TaskDescriptionGenerator(model)
         result = generator.process(input_json, generating_batch_size)
         description = result["description"]
+        suggestions = result["suggestions"]
         examples_directly = [[example["input"], example["output"]]
                              for example in result["examples_directly"]["examples"]]
         input_analysis = result["examples_from_briefs"]["input_analysis"]
@@ -20,10 +21,10 @@ def process_json(input_json, model_name, generating_batch_size, temperature):
                                 for example in result["examples_from_briefs"]["examples"]]
         examples = [[example["input"], example["output"]]
                     for example in result["additional_examples"]]
-        return description, examples_directly, input_analysis, new_example_briefs, examples_from_briefs, examples
+        return description, suggestions, examples_directly, input_analysis, new_example_briefs, examples_from_briefs, examples
     except Exception as e:
         st.warning(f"An error occurred: {str(e)}. Returning default values.")
-        return "", [], "", [], [], []
+        return "", [], [], "", [], [], []
 
 
 def generate_description_only(input_json, model_name, temperature):
@@ -31,10 +32,13 @@ def generate_description_only(input_json, model_name, temperature):
         model = ChatOpenAI(
             model=model_name, temperature=temperature, max_retries=3)
         generator = TaskDescriptionGenerator(model)
-        description = generator.generate_description(input_json)
-        return description
+        result = generator.generate_description(input_json)
+        description = result["description"]
+        suggestions = result["suggestions"]
+        return description, suggestions
     except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
+        st.warning(f"An error occurred: {str(e)}")
+        return "", []
 
 
 def analyze_input(description, model_name, temperature):
@@ -45,7 +49,8 @@ def analyze_input(description, model_name, temperature):
         input_analysis = generator.analyze_input(description)
         return input_analysis
     except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
+        st.warning(f"An error occurred: {str(e)}")
+        return ""
 
 
 def generate_briefs(description, input_analysis, generating_batch_size, model_name, temperature):
@@ -57,7 +62,8 @@ def generate_briefs(description, input_analysis, generating_batch_size, model_na
             description, input_analysis, generating_batch_size)
         return briefs
     except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
+        st.warning(f"An error occurred: {str(e)}")
+        return ""
 
 
 def generate_examples_from_briefs(description, new_example_briefs, input_str, generating_batch_size, model_name, temperature):
@@ -71,7 +77,8 @@ def generate_examples_from_briefs(description, new_example_briefs, input_str, ge
                     for example in result["examples"]]
         return examples
     except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
+        st.warning(f"An error occurred: {str(e)}")
+        return []
 
 
 def generate_examples_directly(description, raw_example, generating_batch_size, model_name, temperature):
@@ -85,7 +92,8 @@ def generate_examples_directly(description, raw_example, generating_batch_size, 
                     for example in result["examples"]]
         return examples
     except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
+        st.warning(f"An error occurred: {str(e)}")
+        return []
 
 
 def example_directly_selected():
@@ -142,6 +150,9 @@ if 'input_data' not in st.session_state:
 if 'description_output_text' not in st.session_state:
     st.session_state.description_output_text = ''
 
+if 'suggestions' not in st.session_state:
+    st.session_state.suggestions = []
+
 if 'input_analysis_output_text' not in st.session_state:
     st.session_state.input_analysis_output_text = ''
 
@@ -169,8 +180,9 @@ if 'selected_example' not in st.session_state:
 
 def update_description_output_text():
     input_json = package_input_data()
-    st.session_state.description_output_text = generate_description_only(
-        input_json, model_name, temperature)
+    result = generate_description_only(input_json, model_name, temperature)
+    st.session_state.description_output_text = result[0]
+    st.session_state.suggestions = result[1]
 
 
 def update_input_analysis_output_text():
@@ -203,8 +215,9 @@ def generate_examples_dataframe():
     input_json = package_input_data()
     result = process_json(input_json, model_name,
                           generating_batch_size, temperature)
-    description, examples_directly, input_analysis, new_example_briefs, examples_from_briefs, examples = result
+    description, suggestions, examples_directly, input_analysis, new_example_briefs, examples_from_briefs, examples = result
     st.session_state.description_output_text = description
+    st.session_state.suggestions = suggestions  # Ensure suggestions are stored in session state
     st.session_state.examples_directly_dataframe = pd.DataFrame(
         examples_directly, columns=["Input", "Output"])
     st.session_state.input_analysis_output_text = input_analysis
@@ -239,6 +252,12 @@ def import_input_data_from_json():
     except Exception as e:
         st.error(f"Failed to import JSON: {str(e)}")
 
+def apply_suggestions():
+    result = TaskDescriptionGenerator(
+        ChatOpenAI(model=model_name, temperature=temperature, max_retries=3)).update_description(
+        package_input_data(), st.session_state.description_output_text, st.session_state.selected_suggestions)
+    st.session_state.description_output_text = result["description"]
+    st.session_state.suggestions = result["suggestions"]
 
 # Streamlit UI
 st.title("LLM Task Example Generator")
@@ -288,6 +307,13 @@ with st.expander("Description and Analysis"):
     description_output = st.text_area(
         "Description", value=st.session_state.description_output_text, height=100)
 
+    # Add multiselect for suggestions
+    selected_suggestions = st.multiselect(
+        "Suggestions", options=st.session_state.suggestions, key="selected_suggestions")
+    
+    # Add button to apply suggestions
+    apply_suggestions_button = st.button("Apply Suggestions", on_click=apply_suggestions)
+
     col3, col4 = st.columns(2)
     with col3:
         generate_examples_directly_button = st.button(
@@ -327,3 +353,4 @@ def show_sidebar():
             st.button("Append to Input Data", on_click=append_selected_to_input_data)
 
 show_sidebar()
+
