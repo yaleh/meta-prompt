@@ -64,72 +64,22 @@ Task Description: [Your updated description here]
 
 
 SPECIFICATION_SUGGESTIONS_PROMPT = [
-    ("system", """Generate suggestions to narrow the task scope for a given task type and example:
-
-1. Analyze the task description and input/output examples.
-2. Identify 3~5 relevant dimensions (e.g., purpose, input/output format, language, steps, criteria, constraints).
-3. Create 3~5 actionable suggestions to narrow the task scope based on the above dimensions. Make sure the suggestions are compatible with the provided example.
-4. Start each suggestion with a verb.
-5. Output in JSON format:
-
-```json
-{{
-  "dimensions": [
-    {{ "dimension": "..." }},
-    {{ "dimension": "..." }}
-  ],
-  "suggestions": [
-    {{ "suggestion": "..." }},
-    {{ "suggestion": "..." }}
-  ]
+    ("system", """{{
+  "prompt": "Generate suggestions to narrow the task scope for a given task type and example:\n\n1. Analyze the task description and input/output examples.\n2. Identify 3~5 relevant dimensions (e.g., purpose, input/output format, language, steps, criteria, constraints).\n3. Create 3~5 actionable suggestions (no more than 20 words for each) to narrow the task scope based on the above dimensions. Make sure the suggestions are compatible with the provided example.\n4. Start each suggestion with a verb.\n5. Output in JSON format, following `output_format`.\n", 
+  "output_format": "{{\n  \"dimensions\": [\n    {{ \"dimension\": \"...\" }},\n    {{ \"dimension\": \"...\" }}\n  ],\n  \"suggestions\": [\n    {{ \"suggestion\": \"...\" }},\n    {{ \"suggestion\": \"...\" }}\n  ]\n}}\n", 
+  "task_description": "\n{description}\n", 
+  "examples": "\n{raw_example}\n"
 }}
-```
-
-Ensure suggestions are feasible, diverse, concise, and related to the original task. Verify JSON format is correct.
-
-***Task Description:***
-
-{description}
-
-***Example(s):***
-
-{raw_example}
-
 """)
 ]
 
 GENERALIZATION_SUGGESTIONS_PROMPT = [
-    ("system", """Generate task generalization suggestions for a given task type and example:
-
-1. Analyze the task description and input/output examples.
-2. Identify 3~5 relevant dimensions (e.g., purpose, input/output format, language, steps, criteria, constraints).
-3. Create 3~5 actionable suggestions to expand the scope of the task based on the above dimensions. Make sure the suggestions are compatible with the provided example.
-4. Start each suggestion with a verb.
-5. Output in JSON format:
-
-```json
-{{
-  "dimensions": [
-    {{ "dimension": "..." }},
-    {{ "dimension": "..." }}
-  ],
-  "suggestions": [
-    {{ "suggestion": "..." }},
-    {{ "suggestion": "..." }}
-  ]
+    ("system", """{{
+  "prompt": "Generate task generalization suggestions for a given task type and example:\n\n1. Analyze the task description and input/output examples.\n2. Identify 3~5 relevant dimensions (e.g., purpose, input/output format, language, steps, criteria, constraints).\n3. Create 3~5 actionable suggestions (no more than 20 words for each) to expand the scope of the task based on the above dimensions. Make sure the suggestions are compatible with the provided example.\n4. Start each suggestion with a verb.\n5. Output in JSON format, following `output_format`.\n", 
+  "output_format": "{{\n  \"dimensions\": [\n    {{ \"dimension\": \"...\" }},\n    {{ \"dimension\": \"...\" }}\n  ],\n  \"suggestions\": [\n    {{ \"suggestion\": \"...\" }},\n    {{ \"suggestion\": \"...\" }}\n  ]\n}}\n", 
+  "task_description": "\n{description}\n", 
+  "examples": "\n{raw_example}\n"
 }}
-```
-
-Ensure suggestions are feasible, diverse, concise, and related to the original task. Verify JSON format is correct.
-
-***Task Description:***
-
-{description}
-
-***Example(s):***
-
-{raw_example}
-
 """)
 ]
 
@@ -159,89 +109,70 @@ Input Analysis: [Your analysis here]
 ]
 
 BRIEFS_PROMPT = [
-    ("system", """Given the task type description, and input analysis, generate
-descriptions for {generating_batch_size} new examples with detailed attributes
-based on this task type. But don't provide any detailed task output.
-
-Use the input analysis to create diverse and comprehensive example briefs that
-cover various input dimensions and attribute ranges.
-
-Format your response as a valid YAML object with a single key 'new_example_briefs'
-containing a YAML array of {generating_batch_size} objects, each with a
-'example_brief' field.
-"""),
-    ("user", """Task Description:
-
-{description}
-
-Input Analysis:
-
-{input_analysis}
-
+    ("system", """{{
+  "prompt": "Given the task type description, and input analysis, generate descriptions for {generating_batch_size} new examples with detailed attributes based on this task type. But don't provide any detailed task output.\n\nUse the input analysis to create diverse and comprehensive example briefs that cover various input dimensions and attribute ranges.\n\nFormat your response as a JSON object following `output_format`.",
+  "output_format": "{{
+    "new_example_briefs": [
+      {{
+        "example_brief": "..."
+      }},
+      {{
+        "example_brief": "..."
+      }},
+      ...
+    ]
+  }},
+  "task_description": "{description}",
+  "input_analysis": "{input_analysis}",
+  "generating_batch_size": "{generating_batch_size}"
+}}
 """)
 ]
 
 EXAMPLES_FROM_BRIEFS_PROMPT = [
-    ("system", """Given the task type description, brief descriptions for new examples, 
-and JSON example(s), generate {generating_batch_size} more input/output examples for this task type,
-strictly based on the brief descriptions. Ensure that the new examples are
-consistent with the brief descriptions and do not introduce any new information
-not present in the briefs.
-
-Format your response as a valid JSON object with a single key 'examples' 
-containing a JSON array of {generating_batch_size} objects, each with 'input' and 'output' fields.
-
-***Task Description:***
-
-{description}
-
-***New Example Briefs:*** 
-
-{new_example_briefs}
-
-***Example(s):***
-
-{raw_example}
-
+    ("system", """{{
+  "prompt": "Given the task type description, brief descriptions for new examples, and JSON example(s), generate {generating_batch_size} more input/output examples for this task type, strictly based on the brief descriptions. Ensure that the new examples are consistent with the brief descriptions and do not introduce any new information not present in the briefs. Output in JSON format, following `output_format`.",
+  "output_format": "{{
+    "examples": [
+      {{
+        "input": "...",
+        "output": "..."
+      }},
+      {{
+        "input": "...",
+        "output": "..."
+      }},
+      ...
+    ]
+  }},
+  "task_description": "{description}",
+  "new_example_briefs": {new_example_briefs},
+  "raw_example": "{raw_example}"
+}}
 """)
 ]
 
 EXAMPLES_DIRECTLY_PROMPT = [
-    ("system", """Given the task type description, and input/output example(s), generate {generating_batch_size} new input/output examples for this task type.
-
-Format your response as a valid JSON object with a single key 'examples' containing a JSON array of {generating_batch_size} objects, each with 'input' and 'output' fields.
-     
-Format example:
-     
-```json
-{{
-  "examples": [
-    {{
-      "input": "...",
-      "output": "..."
-    }},
-    {{
-      "input": "...",
-      "output": "..."
-    }},
-    ...
-  ]
+    ("system", """{{
+  "prompt": "Given the task type description, and input/output example(s), generate {generating_batch_size} new input/output examples for this task type. Output in JSON format, following `output_format`.",
+  "output_format": "{{
+    "examples": [
+      {{
+        "input": "...",
+        "output": "..."
+      }},
+      {{
+        "input": "...",
+        "output": "..."
+      }},
+      ...
+    ]
+  }},
+  "task_description": "{description}",
+  "examples": "{raw_example}"
 }}
-```
-
-After completing the task, please check if your output meets all requirements, especially the correctness of the JSON format and the quality of generalization suggestions. Validate the JSON format to ensure it can be parsed correctly.
-
-***Task Description:***
-
-{description}
-
-***Example(s):***
-
-{raw_example}
-
 """)
 ]
-
 
 class TaskDescriptionGenerator:
     def __init__(self, model):        
@@ -273,7 +204,8 @@ class TaskDescriptionGenerator:
             stop_after_attempt=2 # Try twice
         ).with_fallbacks([RunnableLambda(lambda x: {"dimensions": [], "suggestions": []})])
         self.input_analysis_chain = self.input_analysis_prompt | model | output_parser
-        self.briefs_chain = self.briefs_prompt | model | output_parser
+        # self.briefs_chain = self.briefs_prompt | model | output_parser
+        self.briefs_chain = self.briefs_prompt | json_model | json_parse | RunnableLambda(lambda x: x["new_example_briefs"])
         self.examples_from_briefs_chain = (self.examples_from_briefs_prompt | json_model | json_parse).with_retry(
             retry_if_exception_type=(BadRequestError,), # Retry only on ValueError
             wait_exponential_jitter=True, # Add jitter to the exponential backoff

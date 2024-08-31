@@ -339,11 +339,11 @@ with st.expander("Description and Analysis"):
     selected_suggestions = st.multiselect(
         "Suggestions", options=st.session_state.suggestions, key="selected_suggestions")
 
-    # Add text input for adding new suggestions
-    new_suggestion = st.text_input("Add New Suggestion", key="new_suggestion", on_change=add_new_suggestion)
-
     # Add button to apply suggestions
     apply_suggestions_button = st.button("Apply Suggestions", on_click=apply_suggestions)
+
+    # Add text input for adding new suggestions
+    new_suggestion = st.text_input("Add New Suggestion", key="new_suggestion", on_change=add_new_suggestion)
 
     examples_directly_output = st.dataframe(st.session_state.examples_directly_dataframe, use_container_width=True,
                                             selection_mode="multi-row", key="selected_example_directly_id",
