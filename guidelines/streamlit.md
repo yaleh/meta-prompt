@@ -511,6 +511,86 @@ st.slider('Select a value', 0, 100, key='slider_value', on_change=on_change)
 
 By leveraging these components and callbacks, you can create interactive and dynamic Streamlit applications that respond to user inputs and actions.
 
+### Multipage apps
+
+Streamlit offers two primary methods for creating multipage apps: using the `pages/` directory for a quick setup or leveraging `st.Page` and `st.navigation` for more customization.
+
+#### Overview
+
+- **Using `pages/` Directory**: Place Python files in a `pages/` directory next to your entrypoint file. Streamlit automatically creates pages based on these files and populates a navigation menu in the sidebar.
+  - **Example**:
+    ```
+    your_working_directory/
+    ├── pages/
+    │   ├── a_page.py
+    │   └── another_page.py
+    └── your_homepage.py
+    ```
+  - **Run**: `streamlit run your_homepage.py`
+
+- **Using `st.Page` and `st.navigation`**: This method offers more flexibility. Define pages using `st.Page` and configure navigation with `st.navigation` in your entrypoint file.
+  - **Example**:
+    ```python
+    import streamlit as st
+    pg = st.navigation([st.Page("page_1.py"), st.Page("page_2.py")])
+    pg.run()
+    ```
+
+#### Page Terminology
+
+- **Page Source**: Python file or callable function.
+- **Page Label**: Identifies the page in the navigation menu.
+- **Page Title**: HTML `<title>` element content.
+- **Page URL Pathname**: Relative path from the root URL.
+- **Page Icons**: Favicon and icon next to the page label.
+
+#### Navigation
+
+- **Default Navigation**: Appears in the sidebar.
+- **Custom Navigation**: Use `st.page_link` to build a custom menu.
+- **Programmatic Navigation**: Use `st.switch_page`.
+
+#### Widget Statefulness
+
+Widgets reset to default values when switching pages. To maintain state:
+
+- **Option 1**: Place widgets in the entrypoint file (only works with `st.Page` and `st.navigation`).
+  - **Example**:
+    ```python
+    import streamlit as st
+    pg = st.navigation([st.Page("page_1.py"), st.Page("page_2.py")])
+    st.sidebar.selectbox("Group", ["A", "B", "C"], key="group")
+    st.sidebar.slider("Size", 1, 5, key="size")
+    pg.run()
+    ```
+
+- **Option 2**: Use a separate key in `st.session_state` to save widget values.
+  - **Example**:
+    ```python
+    import streamlit as st
+    def store_value(key):
+        st.session_state[key] = st.session_state["_" + key]
+    def load_value(key):
+        st.session_state["_" + key] = st.session_state[key]
+    load_value("my_key")
+    st.number_input("Number of filters", key="_my_key", on_change=store_value, args=["my_key"])
+    ```
+
+- **Option 3**: Ensure widget values persist by checking `st.session_state` at the top of each page.
+  - **Example**:
+    ```python
+    if "my_key" in st.session_state:
+        st.session_state.my_key = st.session_state.my_key
+    ```
+
+For more details, refer to the [Streamlit documentation](https://docs.streamlit.io/develop/concepts/multipage-apps).
+
+_forum_
+
+### Still have questions?
+
+Our [forums](https://discuss.streamlit.io/) are full of helpful information and Streamlit experts.
+
 ## 6. State Management
 
 ### Framework's Approach to State Management
