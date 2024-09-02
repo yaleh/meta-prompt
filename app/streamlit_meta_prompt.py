@@ -1,3 +1,4 @@
+import pandas as pd
 import streamlit as st
 import json
 import logging
@@ -461,6 +462,8 @@ with st.sidebar:
     aggressive_exploration_input = st.checkbox("Aggressive Exploration", False)
 
 # Initialize session state
+if 'meta_prompt_input_data' not in st.session_state:
+    st.session_state.meta_prompt_input_data = pd.DataFrame(columns=["Input", "Output"])
 if 'initial_system_message' not in st.session_state:
     st.session_state.initial_system_message = ""
 if 'initial_acceptance_criteria' not in st.session_state:
@@ -485,8 +488,17 @@ def copy_acceptance_criteria():
         st.session_state.initial_acceptance_criteria = st.session_state.acceptance_criteria_output
 
 def clear_session_state():
-    for key in st.session_state.keys():
-        del st.session_state[key]
+    st.session_state.meta_prompt_input_data = pd.DataFrame(columns=["Input", "Output"])
+    st.session_state.initial_system_message = ""
+    st.session_state.initial_acceptance_criteria = ""
+    st.session_state.system_message_output = ""
+    st.session_state.output = ""
+    st.session_state.analysis = ""
+    st.session_state.acceptance_criteria_output = ""
+    st.session_state.chat_log = []
+
+def sync_input_data():
+    st.session_state.sample_generator_input_data = data_editor_data.copy()
 
 if active_model_tab == "Simple":
     simple_model_name = simple_model_name_input
@@ -531,10 +543,11 @@ max_output_age = max_output_age_input
 aggressive_exploration = aggressive_exploration_input
 
 data_editor_data = st.data_editor(
-    [{"user_message": "", "expected_output": ""}],
+    st.session_state.meta_prompt_input_data,
+    num_rows="dynamic",
     column_config={
-        "user_message": st.column_config.TextColumn("User Message"),
-        "expected_output": st.column_config.TextColumn("Expected Output"),
+        "Input": st.column_config.TextColumn("Input", width="large"),
+        "Output": st.column_config.TextColumn("Output", width="large"),
     },
     hide_index=True,
     use_container_width=True,
@@ -547,17 +560,19 @@ with col1:
         initial_system_message = st.text_area("Initial System Message", st.session_state.initial_system_message).strip()
         acceptance_criteria = st.text_area("Acceptance Criteria", st.session_state.initial_acceptance_criteria).strip()
     
-    col1_1, col1_2 = st.columns(2)
+    col1_1, col1_2, col1_3 = st.columns(3)
     with col1_1:
         generate_button_clicked = st.button("Generate", type="primary")
     with col1_2:
+        sync_button_clicked = st.button("Sync", on_click=sync_input_data)
+    with col1_3:
         clear_button_clicked = st.button("Clear", on_click=clear_session_state)
 
 with col2:
     if generate_button_clicked:
         try:
-            user_message = data_editor_data[0]["user_message"].strip()
-            expected_output = data_editor_data[0]["expected_output"].strip()
+            user_message = data_editor_data["Input"][0].strip()
+            expected_output = data_editor_data["Output"][0].strip()
 
             if active_model_tab == "Simple":
                 system_message, output, analysis, acceptance_criteria, chat_log = process_message_with_single_llm(
