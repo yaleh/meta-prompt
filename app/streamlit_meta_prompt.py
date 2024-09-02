@@ -462,8 +462,8 @@ with st.sidebar:
     aggressive_exploration_input = st.checkbox("Aggressive Exploration", False)
 
 # Initialize session state
-if 'meta_prompt_input_data' not in st.session_state:
-    st.session_state.meta_prompt_input_data = pd.DataFrame(columns=["Input", "Output"])
+if 'shared_input_data' not in st.session_state:
+    st.session_state.shared_input_data = pd.DataFrame(columns=["Input", "Output"])
 if 'initial_system_message' not in st.session_state:
     st.session_state.initial_system_message = ""
 if 'initial_acceptance_criteria' not in st.session_state:
@@ -480,15 +480,13 @@ if 'chat_log' not in st.session_state:
     st.session_state.chat_log = []
 
 def copy_system_message():
-    if 'system_message_output' in st.session_state:
-        st.session_state.initial_system_message = st.session_state.system_message_output
+    st.session_state.initial_system_message = system_message_output
 
 def copy_acceptance_criteria():
-    if 'acceptance_criteria_output' in st.session_state:
-        st.session_state.initial_acceptance_criteria = st.session_state.acceptance_criteria_output
+    st.session_state.initial_acceptance_criteria = acceptance_criteria_output
 
 def clear_session_state():
-    st.session_state.meta_prompt_input_data = pd.DataFrame(columns=["Input", "Output"])
+    st.session_state.shared_input_data = pd.DataFrame(columns=["Input", "Output"])
     st.session_state.initial_system_message = ""
     st.session_state.initial_acceptance_criteria = ""
     st.session_state.system_message_output = ""
@@ -498,7 +496,82 @@ def clear_session_state():
     st.session_state.chat_log = []
 
 def sync_input_data():
-    st.session_state.sample_generator_input_data = data_editor_data.copy()
+    st.session_state.shared_input_data = data_editor_data.copy()
+
+def pull_sample_description():
+    if 'description_output_text' in st.session_state:
+        st.session_state.initial_system_message = st.session_state.description_output_text
+
+def generate_callback():
+    try:
+        first_input_key = data_editor_data["Input"].first_valid_index()
+        first_output_key = data_editor_data["Output"].first_valid_index()
+        user_message = data_editor_data["Input"][first_input_key].strip()
+        expected_output = data_editor_data["Output"][first_output_key].strip()
+
+        input_acceptance_criteria = initial_acceptance_criteria.strip() if 'initial_acceptance_criteria' in st.session_state else ""
+        input_system_message = initial_system_message.strip() if 'initial_system_message' in st.session_state else ""
+
+        if active_model_tab == "Simple":
+            system_message, output, analysis, acceptance_criteria, chat_log = process_message_with_single_llm(
+                user_message,
+                expected_output,
+                input_acceptance_criteria,
+                input_system_message,
+                recursion_limit,
+                max_output_age,
+                simple_model_name,
+                prompt_template_group,
+                aggressive_exploration,
+            )
+        elif active_model_tab == "Advanced":
+            system_message, output, analysis, acceptance_criteria, chat_log = process_message_with_2_llms(
+                user_message,
+                expected_output,
+                input_acceptance_criteria,
+                input_system_message,
+                recursion_limit,
+                max_output_age,
+                advanced_optimizer_model_name_input,
+                advanced_executor_model_name_input,
+                prompt_template_group,
+                aggressive_exploration,
+            )
+        else:  # Expert
+            system_message, output, analysis, acceptance_criteria, chat_log = process_message_with_expert_llms(
+                user_message,
+                expected_output,
+                input_acceptance_criteria,
+                input_system_message,
+                recursion_limit,
+                max_output_age,
+                expert_prompt_initial_developer_model_name,
+                expert_prompt_initial_developer_temperature_input,
+                expert_prompt_acceptance_criteria_model_name,
+                expert_prompt_acceptance_criteria_temperature_input,
+                expert_prompt_developer_model_name,
+                expert_prompt_developer_temperature_input,
+                expert_prompt_executor_model_name,
+                expert_prompt_executor_temperature_input,
+                expert_prompt_output_history_analyzer_model_name,
+                expert_prompt_output_history_analyzer_temperature_input,
+                expert_prompt_analyzer_model_name,
+                expert_prompt_analyzer_temperature_input,
+                expert_prompt_suggester_model_name,
+                expert_prompt_suggester_temperature_input,
+                prompt_template_group,
+                aggressive_exploration,
+            )
+        
+        st.session_state.system_message_output = system_message
+        st.session_state.output = output
+        st.session_state.analysis = analysis
+        st.session_state.acceptance_criteria_output = acceptance_criteria
+        st.session_state.chat_log = chat_log
+
+    except Exception as e:
+        st.error(f"Error: {e}")
+
 
 if active_model_tab == "Simple":
     simple_model_name = simple_model_name_input
@@ -543,13 +616,14 @@ max_output_age = max_output_age_input
 aggressive_exploration = aggressive_exploration_input
 
 data_editor_data = st.data_editor(
-    st.session_state.meta_prompt_input_data,
+    st.session_state.shared_input_data,
+    # key="meta_prompt_input_data",
     num_rows="dynamic",
     column_config={
         "Input": st.column_config.TextColumn("Input", width="large"),
         "Output": st.column_config.TextColumn("Output", width="large"),
     },
-    hide_index=True,
+    hide_index=False,
     use_container_width=True,
 )
 
@@ -557,91 +631,51 @@ col1, col2 = st.columns(2)
 
 with col1:
     with st.expander("Advanced Inputs"):
-        initial_system_message = st.text_area("Initial System Message", st.session_state.initial_system_message).strip()
-        acceptance_criteria = st.text_area("Acceptance Criteria", st.session_state.initial_acceptance_criteria).strip()
-    
+
+        initial_system_message = st.text_area(
+            "Initial System Message",
+            # "Default System Message",
+            # st.session_state.initial_system_message,
+            key="initial_system_message"
+        )
+
+        col1_1, col1_2 = st.columns(2)
+        with col1_1:
+            pull_sample_description_button = st.button("Pull Sample Description", key="pull_sample_description",
+                                                       on_click=pull_sample_description)
+        with col1_2:
+            st.button("Pull Output", key="copy_system_message",
+                      on_click=copy_system_message)
+        initial_acceptance_criteria = st.text_area(
+            "Acceptance Criteria",
+            # "Default Acceptance Criteria",
+            # st.session_state.initial_acceptance_criteria,
+            key="initial_acceptance_criteria"
+        )
+        st.button("Pull Output", key="copy_acceptance_criteria",
+                  on_click=copy_acceptance_criteria)
+
     col1_1, col1_2, col1_3 = st.columns(3)
     with col1_1:
-        generate_button_clicked = st.button("Generate", type="primary")
+        generate_button_clicked = st.button("Generate", key="generate_button",
+                                            on_click=generate_callback,
+                                            type="primary")
     with col1_2:
-        sync_button_clicked = st.button("Sync", on_click=sync_input_data)
+        sync_button_clicked = st.button("Sync Data", on_click=sync_input_data)
     with col1_3:
         clear_button_clicked = st.button("Clear", on_click=clear_session_state)
 
 with col2:
-    if generate_button_clicked:
-        try:
-            user_message = data_editor_data["Input"][0].strip()
-            expected_output = data_editor_data["Output"][0].strip()
+    system_message_output = st.text_area("System Message",
+                                        # st.session_state.system_message_output,
+                 key="system_message_output",
+                 height=100)
 
-            if active_model_tab == "Simple":
-                system_message, output, analysis, acceptance_criteria, chat_log = process_message_with_single_llm(
-                    user_message,
-                    expected_output,
-                    acceptance_criteria,
-                    initial_system_message,
-                    recursion_limit,
-                    max_output_age,
-                    simple_model_name,
-                    prompt_template_group,
-                    aggressive_exploration,
-                )
-            elif active_model_tab == "Advanced":
-                system_message, output, analysis, acceptance_criteria, chat_log = process_message_with_2_llms(
-                    user_message,
-                    expected_output,
-                    acceptance_criteria,
-                    initial_system_message,
-                    recursion_limit,
-                    max_output_age,
-                    advanced_optimizer_model_name_input,
-                    advanced_executor_model_name_input,
-                    prompt_template_group,
-                    aggressive_exploration,
-                )
-            else:  # Expert
-                system_message, output, analysis, acceptance_criteria, chat_log = process_message_with_expert_llms(
-                    user_message,
-                    expected_output,
-                    acceptance_criteria,
-                    initial_system_message,
-                    recursion_limit,
-                    max_output_age,
-                    expert_prompt_initial_developer_model_name,
-                    expert_prompt_initial_developer_temperature_input,
-                    expert_prompt_acceptance_criteria_model_name,
-                    expert_prompt_acceptance_criteria_temperature_input,
-                    expert_prompt_developer_model_name,
-                    expert_prompt_developer_temperature_input,
-                    expert_prompt_executor_model_name,
-                    expert_prompt_executor_temperature_input,
-                    expert_prompt_output_history_analyzer_model_name,
-                    expert_prompt_output_history_analyzer_temperature_input,
-                    expert_prompt_analyzer_model_name,
-                    expert_prompt_analyzer_temperature_input,
-                    expert_prompt_suggester_model_name,
-                    expert_prompt_suggester_temperature_input,
-                    prompt_template_group,
-                    aggressive_exploration,
-                )
-            
-            st.session_state.system_message_output = system_message
-            st.session_state.output = output
-            st.session_state.analysis = analysis
-            st.session_state.acceptance_criteria_output = acceptance_criteria
-            st.session_state.chat_log = chat_log
-
-        except Exception as e:
-            st.error(f"Error: {e}")
-            
-    st.text_area("System Message",
-                    key="system_message_output", height=100)
-    st.button("Copy System Message", key="copy_system_message",
-                on_click=copy_system_message)
     acceptance_criteria_output = st.text_area(
-        "Acceptance Criteria", key="acceptance_criteria_output", height=100)
-    st.button("Copy Acceptance Criteria", key="copy_acceptance_criteria",
-                on_click=copy_acceptance_criteria)
+        "Acceptance Criteria",
+        # st.session_state.acceptance_criteria_output,
+        key="acceptance_criteria_output",
+        height=100)
     st.text_area("Output", st.session_state.output, height=100)
     st.text_area("Analysis", st.session_state.analysis, height=100)
 

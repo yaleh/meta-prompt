@@ -144,8 +144,8 @@ def example_selected():
 
 
 # Session State
-if 'sample_generator_input_data' not in st.session_state:
-    st.session_state.sample_generator_input_data = pd.DataFrame(columns=["Input", "Output"])
+if 'shared_input_data' not in st.session_state:
+    st.session_state.shared_input_data = pd.DataFrame(columns=["Input", "Output"])
 
 if 'description_output_text' not in st.session_state:
     st.session_state.description_output_text = ''
@@ -245,7 +245,7 @@ def import_input_data_from_json():
             data = st.session_state.input_file.getvalue()
             data = json.loads(data)
             data = [{k.capitalize(): v for k, v in d.items()} for d in data]
-            st.session_state.sample_generator_input_data = pd.DataFrame(data)
+            st.session_state.shared_input_data = pd.DataFrame(data)
     except Exception as e:
         st.warning(f"Failed to import JSON: {str(e)}")
 
@@ -278,11 +278,11 @@ def add_new_suggestion():
         st.session_state.new_suggestion = ""  # Clear the input field
 
 def sync_input_data():
-    st.session_state.meta_prompt_input_data = input_data.copy()
-    st.session_state.sample_generator_input_data = input_data.copy()
+    # st.session_state.meta_prompt_input_data = input_data.copy()
+    st.session_state.shared_input_data = input_data.copy()
 
 def clear_session_state():
-    st.session_state.sample_generator_input_data = pd.DataFrame(columns=["Input", "Output"])
+    st.session_state.shared_input_data = pd.DataFrame(columns=["Input", "Output"])
     st.session_state.description_output_text = ''
     st.session_state.suggestions = []
     st.session_state.input_analysis_output_text = ''
@@ -298,13 +298,15 @@ st.markdown("Enter input-output pairs in the table below to generate a task desc
 
 # Input column
 input_data = st.data_editor(
-    st.session_state.sample_generator_input_data,
+    st.session_state.shared_input_data,
+    # key="sample_generator_input_data",
     num_rows="dynamic",
     use_container_width=True,
     column_config={
         "Input": st.column_config.TextColumn("Input", width="large"),
         "Output": st.column_config.TextColumn("Output", width="large"),
     },
+    hide_index=False
 )
 
 with st.expander("Model Settings"):
@@ -336,7 +338,7 @@ with col1:
         "Generate", type="primary", on_click=generate_examples_dataframe)
 with col2:
     sync_button = st.button(
-        "Sync", on_click=sync_input_data)
+        "Sync Data", on_click=sync_input_data)
 with col3:
     clear_button = st.button(
         "Clear", on_click=clear_session_state)
@@ -370,7 +372,7 @@ with st.expander("Description and Analysis"):
 
     examples_directly_output = st.dataframe(st.session_state.examples_directly_dataframe, use_container_width=True,
                                             selection_mode="multi-row", key="selected_example_directly_id",
-                                            on_select=example_directly_selected)
+                                            on_select=example_directly_selected, hide_index=False)
     input_analysis_output = st.text_area(
         "Input Analysis", value=st.session_state.input_analysis_output_text, height=100)
     generate_briefs_button = st.button(
@@ -381,21 +383,21 @@ with st.expander("Description and Analysis"):
         "Generate Examples from Briefs", on_click=update_examples_from_briefs_dataframe)
     examples_from_briefs_output = st.dataframe(st.session_state.examples_from_briefs_dataframe, use_container_width=True,
                                                selection_mode="multi-row", key="selected_example_from_briefs_id",
-                                               on_select=example_from_briefs_selected)
+                                               on_select=example_from_briefs_selected, hide_index=False)
 
 examples_output = st.dataframe(st.session_state.examples_dataframe, use_container_width=True,
-                               selection_mode="multi-row", key="selected_example_id", on_select=example_selected)
+                               selection_mode="multi-row", key="selected_example_id", on_select=example_selected, hide_index=True)
 
 def append_selected_to_input_data():
     if st.session_state.selected_example is not None:
-        st.session_state.sample_generator_input_data = pd.concat(
-            [st.session_state.sample_generator_input_data, st.session_state.selected_example], ignore_index=True)
+        st.session_state.shared_input_data = pd.concat(
+            [input_data, st.session_state.selected_example], ignore_index=True)
         st.session_state.selected_example = None
 
 def show_sidebar():
     if st.session_state.selected_example is not None:
         with st.sidebar:
-            st.dataframe(st.session_state.selected_example)  # Display DataFrame in sidebar
+            st.dataframe(st.session_state.selected_example, hide_index=False)  # Display DataFrame in sidebar
             st.button("Append to Input Data", on_click=append_selected_to_input_data)
 
 show_sidebar()

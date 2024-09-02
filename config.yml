@@ -82,6 +82,7 @@ recursion_limit_max: 25
 max_output_age: 2
 allow_flagging: false
 # verbose: false
+verbose: true
 
 prompt_templates:
 

@@ -38,10 +38,11 @@ RUN poetry install --with=dev
 
 COPY meta_prompt /app/meta_prompt/
 COPY app /app/app/
+COPY app.py /app/app.py
 RUN poetry install --with=dev
 
 # Expose the Streamlit default port
 EXPOSE 8501
 
 # Run the Streamlit script when the container launches
-CMD ["streamlit", "run", "app/streamlit_sample_generator.py"]
+CMD ["streamlit", "run", "app.py"]
