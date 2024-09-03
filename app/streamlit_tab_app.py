@@ -409,15 +409,20 @@ def clear_session_state():
 def pull_sample_description():
     st.session_state.initial_system_message = description_output
 
+def update_working_sample_options():
+    pass
+
 def generate_callback():
     try:
-        first_input_key = data_editor_data["Input"].first_valid_index()
-        first_output_key = data_editor_data["Output"].first_valid_index()
-        user_message = data_editor_data["Input"][first_input_key].strip()
-        expected_output = data_editor_data["Output"][first_output_key].strip()
+        # Get the index of the selected sample
+        selected_index = selected_sample.split(":")[0].split()[1]
+        selected_index = int(selected_index)
 
-        input_acceptance_criteria = initial_acceptance_criteria.strip() if 'initial_acceptance_criteria' in st.session_state else ""
-        input_system_message = initial_system_message.strip() if 'initial_system_message' in st.session_state else ""
+        user_message = data_editor_data.loc[selected_index, "Input"].strip()
+        expected_output = data_editor_data.loc[selected_index, "Output"].strip()
+
+        input_acceptance_criteria = initial_acceptance_criteria.strip()
+        input_system_message = initial_system_message.strip()
 
         if model_tab == "Simple":
             system_message, output, analysis, acceptance_criteria, chat_log = process_message_with_single_llm(
@@ -506,7 +511,7 @@ st.title("Meta Prompt")
 st.markdown("Enter input-output pairs as the examples for the prompt.")
 data_editor_data = st.data_editor(
     st.session_state.shared_input_data,
-    # key="meta_prompt_input_data",
+    key="data_editor",
     num_rows="dynamic",
     column_config={
         "Input": st.column_config.TextColumn("Input", width="large"),
@@ -514,18 +519,16 @@ data_editor_data = st.data_editor(
     },
     hide_index=False,
     use_container_width=True,
+    on_change=update_working_sample_options
 )
 
 with st.expander("Data Management"):
-    # col1, col2 = st.columns(2)
-    # with col1:
     input_file = st.file_uploader(
         label="Import Input Data from JSON",
         type="json",
         key="input_file",
         on_change=import_input_data_from_json
     )
-    # with col2:
     export_button = st.button(  # Add the export button
         "Export Input Data to JSON", on_click=export_input_data_to_json
     )
@@ -600,6 +603,17 @@ with tab_scoping:
 with tab_prompting:
     # Prompting UI
     st.markdown("Generate the prompt with the above input-output pairs.")
+
+    # Create options for the selectbox
+    sample_options = [f"Sample {i}: {row['Input'][:30]}..." for i, row in data_editor_data.iterrows()]
+
+    # Create the selectbox
+    selected_sample = st.selectbox(
+        "Working Sample",
+        options=sample_options,
+        index=0,
+        # key="working_sample"
+    )
 
     generate_button_clicked = st.button("Generate", key="generate_button",
                                         on_click=generate_callback,
@@ -705,12 +719,10 @@ with tab_prompting:
                     "Suggester Temperature", 0.0, 1.0, 0.1, 0.1
                 )
 
-            # st.header("Prompt Template Settings")
             prompt_template_group_input = st.selectbox(
                 "Prompt Template Group", config.prompt_templates.keys(), index=0
             )
 
-            # st.header("Advanced Settings")
             recursion_limit_input = st.number_input("Recursion Limit", 1, 100, 16, 1)
             max_output_age_input = st.number_input("Max Output Age", 1, 10, 2, 1)
             aggressive_exploration_input = st.checkbox("Aggressive Exploration", False)
