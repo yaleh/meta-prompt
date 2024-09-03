@@ -616,7 +616,7 @@ with tab_prompting:
 
             col1_1, col1_2 = st.columns(2)
             with col1_1:
-                pull_sample_description_button = st.button("Pull Sample Description", key="pull_sample_description",
+                pull_sample_description_button = st.button("Pull Scope Description", key="pull_sample_description",
                                                         on_click=pull_sample_description)
             with col1_2:
                 st.button("Pull Output", key="copy_system_message",
