@@ -124,35 +124,22 @@ def generate_examples_from_description(
     except Exception as e:
         raise gr.Error(f"An error occurred: {str(e)}")
 
-
 def format_selected_input_example_dataframe(evt: gr.SelectData, examples):
     if evt.index[0] < len(examples):
         selected_example = examples.iloc[evt.index[0]]
-        return (
-            selected_example.iloc[0],
-            selected_example.iloc[1],
-            evt.index[0] + 1,
-            gr.update(visible=True),  # Show selected_example_group
-            gr.update(visible=True),  # Show selected_row_index
-            gr.update(visible=True),  # Show delete_row_button
-            gr.update(visible=True),  # Show update_row_button
-            gr.update(visible=False),  # Hide append_example_button
-        )
-    return "", "", None, gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)
+        return "update", evt.index[0]+1, selected_example.iloc[0], selected_example.iloc[1]
+    return None, None, None, None
 
 def format_selected_example(evt: gr.SelectData, examples):
     if evt.index[0] < len(examples):
         selected_example = examples.iloc[evt.index[0]]
         return (
+            "append",
+            None,
             selected_example.iloc[0],
             selected_example.iloc[1],
-            gr.update(visible=True),  # Show selected_example_group
-            gr.update(visible=False),  # Hide selected_row_index
-            gr.update(visible=False),  # Hide delete_row_button
-            gr.update(visible=False),  # Hide update_row_button
-            gr.update(visible=True),  # Show append_example_button
         )
-    return "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)
+    return None, None, None, None
 
 def import_json_data(file, input_dataframe):
     if file is not None:
@@ -178,40 +165,58 @@ def export_json_data(dataframe):
         return temp_file_path
     return None
 
-def append_example_to_input_dataframe(new_example_input, new_example_output, input_dataframe):
+
+def append_example_to_input_dataframe(
+    new_example_input, new_example_output, input_dataframe
+):
     try:
-        new_row = pd.DataFrame([[new_example_input, new_example_output]], columns=['Input', 'Output'])
+        new_row = pd.DataFrame(
+            [[new_example_input, new_example_output]], columns=["Input", "Output"]
+        )
         updated_df = pd.concat([input_dataframe, new_row], ignore_index=True)
-        return updated_df, "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)
+        return updated_df, None, None, None, None
     except KeyError:
         raise gr.Error("Invalid input or output")
 
+
 def delete_selected_dataframe_row(row_index, input_dataframe):
     if row_index is not None and row_index > 0:
-        # Subtract 1 from row_index because it's 1-indexed for display
-        input_dataframe = input_dataframe.drop(index=row_index - 1).reset_index(drop=True)
-        return input_dataframe, None, "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)  # Return updated df, clear row index and selected example, hide selected_example_group, selected_row_index, delete_row_button, and update_row_button
-    return input_dataframe, row_index, "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)  # Return unchanged if no valid row index, hide selected_example_group, selected_row_index, delete_row_button, and update_row_button
+        input_dataframe = input_dataframe.drop(index=row_index - 1).reset_index(
+            drop=True
+        )
+        return input_dataframe, None, None, None, None
+    return input_dataframe, None, None, None, None
 
-def update_selected_dataframe_row(selected_example_input, selected_example_output, selected_row_index, input_dataframe):
+
+def update_selected_dataframe_row(
+    selected_example_input, selected_example_output, selected_row_index, input_dataframe
+):
     if selected_row_index is not None and selected_row_index > 0:
-        # Subtract 1 from selected_row_index because it's 1-indexed for display
-        input_dataframe.iloc[selected_row_index - 1] = [selected_example_input, selected_example_output]
-        return input_dataframe, "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)  # Return updated df, clear selected example, hide selected_example_group, selected_row_index, delete_row_button, and update_row_button
-    return input_dataframe, selected_example_input, selected_example_output, gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)  # Return unchanged if no valid row index, hide selected_example_group, selected_row_index, delete_row_button, and update_row_button
+        input_dataframe.iloc[selected_row_index - 1] = [
+            selected_example_input,
+            selected_example_output,
+        ]
+        return input_dataframe, None, None, None, None
+    return input_dataframe, None, None, None, None
 
-def clear_selected_example_group(input_dataframe):
-    if input_dataframe.empty:
-        return gr.update(visible=False)
-    return None
+
+def input_dataframe_change(
+    input_dataframe, selected_group_mode, selected_group_index, selected_group_input, selected_group_output
+):
+    if len(input_dataframe) <= 1:
+        return None, None, None, None
+    return (
+        selected_group_mode,
+        selected_group_index,
+        selected_group_input,
+        selected_group_output,
+    )
 
 with gr.Blocks(title="Task Description Generator") as demo:
     gr.Markdown("# Task Description Generator")
     gr.Markdown(
         "Enter a JSON object with 'input' and 'output' fields to generate a task description and additional examples."
     )
-
-
 
     input_dataframe = gr.DataFrame(
         label="Input Examples",
@@ -221,18 +226,121 @@ with gr.Blocks(title="Task Description Generator") as demo:
         col_count=(2, "fixed"),
         interactive=False
     )
-    with (selected_example_group := gr.Group(visible=False)):
-        with gr.Row():
-            selected_row_index = gr.Number(label="Selected Row Index", value=None, precision=0, visible=False)
-            delete_row_button = gr.Button("Delete Selected Row", variant="secondary", visible=False)        
-        with gr.Row():
-            selected_example_input = gr.Textbox(label="Selected Example Input", lines=2, show_copy_button=True)
-            selected_example_output = gr.Textbox(label="Selected Example Output", lines=2, show_copy_button=True)
-        with gr.Row():
-            update_row_button = gr.Button("Update Selected Row", variant="secondary", visible=False)
-            append_example_button = gr.Button("Append to Input Examples", variant="secondary", visible=False)
-        with gr.Row():
-            close_button = gr.Button("Close", variant="secondary")
+
+    selected_group_mode = gr.State(None) # None, "update", "append"
+    selected_group_index = gr.State(None) # None, int
+    selected_group_input = gr.State("")
+    selected_group_output = gr.State("")
+
+    @gr.render(
+        inputs=[
+            selected_group_mode,
+            selected_group_index,
+            selected_group_input,
+            selected_group_output,
+        ],
+        triggers=[selected_group_mode.change],
+    )
+    def selected_group(mode, index, input, output):
+        if mode is None:
+            return
+        with gr.Group():
+            if mode == "update":
+                with gr.Row():
+                    selected_row_index = gr.Number(
+                        label="Selected Row Index", value=index, precision=0, interactive=False
+                    )
+                    delete_row_button = gr.Button(
+                        "Delete Selected Row", variant="secondary"
+                    )
+                with gr.Row():
+                    selected_example_input = gr.Textbox(
+                        label="Selected Example Input",
+                        lines=2,
+                        show_copy_button=True,
+                        value=input,
+                    )
+                    selected_example_output = gr.Textbox(
+                        label="Selected Example Output",
+                        lines=2,
+                        show_copy_button=True,
+                        value=output,
+                    )
+                with gr.Row():
+                    update_row_button = gr.Button(
+                        "Update Selected Row", variant="secondary"
+                    )
+
+                delete_row_button.click(
+                    fn=delete_selected_dataframe_row,
+                    inputs=[selected_row_index, input_dataframe],
+                    outputs=[
+                        input_dataframe,
+                        selected_group_mode,
+                        selected_group_index,
+                        selected_group_input,
+                        selected_group_output,
+                    ],
+                )
+
+                update_row_button.click(
+                    fn=update_selected_dataframe_row,
+                    inputs=[
+                        selected_example_input,
+                        selected_example_output,
+                        selected_row_index,
+                        input_dataframe,
+                    ],
+                    outputs=[
+                        input_dataframe,
+                        selected_group_mode,
+                        selected_group_index,
+                        selected_group_input,
+                        selected_group_output,
+                    ],
+                )
+            elif mode == "append":
+                with gr.Row():
+                    selected_example_input = gr.Textbox(
+                        label="Selected Example Input",
+                        lines=2,
+                        show_copy_button=True,
+                        value=input,
+                    )
+                    selected_example_output = gr.Textbox(
+                        label="Selected Example Output",
+                        lines=2,
+                        show_copy_button=True,
+                        value=output,
+                    )
+                with gr.Row():
+                    append_example_button = gr.Button(
+                        "Append to Input Examples", variant="secondary"
+                    )
+                append_example_button.click(
+                    fn=append_example_to_input_dataframe,
+                    inputs=[
+                        selected_example_input,
+                        selected_example_output,
+                        input_dataframe,
+                    ],
+                    outputs=[
+                        input_dataframe,
+                        selected_group_mode,
+                        selected_group_index,
+                        selected_group_input,
+                        selected_group_output,
+                    ],
+                )
+
+            with gr.Row():
+                close_button = gr.Button("Close", variant="secondary")
+            close_button.click(
+                fn=lambda: None,
+                inputs=[],
+                outputs=[selected_group_mode],
+            )
+
     with gr.Row():
         submit_button = gr.Button("Generate", variant="primary")
     with gr.Accordion("Import/Export JSON", open=False):
@@ -318,9 +426,7 @@ with gr.Blocks(title="Task Description Generator") as demo:
             input_analysis_output,
             example_briefs_output,
             examples_from_briefs_output_dataframe,
-            examples_output_dataframe,
-            selected_example_input,
-            selected_example_output,
+            examples_output_dataframe
         ],
         value="Clear All"
     )
@@ -407,25 +513,45 @@ with gr.Blocks(title="Task Description Generator") as demo:
     input_dataframe.select(
         fn=format_selected_input_example_dataframe,
         inputs=[input_dataframe],
-        outputs=[selected_example_input, selected_example_output, selected_row_index, selected_example_group, selected_row_index, delete_row_button, update_row_button, append_example_button],
+        outputs=[
+            selected_group_mode,
+            selected_group_index,
+            selected_group_input,
+            selected_group_output,
+        ],
     )
 
     examples_directly_output_dataframe.select(
         fn=format_selected_example,
         inputs=[examples_directly_output_dataframe],
-        outputs=[selected_example_input, selected_example_output, selected_example_group, selected_row_index, delete_row_button, update_row_button, append_example_button],
+        outputs=[
+            selected_group_mode,
+            selected_group_index,
+            selected_group_input,
+            selected_group_output,
+        ],
     )
 
     examples_from_briefs_output_dataframe.select(
         fn=format_selected_example,
         inputs=[examples_from_briefs_output_dataframe],
-        outputs=[selected_example_input, selected_example_output, selected_example_group, selected_row_index, delete_row_button, update_row_button, append_example_button],
+        outputs=[
+            selected_group_mode,
+            selected_group_index,
+            selected_group_input,
+            selected_group_output,
+        ],
     )
 
     examples_output_dataframe.select(
         fn=format_selected_example,
         inputs=[examples_output_dataframe],
-        outputs=[selected_example_input, selected_example_output, selected_example_group, selected_row_index, delete_row_button, update_row_button, append_example_button],
+        outputs=[
+            selected_group_mode,
+            selected_group_index,
+            selected_group_input,
+            selected_group_output,
+        ],
     )
 
     gr.Markdown("### Manual Flagging", visible=False)
@@ -447,34 +573,21 @@ with gr.Blocks(title="Task Description Generator") as demo:
         outputs=[],
     )
 
-    append_example_button.click(
-        fn=append_example_to_input_dataframe,
-        inputs=[selected_example_input, selected_example_output, input_dataframe],
-        outputs=[input_dataframe, selected_example_input, selected_example_output, selected_example_group, selected_row_index, delete_row_button, update_row_button, append_example_button],
-    )
-
-    delete_row_button.click(
-        fn=delete_selected_dataframe_row,
-        inputs=[selected_row_index, input_dataframe],
-        outputs=[input_dataframe, selected_row_index, selected_example_input, selected_example_output, selected_example_group, selected_row_index, delete_row_button, update_row_button],
-    )
-
-    update_row_button.click(
-        fn=update_selected_dataframe_row,
-        inputs=[selected_example_input, selected_example_output, selected_row_index, input_dataframe],
-        outputs=[input_dataframe, selected_example_input, selected_example_output, selected_example_group, selected_row_index, delete_row_button, update_row_button],
-    )
-
-    close_button.click(
-        fn=lambda: gr.update(visible=False),
-        inputs=[],
-        outputs=[selected_example_group],
-    )
-
     input_dataframe.change(
-        fn=clear_selected_example_group,
-        inputs=[input_dataframe],
-        outputs=[selected_example_group],
+        fn=input_dataframe_change,
+        inputs=[
+            input_dataframe,
+            selected_group_mode,
+            selected_group_index,
+            selected_group_input,
+            selected_group_output,
+        ],
+        outputs=[
+            selected_group_mode,
+            selected_group_index,
+            selected_group_input,
+            selected_group_output,
+        ],
     )
 
 if __name__ == "__main__":
