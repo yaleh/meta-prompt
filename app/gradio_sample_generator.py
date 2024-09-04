@@ -160,6 +160,17 @@ def export_json(df):
         return temp_file_path
     return None
 
+def append_example_to_input(new_example_json, input_df):
+    try:
+        new_example = json.loads(new_example_json)
+        new_row = pd.DataFrame([[new_example['input'], new_example['output']]], columns=['Input', 'Output'])
+        updated_df = pd.concat([input_df, new_row], ignore_index=True)
+        return updated_df
+    except json.JSONDecodeError:
+        raise gr.Error("Invalid JSON format")
+    except KeyError:
+        raise gr.Error("JSON must contain 'input' and 'output' keys")
+
 with gr.Blocks(title="Task Description Generator") as demo:
     gr.Markdown("# Task Description Generator")
     gr.Markdown(
@@ -252,6 +263,7 @@ with gr.Blocks(title="Task Description Generator") as demo:
             new_example_json = gr.Textbox(
                 label="New Example JSON", lines=5, show_copy_button=True
             )
+            append_example_button = gr.Button("Append to Input Examples", variant="secondary")
 
             clear_button = gr.ClearButton(
                 [
@@ -379,6 +391,12 @@ with gr.Blocks(title="Task Description Generator") as demo:
             flag_reason,
         ],
         outputs=[],
+    )
+
+    append_example_button.click(
+        fn=append_example_to_input,
+        inputs=[new_example_json, input_df],
+        outputs=[input_df],
     )
 
 if __name__ == "__main__":
