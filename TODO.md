@@ -5,3 +5,6 @@
 * [ ] Fine-tune a model/LoRa for Meta Prompt.
   * [ ] Collect/create a data set for the fine-tuning.
   * [ ] Create a benchmark for Meta Prompt.
+* [ ] `Clear` button for Streamlit UI.
+* [ ] `Validate` button for `Prompt` tab.
+* [ ] `Diff` button for `Prompt` tab to show the difference between the expected output and the actual output.

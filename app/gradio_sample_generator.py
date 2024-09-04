@@ -128,21 +128,16 @@ def generate_examples_directly(
 def format_selected_example(evt: gr.SelectData, examples):
     if evt.index[0] < len(examples):
         selected_example = examples.iloc[evt.index[0]]
-        json_example = json.dumps(
-            {"input": selected_example.iloc[0], "output": selected_example.iloc[1]},
-            indent=2,
-            ensure_ascii=False,
-        )
-        return json_example
-    return ""
+        return selected_example.iloc[0], selected_example.iloc[1]
+    return "", ""
 
-def import_json(file):
+def import_json(file, input_df):
     if file is not None:
         df = pd.read_json(file.name)
         # Uppercase the first letter of each column name
         df.columns = df.columns.str.title()
         return df
-    return None
+    return input_df
 
 def export_json(df):
     if df is not None and not df.empty:
@@ -160,16 +155,13 @@ def export_json(df):
         return temp_file_path
     return None
 
-def append_example_to_input(new_example_json, input_df):
+def append_example_to_input(new_example_input, new_example_output, input_df):
     try:
-        new_example = json.loads(new_example_json)
-        new_row = pd.DataFrame([[new_example['input'], new_example['output']]], columns=['Input', 'Output'])
+        new_row = pd.DataFrame([[new_example_input, new_example_output]], columns=['Input', 'Output'])
         updated_df = pd.concat([input_df, new_row], ignore_index=True)
         return updated_df
-    except json.JSONDecodeError:
-        raise gr.Error("Invalid JSON format")
     except KeyError:
-        raise gr.Error("JSON must contain 'input' and 'output' keys")
+        raise gr.Error("Invalid input or output")
 
 with gr.Blocks(title="Task Description Generator") as demo:
     gr.Markdown("# Task Description Generator")
@@ -185,6 +177,13 @@ with gr.Blocks(title="Task Description Generator") as demo:
         row_count=(1, "dynamic"),
         col_count=(2, "fixed"),
     )
+    with gr.Group():
+        with gr.Row():
+            new_example_input = gr.Textbox(label="Selected Example Input", lines=2, show_copy_button=True)
+            new_example_output = gr.Textbox(label="Selected Example Output", lines=2, show_copy_button=True)
+        append_example_button = gr.Button("Append to Input Examples", variant="secondary")
+    with gr.Row():
+        submit_button = gr.Button("Generate", variant="primary")
     with gr.Accordion("Import/Export JSON", open=False):
         json_file = gr.File(
             label="Import/Export JSON", file_types=[".json"], type="filepath"
@@ -209,14 +208,11 @@ with gr.Blocks(title="Task Description Generator") as demo:
         generating_batch_size = gr.Slider(
             label="Generating Batch Size", value=3, minimum=1, maximum=10, step=1
         )
-    with gr.Row():
-        submit_button = gr.Button("Generate", variant="primary")
+
+    with gr.Accordion("Analysis", open=False):
         generate_description_button = gr.Button(
             "Generate Description", variant="secondary"
         )
-
-
-    with gr.Accordion("Description and Analysis", open=False):
         description_output = gr.Textbox(
             label="Description", lines=5, show_copy_button=True
         )
@@ -238,7 +234,6 @@ with gr.Blocks(title="Task Description Generator") as demo:
         input_analysis_output = gr.Textbox(
             label="Input Analysis", lines=5, show_copy_button=True
         )
-    with gr.Accordion("Briefs and Examples", open=False):
         generate_briefs_button = gr.Button(
             "Generate Briefs", variant="secondary"
         )
@@ -264,10 +259,6 @@ with gr.Blocks(title="Task Description Generator") as demo:
         row_count=(1, "dynamic"),
         col_count=(2, "fixed"),
     )
-    new_example_json = gr.Textbox(
-        label="New Example JSON", lines=5, show_copy_button=True
-    )
-    append_example_button = gr.Button("Append to Input Examples", variant="secondary")
 
     clear_button = gr.ClearButton(
         [
@@ -277,13 +268,15 @@ with gr.Blocks(title="Task Description Generator") as demo:
             example_briefs_output,
             examples_from_briefs_output,
             examples_output,
-            new_example_json,
-        ]
+            new_example_input,
+            new_example_output,
+        ],
+        value="Clear All"
     )
 
     json_file.change(
         fn=import_json,
-        inputs=[json_file],
+        inputs=[json_file, input_df],
         outputs=[input_df],
     )
 
@@ -363,23 +356,23 @@ with gr.Blocks(title="Task Description Generator") as demo:
     examples_directly_output.select(
         fn=format_selected_example,
         inputs=[examples_directly_output],
-        outputs=[new_example_json],
+        outputs=[new_example_input, new_example_output],
     )
 
     examples_from_briefs_output.select(
         fn=format_selected_example,
         inputs=[examples_from_briefs_output],
-        outputs=[new_example_json],
+        outputs=[new_example_input, new_example_output],
     )
 
     examples_output.select(
         fn=format_selected_example,
         inputs=[examples_output],
-        outputs=[new_example_json],
+        outputs=[new_example_input, new_example_output],
     )
 
-    gr.Markdown("### Manual Flagging")
-    with gr.Row():
+    gr.Markdown("### Manual Flagging", visible=False)
+    with gr.Row(visible=False):
         flag_button = gr.Button("Flag")
         flag_reason = gr.Textbox(label="Reason for flagging")
 
@@ -399,7 +392,7 @@ with gr.Blocks(title="Task Description Generator") as demo:
 
     append_example_button.click(
         fn=append_example_to_input,
-        inputs=[new_example_json, input_df],
+        inputs=[new_example_input, new_example_output, input_df],
         outputs=[input_df],
     )
 
