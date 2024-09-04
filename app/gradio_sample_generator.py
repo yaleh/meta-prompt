@@ -125,11 +125,26 @@ def generate_examples_directly(
         raise gr.Error(f"An error occurred: {str(e)}")
 
 
-def format_selected_example(evt: gr.SelectData, examples):
+def format_selected_example_input_df(evt: gr.SelectData, examples):
     if evt.index[0] < len(examples):
         selected_example = examples.iloc[evt.index[0]]
-        return selected_example.iloc[0], selected_example.iloc[1]
-    return "", ""
+        return (
+            selected_example.iloc[0],
+            selected_example.iloc[1],
+            evt.index[0] + 1,
+            gr.update(interactive=True)  # Enable the delete button
+        )
+    return "", "", None, gr.update(interactive=False)  # Disable the delete button
+
+def format_selected_example_other(evt: gr.SelectData, examples):
+    if evt.index[0] < len(examples):
+        selected_example = examples.iloc[evt.index[0]]
+        return (
+            selected_example.iloc[0],
+            selected_example.iloc[1],
+            gr.update(interactive=False)  # Disable the delete button
+        )
+    return "", "", gr.update(interactive=False)  # Disable the delete button
 
 def import_json(file, input_df):
     if file is not None:
@@ -163,6 +178,13 @@ def append_example_to_input(new_example_input, new_example_output, input_df):
     except KeyError:
         raise gr.Error("Invalid input or output")
 
+def delete_selected_row(row_index, input_df):
+    if row_index is not None and row_index > 0:
+        # Subtract 1 from row_index because it's 1-indexed for display
+        input_df = input_df.drop(index=row_index - 1).reset_index(drop=True)
+        return input_df, None, "", "", gr.update(interactive=False)  # Return updated df, clear row index and selected example, disable delete button
+    return input_df, row_index, "", "", gr.update(interactive=False)  # Return unchanged if no valid row index, disable delete button
+
 with gr.Blocks(title="Task Description Generator") as demo:
     gr.Markdown("# Task Description Generator")
     gr.Markdown(
@@ -181,7 +203,10 @@ with gr.Blocks(title="Task Description Generator") as demo:
         with gr.Row():
             selected_example_input = gr.Textbox(label="Selected Example Input", lines=2, show_copy_button=True)
             selected_example_output = gr.Textbox(label="Selected Example Output", lines=2, show_copy_button=True)
-        append_example_button = gr.Button("Append to Input Examples", variant="secondary")
+        with gr.Row():
+            selected_row_index = gr.Number(label="Selected Row Index", value=None, precision=0, interactive=False)
+            delete_row_button = gr.Button("Delete Selected Row", variant="secondary", interactive=False)  # Disable by default
+            append_example_button = gr.Button("Append to Input Examples", variant="secondary")
     with gr.Row():
         submit_button = gr.Button("Generate", variant="primary")
     with gr.Accordion("Import/Export JSON", open=False):
@@ -354,27 +379,27 @@ with gr.Blocks(title="Task Description Generator") as demo:
     )
 
     input_df.select(
-        fn=format_selected_example,
+        fn=format_selected_example_input_df,
         inputs=[input_df],
-        outputs=[selected_example_input, selected_example_output],
+        outputs=[selected_example_input, selected_example_output, selected_row_index, delete_row_button],
     )
 
     examples_directly_output.select(
-        fn=format_selected_example,
+        fn=format_selected_example_other,
         inputs=[examples_directly_output],
-        outputs=[selected_example_input, selected_example_output],
+        outputs=[selected_example_input, selected_example_output, delete_row_button],
     )
 
     examples_from_briefs_output.select(
-        fn=format_selected_example,
+        fn=format_selected_example_other,
         inputs=[examples_from_briefs_output],
-        outputs=[selected_example_input, selected_example_output],
+        outputs=[selected_example_input, selected_example_output, delete_row_button],
     )
 
     examples_output.select(
-        fn=format_selected_example,
+        fn=format_selected_example_other,
         inputs=[examples_output],
-        outputs=[selected_example_input, selected_example_output],
+        outputs=[selected_example_input, selected_example_output, delete_row_button],
     )
 
     gr.Markdown("### Manual Flagging", visible=False)
@@ -400,6 +425,12 @@ with gr.Blocks(title="Task Description Generator") as demo:
         fn=append_example_to_input,
         inputs=[selected_example_input, selected_example_output, input_df],
         outputs=[input_df],
+    )
+
+    delete_row_button.click(
+        fn=delete_selected_row,
+        inputs=[selected_row_index, input_df],
+        outputs=[input_df, selected_row_index, selected_example_input, selected_example_output, delete_row_button],
     )
 
 if __name__ == "__main__":
