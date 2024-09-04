@@ -5,17 +5,17 @@ import pandas as pd
 from langchain_openai import ChatOpenAI
 from meta_prompt.sample_generator import TaskDescriptionGenerator
 
-def examples_to_json(examples):
+def convert_examples_to_json(examples):
     pd_examples = pd.DataFrame(examples)
     pd_examples.columns = pd_examples.columns.str.lower()
     return pd_examples.to_json(orient="records")
 
-def process_json(
+def process_json_data(
     examples, model_name, generating_batch_size, temperature
 ):
     try:
         # Convert the gradio dataframe into a JSON array
-        input_json = examples_to_json(examples)
+        input_json = convert_examples_to_json(examples)
 
         model = ChatOpenAI(
             model=model_name, temperature=temperature, max_retries=3
@@ -50,9 +50,9 @@ def process_json(
     except Exception as e:
         raise gr.Error(f"An error occurred: {str(e)}")
     
-def generate_description_only(examples, model_name, temperature):
+def generate_description(examples, model_name, temperature):
     try:
-        input_json = examples_to_json(examples)
+        input_json = convert_examples_to_json(examples)
 
         model = ChatOpenAI(model=model_name, temperature=temperature, max_retries=3)
         generator = TaskDescriptionGenerator(model)
@@ -61,7 +61,7 @@ def generate_description_only(examples, model_name, temperature):
     except Exception as e:
         raise gr.Error(f"An error occurred: {str(e)}")
 
-def analyze_input(description, model_name, temperature):
+def analyze_input_data(description, model_name, temperature):
     try:
         model = ChatOpenAI(model=model_name, temperature=temperature, max_retries=3)
         generator = TaskDescriptionGenerator(model)
@@ -70,7 +70,7 @@ def analyze_input(description, model_name, temperature):
     except Exception as e:
         raise gr.Error(f"An error occurred: {str(e)}")
     
-def generate_briefs(
+def generate_example_briefs(
     description, input_analysis, generating_batch_size, model_name, temperature
 ):
     try:
@@ -86,11 +86,11 @@ def generate_briefs(
         raise gr.Error(f"An error occurred: {str(e)}")
 
 
-def generate_examples_from_briefs(
+def generate_examples_using_briefs(
     description, new_example_briefs, examples, generating_batch_size, model_name, temperature
 ):
     try:
-        input_json = examples_to_json(examples)
+        input_json = convert_examples_to_json(examples)
         model = ChatOpenAI(
             model=model_name, temperature=temperature, max_retries=3
         )
@@ -107,11 +107,11 @@ def generate_examples_from_briefs(
         raise gr.Error(f"An error occurred: {str(e)}")
 
 
-def generate_examples_directly(
+def generate_examples_from_description(
     description, raw_example, generating_batch_size, model_name, temperature
 ):
     try:
-        input_json = examples_to_json(raw_example)
+        input_json = convert_examples_to_json(raw_example)
         model = ChatOpenAI(model=model_name, temperature=temperature, max_retries=3)
         generator = TaskDescriptionGenerator(model)
         result = generator.generate_examples_directly(
@@ -125,39 +125,47 @@ def generate_examples_directly(
         raise gr.Error(f"An error occurred: {str(e)}")
 
 
-def format_selected_example_input_df(evt: gr.SelectData, examples):
+def format_selected_input_example_dataframe(evt: gr.SelectData, examples):
     if evt.index[0] < len(examples):
         selected_example = examples.iloc[evt.index[0]]
         return (
             selected_example.iloc[0],
             selected_example.iloc[1],
             evt.index[0] + 1,
-            gr.update(interactive=True)  # Enable the delete button
+            gr.update(visible=True),  # Show selected_example_group
+            gr.update(visible=True),  # Show selected_row_index
+            gr.update(visible=True),  # Show delete_row_button
+            gr.update(visible=True),  # Show update_row_button
+            gr.update(visible=False),  # Hide append_example_button
         )
-    return "", "", None, gr.update(interactive=False)  # Disable the delete button
+    return "", "", None, gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)
 
-def format_selected_example_other(evt: gr.SelectData, examples):
+def format_selected_example(evt: gr.SelectData, examples):
     if evt.index[0] < len(examples):
         selected_example = examples.iloc[evt.index[0]]
         return (
             selected_example.iloc[0],
             selected_example.iloc[1],
-            gr.update(interactive=False)  # Disable the delete button
+            gr.update(visible=True),  # Show selected_example_group
+            gr.update(visible=False),  # Hide selected_row_index
+            gr.update(visible=False),  # Hide delete_row_button
+            gr.update(visible=False),  # Hide update_row_button
+            gr.update(visible=True),  # Show append_example_button
         )
-    return "", "", gr.update(interactive=False)  # Disable the delete button
+    return "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)
 
-def import_json(file, input_df):
+def import_json_data(file, input_dataframe):
     if file is not None:
         df = pd.read_json(file.name)
         # Uppercase the first letter of each column name
         df.columns = df.columns.str.title()
         return df
-    return input_df
+    return input_dataframe
 
-def export_json(df):
-    if df is not None and not df.empty:
+def export_json_data(dataframe):
+    if dataframe is not None and not dataframe.empty:
         # Copy the dataframe and lowercase the column names
-        df_copy = df.copy()
+        df_copy = dataframe.copy()
         df_copy.columns = df_copy.columns.str.lower()
         
         json_str = df_copy.to_json(orient="records", indent=2)
@@ -170,20 +178,32 @@ def export_json(df):
         return temp_file_path
     return None
 
-def append_example_to_input(new_example_input, new_example_output, input_df):
+def append_example_to_input_dataframe(new_example_input, new_example_output, input_dataframe):
     try:
         new_row = pd.DataFrame([[new_example_input, new_example_output]], columns=['Input', 'Output'])
-        updated_df = pd.concat([input_df, new_row], ignore_index=True)
-        return updated_df
+        updated_df = pd.concat([input_dataframe, new_row], ignore_index=True)
+        return updated_df, "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)
     except KeyError:
         raise gr.Error("Invalid input or output")
 
-def delete_selected_row(row_index, input_df):
+def delete_selected_dataframe_row(row_index, input_dataframe):
     if row_index is not None and row_index > 0:
         # Subtract 1 from row_index because it's 1-indexed for display
-        input_df = input_df.drop(index=row_index - 1).reset_index(drop=True)
-        return input_df, None, "", "", gr.update(interactive=False)  # Return updated df, clear row index and selected example, disable delete button
-    return input_df, row_index, "", "", gr.update(interactive=False)  # Return unchanged if no valid row index, disable delete button
+        input_dataframe = input_dataframe.drop(index=row_index - 1).reset_index(drop=True)
+        return input_dataframe, None, "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)  # Return updated df, clear row index and selected example, hide selected_example_group, selected_row_index, delete_row_button, and update_row_button
+    return input_dataframe, row_index, "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)  # Return unchanged if no valid row index, hide selected_example_group, selected_row_index, delete_row_button, and update_row_button
+
+def update_selected_dataframe_row(selected_example_input, selected_example_output, selected_row_index, input_dataframe):
+    if selected_row_index is not None and selected_row_index > 0:
+        # Subtract 1 from selected_row_index because it's 1-indexed for display
+        input_dataframe.iloc[selected_row_index - 1] = [selected_example_input, selected_example_output]
+        return input_dataframe, "", "", gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)  # Return updated df, clear selected example, hide selected_example_group, selected_row_index, delete_row_button, and update_row_button
+    return input_dataframe, selected_example_input, selected_example_output, gr.update(visible=False), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)  # Return unchanged if no valid row index, hide selected_example_group, selected_row_index, delete_row_button, and update_row_button
+
+def clear_selected_example_group(input_dataframe):
+    if input_dataframe.empty:
+        return gr.update(visible=False)
+    return None
 
 with gr.Blocks(title="Task Description Generator") as demo:
     gr.Markdown("# Task Description Generator")
@@ -192,25 +212,31 @@ with gr.Blocks(title="Task Description Generator") as demo:
     )
 
 
-    input_df = gr.DataFrame(
+
+    input_dataframe = gr.DataFrame(
         label="Input Examples",
         headers=["Input", "Output"],
         datatype=["str", "str"],
         row_count=(1, "dynamic"),
         col_count=(2, "fixed"),
+        interactive=False
     )
-    with gr.Group():
+    with (selected_example_group := gr.Group(visible=False)):
+        with gr.Row():
+            selected_row_index = gr.Number(label="Selected Row Index", value=None, precision=0, visible=False)
+            delete_row_button = gr.Button("Delete Selected Row", variant="secondary", visible=False)        
         with gr.Row():
             selected_example_input = gr.Textbox(label="Selected Example Input", lines=2, show_copy_button=True)
             selected_example_output = gr.Textbox(label="Selected Example Output", lines=2, show_copy_button=True)
         with gr.Row():
-            selected_row_index = gr.Number(label="Selected Row Index", value=None, precision=0, interactive=False)
-            delete_row_button = gr.Button("Delete Selected Row", variant="secondary", interactive=False)  # Disable by default
-            append_example_button = gr.Button("Append to Input Examples", variant="secondary")
+            update_row_button = gr.Button("Update Selected Row", variant="secondary", visible=False)
+            append_example_button = gr.Button("Append to Input Examples", variant="secondary", visible=False)
+        with gr.Row():
+            close_button = gr.Button("Close", variant="secondary")
     with gr.Row():
         submit_button = gr.Button("Generate", variant="primary")
     with gr.Accordion("Import/Export JSON", open=False):
-        json_file = gr.File(
+        json_file_object = gr.File(
             label="Import/Export JSON", file_types=[".json"], type="filepath"
         )
         export_button = gr.Button("Export to JSON")
@@ -248,7 +274,7 @@ with gr.Blocks(title="Task Description Generator") as demo:
             analyze_input_button = gr.Button(
                 "Analyze Input", variant="secondary"
             )
-        examples_directly_output = gr.DataFrame(
+        examples_directly_output_dataframe = gr.DataFrame(
             label="Examples Directly",
             headers=["Input", "Output"],
             interactive=False,
@@ -268,7 +294,7 @@ with gr.Blocks(title="Task Description Generator") as demo:
         generate_examples_from_briefs_button = gr.Button(
             "Generate Examples from Briefs", variant="secondary"
         )
-        examples_from_briefs_output = gr.DataFrame(
+        examples_from_briefs_output_dataframe = gr.DataFrame(
             label="Examples from Briefs",
             headers=["Input", "Output"],
             interactive=False,
@@ -276,7 +302,7 @@ with gr.Blocks(title="Task Description Generator") as demo:
             row_count=(1, "dynamic"),
             col_count=(2, "fixed"),
         )
-    examples_output = gr.DataFrame(
+    examples_output_dataframe = gr.DataFrame(
         label="Examples",
         headers=["Input", "Output"],
         interactive=False,
@@ -287,74 +313,74 @@ with gr.Blocks(title="Task Description Generator") as demo:
 
     clear_button = gr.ClearButton(
         [
-            input_df,
+            input_dataframe,
             description_output,
             input_analysis_output,
             example_briefs_output,
-            examples_from_briefs_output,
-            examples_output,
+            examples_from_briefs_output_dataframe,
+            examples_output_dataframe,
             selected_example_input,
             selected_example_output,
         ],
         value="Clear All"
     )
 
-    json_file.change(
-        fn=import_json,
-        inputs=[json_file, input_df],
-        outputs=[input_df],
+    json_file_object.change(
+        fn=import_json_data,
+        inputs=[json_file_object, input_dataframe],
+        outputs=[input_dataframe],
     )
 
     export_button.click(
-        fn=export_json,
-        inputs=[input_df],
-        outputs=[json_file],
+        fn=export_json_data,
+        inputs=[input_dataframe],
+        outputs=[json_file_object],
     )
 
     submit_button.click(
-        fn=process_json,
+        fn=process_json_data,
         inputs=[
-            input_df,
+            input_dataframe,
             model_name,
             generating_batch_size,
             temperature,
         ],
         outputs=[
             description_output,
-            examples_directly_output,
+            examples_directly_output_dataframe,
             input_analysis_output,
             example_briefs_output,
-            examples_from_briefs_output,
-            examples_output,
+            examples_from_briefs_output_dataframe,
+            examples_output_dataframe,
         ],
     )
 
     generate_description_button.click(
-        fn=generate_description_only,
-        inputs=[input_df, model_name, temperature],
+        fn=generate_description,
+        inputs=[input_dataframe, model_name, temperature],
         outputs=[description_output],
     )
 
     generate_examples_directly_button.click(
-        fn=generate_examples_directly,
+        fn=generate_examples_from_description,
         inputs=[
             description_output,
-            input_df,
+            input_dataframe,
             generating_batch_size,
             model_name,
             temperature,
         ],
-        outputs=[examples_directly_output],
+        outputs=[examples_directly_output_dataframe],
     )
 
     analyze_input_button.click(
-        fn=analyze_input,
+        fn=analyze_input_data,
         inputs=[description_output, model_name, temperature],
         outputs=[input_analysis_output],
     )
 
     generate_briefs_button.click(
-        fn=generate_briefs,
+        fn=generate_example_briefs,
         inputs=[
             description_output,
             input_analysis_output,
@@ -366,40 +392,40 @@ with gr.Blocks(title="Task Description Generator") as demo:
     )
 
     generate_examples_from_briefs_button.click(
-        fn=generate_examples_from_briefs,
+        fn=generate_examples_using_briefs,
         inputs=[
             description_output,
             example_briefs_output,
-            input_df,
+            input_dataframe,
             generating_batch_size,
             model_name,
             temperature,
         ],
-        outputs=[examples_from_briefs_output],
+        outputs=[examples_from_briefs_output_dataframe],
     )
 
-    input_df.select(
-        fn=format_selected_example_input_df,
-        inputs=[input_df],
-        outputs=[selected_example_input, selected_example_output, selected_row_index, delete_row_button],
+    input_dataframe.select(
+        fn=format_selected_input_example_dataframe,
+        inputs=[input_dataframe],
+        outputs=[selected_example_input, selected_example_output, selected_row_index, selected_example_group, selected_row_index, delete_row_button, update_row_button, append_example_button],
     )
 
-    examples_directly_output.select(
-        fn=format_selected_example_other,
-        inputs=[examples_directly_output],
-        outputs=[selected_example_input, selected_example_output, delete_row_button],
+    examples_directly_output_dataframe.select(
+        fn=format_selected_example,
+        inputs=[examples_directly_output_dataframe],
+        outputs=[selected_example_input, selected_example_output, selected_example_group, selected_row_index, delete_row_button, update_row_button, append_example_button],
     )
 
-    examples_from_briefs_output.select(
-        fn=format_selected_example_other,
-        inputs=[examples_from_briefs_output],
-        outputs=[selected_example_input, selected_example_output, delete_row_button],
+    examples_from_briefs_output_dataframe.select(
+        fn=format_selected_example,
+        inputs=[examples_from_briefs_output_dataframe],
+        outputs=[selected_example_input, selected_example_output, selected_example_group, selected_row_index, delete_row_button, update_row_button, append_example_button],
     )
 
-    examples_output.select(
-        fn=format_selected_example_other,
-        inputs=[examples_output],
-        outputs=[selected_example_input, selected_example_output, delete_row_button],
+    examples_output_dataframe.select(
+        fn=format_selected_example,
+        inputs=[examples_output_dataframe],
+        outputs=[selected_example_input, selected_example_output, selected_example_group, selected_row_index, delete_row_button, update_row_button, append_example_button],
     )
 
     gr.Markdown("### Manual Flagging", visible=False)
@@ -411,26 +437,44 @@ with gr.Blocks(title="Task Description Generator") as demo:
     flag_button.click(
         lambda *args: flagging_callback.flag(args),
         inputs=[
-            input_df,
+            input_dataframe,
             model_name,
             generating_batch_size,
             description_output,
-            examples_output,
+            examples_output_dataframe,
             flag_reason,
         ],
         outputs=[],
     )
 
     append_example_button.click(
-        fn=append_example_to_input,
-        inputs=[selected_example_input, selected_example_output, input_df],
-        outputs=[input_df],
+        fn=append_example_to_input_dataframe,
+        inputs=[selected_example_input, selected_example_output, input_dataframe],
+        outputs=[input_dataframe, selected_example_input, selected_example_output, selected_example_group, selected_row_index, delete_row_button, update_row_button, append_example_button],
     )
 
     delete_row_button.click(
-        fn=delete_selected_row,
-        inputs=[selected_row_index, input_df],
-        outputs=[input_df, selected_row_index, selected_example_input, selected_example_output, delete_row_button],
+        fn=delete_selected_dataframe_row,
+        inputs=[selected_row_index, input_dataframe],
+        outputs=[input_dataframe, selected_row_index, selected_example_input, selected_example_output, selected_example_group, selected_row_index, delete_row_button, update_row_button],
+    )
+
+    update_row_button.click(
+        fn=update_selected_dataframe_row,
+        inputs=[selected_example_input, selected_example_output, selected_row_index, input_dataframe],
+        outputs=[input_dataframe, selected_example_input, selected_example_output, selected_example_group, selected_row_index, delete_row_button, update_row_button],
+    )
+
+    close_button.click(
+        fn=lambda: gr.update(visible=False),
+        inputs=[],
+        outputs=[selected_example_group],
+    )
+
+    input_dataframe.change(
+        fn=clear_selected_example_group,
+        inputs=[input_dataframe],
+        outputs=[selected_example_group],
     )
 
 if __name__ == "__main__":
