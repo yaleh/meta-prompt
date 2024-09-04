@@ -487,6 +487,10 @@ def generate_callback():
     except Exception as e:
         st.error(f"Error: {e}")
 
+def clear_advanced_inputs():
+    st.session_state.initial_system_message = ""
+    st.session_state.initial_acceptance_criteria = ""
+
 # Meta Prompt Config
 
 pre_config_sources = [
@@ -605,7 +609,10 @@ with tab_prompting:
     st.markdown("Generate the prompt with the above input-output pairs.")
 
     # Create options for the selectbox
-    sample_options = [f"Sample {i}: {row['Input'][:30]}..." for i, row in data_editor_data.iterrows()]
+    try:
+        sample_options = [f"Sample {i}: {row['Input'][:30]}..." for i, row in data_editor_data.iterrows()]
+    except Exception as e:
+        sample_options = []
 
     # Create the selectbox
     selected_sample = st.selectbox(
@@ -619,124 +626,137 @@ with tab_prompting:
                                         on_click=generate_callback,
                                         type="primary", use_container_width=True)
 
-    col1, col2 = st.columns(2)
 
-    with col1:
-        with st.expander("Advanced Inputs"):
-            initial_system_message = st.text_area(
-                "Initial System Message",
-                key="initial_system_message"
-            )
+    with st.expander("Advanced Inputs"):
+        initial_system_message = st.text_area(
+            "Initial System Message",
+            key="initial_system_message",
+            height=200,
+            placeholder="Enter the initial system message. It will be used as the base message for the prompt."
+        )
 
-            col1_1, col1_2 = st.columns(2)
-            with col1_1:
-                pull_sample_description_button = st.button("Pull Scope Description", key="pull_sample_description",
-                                                        on_click=pull_sample_description)
-            with col1_2:
-                st.button("Pull Output", key="copy_system_message",
-                        on_click=copy_system_message)
-            initial_acceptance_criteria = st.text_area(
-                "Acceptance Criteria",
-                key="initial_acceptance_criteria"
-            )
-            st.button("Pull Output", key="copy_acceptance_criteria",
-                    on_click=copy_acceptance_criteria)
-
-        # New expander for model settings
-        with st.expander("Model Settings"):
-            model_tab = st.selectbox("Select Model Type", ["Simple", "Advanced", "Expert"], key="model_tab")
-
-            if model_tab == "Simple":
-                simple_model_name_input = st.selectbox(
-                    "Model Name",
-                    config.llms.keys(),
-                    index=0,
-                )
-            elif model_tab == "Advanced":
-                advanced_optimizer_model_name_input = st.selectbox(
-                    "Optimizer Model Name",
-                    config.llms.keys(),
-                    index=0,
-                )
-                advanced_executor_model_name_input = st.selectbox(
-                    "Executor Model Name",
-                    config.llms.keys(),
-                    index=1,
-                )
-            else:  # Expert
-                expert_prompt_initial_developer_model_name_input = st.selectbox(
-                    "Initial Developer Model Name",
-                    config.llms.keys(),
-                    index=0,
-                )
-                expert_prompt_initial_developer_temperature_input = st.slider(
-                    "Initial Developer Temperature", 0.0, 1.0, 0.1, 0.1
-                )
-
-                expert_prompt_acceptance_criteria_model_name_input = st.selectbox(
-                    "Acceptance Criteria Model Name",
-                    config.llms.keys(),
-                    index=0,
-                )
-                expert_prompt_acceptance_criteria_temperature_input = st.slider(
-                    "Acceptance Criteria Temperature", 0.0, 1.0, 0.1, 0.1
-                )
-
-                expert_prompt_developer_model_name_input = st.selectbox(
-                    "Developer Model Name", config.llms.keys(), index=0
-                )
-                expert_prompt_developer_temperature_input = st.slider(
-                    "Developer Temperature", 0.0, 1.0, 0.1, 0.1
-                )
-
-                expert_prompt_executor_model_name_input = st.selectbox(
-                    "Executor Model Name", config.llms.keys(), index=1
-                )
-                expert_prompt_executor_temperature_input = st.slider(
-                    "Executor Temperature", 0.0, 1.0, 0.1, 0.1
-                )
-
-                expert_prompt_output_history_analyzer_model_name_input = st.selectbox(
-                    "Output History Analyzer Model Name",
-                    config.llms.keys(),
-                    index=0,
-                )
-                expert_prompt_output_history_analyzer_temperature_input = st.slider(
-                    "Output History Analyzer Temperature", 0.0, 1.0, 0.1, 0.1
-                )
-
-                expert_prompt_analyzer_model_name_input = st.selectbox(
-                    "Analyzer Model Name", config.llms.keys(), index=0
-                )
-                expert_prompt_analyzer_temperature_input = st.slider(
-                    "Analyzer Temperature", 0.0, 1.0, 0.1, 0.1
-                )
-
-                expert_prompt_suggester_model_name_input = st.selectbox(
-                    "Suggester Model Name", config.llms.keys(), index=0
-                )
-                expert_prompt_suggester_temperature_input = st.slider(
-                    "Suggester Temperature", 0.0, 1.0, 0.1, 0.1
-                )
-
-            prompt_template_group_input = st.selectbox(
-                "Prompt Template Group", config.prompt_templates.keys(), index=0
-            )
-
-            recursion_limit_input = st.number_input("Recursion Limit", 1, 100, 16, 1)
-            max_output_age_input = st.number_input("Max Output Age", 1, 10, 2, 1)
-            aggressive_exploration_input = st.checkbox("Aggressive Exploration", False)
-
-    with col2:
-        system_message_output = st.text_area("System Message",
-                                            key="system_message_output",
-                                            height=100)
-
-        acceptance_criteria_output = st.text_area(
+        col1_1, col1_2 = st.columns(2)
+        with col1_1:
+            pull_sample_description_button = st.button("Pull Scope Description", key="pull_sample_description",
+                                                    on_click=pull_sample_description)
+        with col1_2:
+            st.button("Pull Output", key="copy_system_message",
+                    on_click=copy_system_message)
+        initial_acceptance_criteria = st.text_area(
             "Acceptance Criteria",
-            key="acceptance_criteria_output",
-            height=100)
-        st.text_area("Output", st.session_state.output, height=100)
-        st.text_area("Analysis", st.session_state.analysis, height=100)
+            key="initial_acceptance_criteria",
+            height=200,
+            placeholder="Enter the acceptance criteria. It will be used to evaluate the output."
+        )
+        st.button("Pull Output", key="copy_acceptance_criteria",
+                on_click=copy_acceptance_criteria)
+        
+        st.button("Clear", on_click=clear_advanced_inputs)
 
-        st.json(st.session_state.chat_log, expanded=False)
+    # New expander for model settings
+    with st.expander("Model Settings"):
+        model_tab = st.selectbox("Select Model Type", ["Simple", "Advanced", "Expert"], key="model_tab")
+
+        if model_tab == "Simple":
+            simple_model_name_input = st.selectbox(
+                "Model Name",
+                config.llms.keys(),
+                index=0,
+            )
+        elif model_tab == "Advanced":
+            advanced_optimizer_model_name_input = st.selectbox(
+                "Optimizer Model Name",
+                config.llms.keys(),
+                index=0,
+            )
+            advanced_executor_model_name_input = st.selectbox(
+                "Executor Model Name",
+                config.llms.keys(),
+                index=1,
+            )
+        else:  # Expert
+            expert_prompt_initial_developer_model_name_input = st.selectbox(
+                "Initial Developer Model Name",
+                config.llms.keys(),
+                index=0,
+            )
+            expert_prompt_initial_developer_temperature_input = st.slider(
+                "Initial Developer Temperature", 0.0, 1.0, 0.1, 0.1
+            )
+
+            expert_prompt_acceptance_criteria_model_name_input = st.selectbox(
+                "Acceptance Criteria Model Name",
+                config.llms.keys(),
+                index=0,
+            )
+            expert_prompt_acceptance_criteria_temperature_input = st.slider(
+                "Acceptance Criteria Temperature", 0.0, 1.0, 0.1, 0.1
+            )
+
+            expert_prompt_developer_model_name_input = st.selectbox(
+                "Developer Model Name", config.llms.keys(), index=0
+            )
+            expert_prompt_developer_temperature_input = st.slider(
+                "Developer Temperature", 0.0, 1.0, 0.1, 0.1
+            )
+
+            expert_prompt_executor_model_name_input = st.selectbox(
+                "Executor Model Name", config.llms.keys(), index=1
+            )
+            expert_prompt_executor_temperature_input = st.slider(
+                "Executor Temperature", 0.0, 1.0, 0.1, 0.1
+            )
+
+            expert_prompt_output_history_analyzer_model_name_input = st.selectbox(
+                "Output History Analyzer Model Name",
+                config.llms.keys(),
+                index=0,
+            )
+            expert_prompt_output_history_analyzer_temperature_input = st.slider(
+                "Output History Analyzer Temperature", 0.0, 1.0, 0.1, 0.1
+            )
+
+            expert_prompt_analyzer_model_name_input = st.selectbox(
+                "Analyzer Model Name", config.llms.keys(), index=0
+            )
+            expert_prompt_analyzer_temperature_input = st.slider(
+                "Analyzer Temperature", 0.0, 1.0, 0.1, 0.1
+            )
+
+            expert_prompt_suggester_model_name_input = st.selectbox(
+                "Suggester Model Name", config.llms.keys(), index=0
+            )
+            expert_prompt_suggester_temperature_input = st.slider(
+                "Suggester Temperature", 0.0, 1.0, 0.1, 0.1
+            )
+
+        prompt_template_group_input = st.selectbox(
+            "Prompt Template Group", config.prompt_templates.keys(), index=0
+        )
+
+        recursion_limit_input = st.number_input("Recursion Limit", 1, 100, 16, 1)
+        max_output_age_input = st.number_input("Max Output Age", 1, 10, 2, 1)
+        aggressive_exploration_input = st.checkbox("Aggressive Exploration", False)
+
+    system_message_output = st.text_area(
+        "System Message",
+        key="system_message_output",
+        height=200,
+        placeholder="The generated system message will be shown here."
+    )
+    acceptance_criteria_output = st.text_area(
+        "Acceptance Criteria",
+        key="acceptance_criteria_output",
+        height=200,
+        placeholder="The (generated) acceptance criteria will be shown here."
+    )
+    output_output = st.text_area(
+        "Output", st.session_state.output, height=200,
+        placeholder="The output generated by the system message will be shown here."
+    )
+    analysis_output = st.text_area(
+        "Analysis", st.session_state.analysis, height=200,
+        placeholder="The analysis of the output will be shown here."
+    )
+
+    st.json(st.session_state.chat_log, expanded=False)

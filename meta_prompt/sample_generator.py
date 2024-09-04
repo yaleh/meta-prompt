@@ -131,7 +131,7 @@ BRIEFS_PROMPT = [
 
 EXAMPLES_FROM_BRIEFS_PROMPT = [
     ("system", """{{
-  "prompt": "Given the task type description, brief descriptions for new examples, and JSON example(s), generate {generating_batch_size} more input/output examples for this task type, strictly based on the brief descriptions. Ensure that the new examples are consistent with the brief descriptions and do not introduce any new information not present in the briefs. Output in JSON format, following `output_format`.",
+  "prompt": "Given the task type description, brief descriptions for new examples, and JSON example(s), generate {generating_batch_size} more input/output examples for this task type, strictly following the brief descriptions and task type description. Ensure that the new examples are consistent with the brief descriptions and do not introduce any new information not present in the briefs. Output in JSON format, following `output_format`. Validate the generated new examples with the task type description and brief descriptions.",
   "output_format": "{{
     "examples": [
       {{

@@ -1,5 +1,6 @@
+import json
 import gradio as gr
-from langchain_community.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from meta_prompt.sample_generator import TaskDescriptionGenerator
 
 def process_json(input_json, model_name, generating_batch_size, temperature):
