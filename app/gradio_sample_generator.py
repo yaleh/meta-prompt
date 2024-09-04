@@ -38,9 +38,10 @@ def process_json_data(
             [example["input"], example["output"]]
             for example in result["additional_examples"]
         ]
-
+        suggestions = result.get("suggestions", [])
         return (
             description,
+            gr.update(choices=suggestions, value=[]),
             examples_directly,
             input_analysis,
             new_example_briefs,
@@ -56,8 +57,10 @@ def generate_description(examples, model_name, temperature):
 
         model = ChatOpenAI(model=model_name, temperature=temperature, max_retries=3)
         generator = TaskDescriptionGenerator(model)
-        description = generator.generate_description(input_json)
-        return description
+        result = generator.generate_description(input_json)
+        description = result["description"]
+        suggestions = result["suggestions"]
+        return description, gr.update(choices=suggestions, value=[])
     except Exception as e:
         raise gr.Error(f"An error occurred: {str(e)}")
 
@@ -212,11 +215,28 @@ def input_dataframe_change(
         selected_group_output,
     )
 
-with gr.Blocks(title="Task Description Generator") as demo:
-    gr.Markdown("# Task Description Generator")
-    gr.Markdown(
-        "Enter a JSON object with 'input' and 'output' fields to generate a task description and additional examples."
-    )
+def generate_suggestions(description, examples, model_name, temperature):
+    try:
+        input_json = convert_examples_to_json(examples)
+        model = ChatOpenAI(model=model_name, temperature=temperature, max_retries=3)
+        generator = TaskDescriptionGenerator(model)
+        result = generator.generate_suggestions(input_json, description)
+        return gr.update(choices=result["suggestions"])
+    except Exception as e:
+        raise gr.Error(f"An error occurred: {str(e)}")
+
+def apply_suggestions(description, suggestions, examples, model_name, temperature):
+    try:
+        input_json = convert_examples_to_json(examples)
+        model = ChatOpenAI(model=model_name, temperature=temperature, max_retries=3)
+        generator = TaskDescriptionGenerator(model)
+        result = generator.update_description(input_json, description, suggestions)
+        return result["description"]
+    except Exception as e:
+        raise gr.Error(f"An error occurred: {str(e)}")
+
+with gr.Blocks(title="Meta Prompt") as demo:
+    gr.Markdown("# Scope")
 
     input_dataframe = gr.DataFrame(
         label="Input Examples",
@@ -270,6 +290,7 @@ with gr.Blocks(title="Task Description Generator") as demo:
                     update_row_button = gr.Button(
                         "Update Selected Row", variant="secondary"
                     )
+                    close_button = gr.Button("Close", variant="secondary")
 
                 delete_row_button.click(
                     fn=delete_selected_dataframe_row,
@@ -317,6 +338,8 @@ with gr.Blocks(title="Task Description Generator") as demo:
                     append_example_button = gr.Button(
                         "Append to Input Examples", variant="secondary"
                     )
+                    close_button = gr.Button("Close", variant="secondary")
+                
                 append_example_button.click(
                     fn=append_example_to_input_dataframe,
                     inputs=[
@@ -333,21 +356,29 @@ with gr.Blocks(title="Task Description Generator") as demo:
                     ],
                 )
 
-            with gr.Row():
-                close_button = gr.Button("Close", variant="secondary")
             close_button.click(
                 fn=lambda: None,
                 inputs=[],
                 outputs=[selected_group_mode],
             )
 
-    with gr.Row():
-        submit_button = gr.Button("Generate", variant="primary")
     with gr.Accordion("Import/Export JSON", open=False):
         json_file_object = gr.File(
             label="Import/Export JSON", file_types=[".json"], type="filepath"
         )
         export_button = gr.Button("Export to JSON")
+
+    with gr.Group():
+        submit_button = gr.Button("Generate", variant="primary")
+
+        examples_output_dataframe = gr.DataFrame(
+            # label="Examples",
+            headers=["Input", "Output"],
+            interactive=False,
+            datatype=["str", "str"],
+            row_count=(1, "dynamic"),
+            col_count=(2, "fixed"),
+        )
 
     with gr.Accordion("Model Settings", open=False):
         model_name = gr.Dropdown(
@@ -369,60 +400,69 @@ with gr.Blocks(title="Task Description Generator") as demo:
         )
 
     with gr.Accordion("Analysis", open=False):
-        generate_description_button = gr.Button(
-            "Generate Description", variant="secondary"
-        )
-        description_output = gr.Textbox(
-            label="Description", lines=5, show_copy_button=True
-        )
         with gr.Row():
-            generate_examples_directly_button = gr.Button(
-                "Generate Examples Directly", variant="secondary"
-            )
-            analyze_input_button = gr.Button(
-                "Analyze Input", variant="secondary"
-            )
-        examples_directly_output_dataframe = gr.DataFrame(
-            label="Examples Directly",
-            headers=["Input", "Output"],
-            interactive=False,
-            datatype=["str", "str"],
-            row_count=(1, "dynamic"),
-            col_count=(2, "fixed"),
-        )
-        input_analysis_output = gr.Textbox(
-            label="Input Analysis", lines=5, show_copy_button=True
-        )
-        generate_briefs_button = gr.Button(
-            "Generate Briefs", variant="secondary"
-        )
-        example_briefs_output = gr.Textbox(
-            label="Example Briefs", lines=5, show_copy_button=True
-        )
-        generate_examples_from_briefs_button = gr.Button(
-            "Generate Examples from Briefs", variant="secondary"
-        )
-        examples_from_briefs_output_dataframe = gr.DataFrame(
-            label="Examples from Briefs",
-            headers=["Input", "Output"],
-            interactive=False,
-            datatype=["str", "str"],
-            row_count=(1, "dynamic"),
-            col_count=(2, "fixed"),
-        )
-    examples_output_dataframe = gr.DataFrame(
-        label="Examples",
-        headers=["Input", "Output"],
-        interactive=False,
-        datatype=["str", "str"],
-        row_count=(1, "dynamic"),
-        col_count=(2, "fixed"),
-    )
+            with gr.Column():
+                generate_description_button = gr.Button(
+                    "Generate Description", variant="secondary"
+                )
+                description_output = gr.Textbox(
+                    label="Description", lines=5, show_copy_button=True
+                )
+            with gr.Column():
+                # Suggestions components
+                generate_suggestions_button = gr.Button("Generate Suggestions", variant="secondary")
+                suggestions_output = gr.Dropdown(label="Suggestions", choices=[], multiselect=True, allow_custom_value=True)
+                apply_suggestions_button = gr.Button("Apply Suggestions", variant="secondary")
+
+        with gr.Row():
+            with gr.Column():
+                analyze_input_button = gr.Button(
+                    "Analyze Input", variant="secondary"
+                )
+                input_analysis_output = gr.Textbox(
+                    label="Input Analysis", lines=5, show_copy_button=True
+                )
+            with gr.Column():
+                generate_briefs_button = gr.Button(
+                    "Generate Briefs", variant="secondary"
+                )
+                example_briefs_output = gr.Textbox(
+                    label="Example Briefs", lines=5, show_copy_button=True
+                )
+
+        with gr.Row():
+            with gr.Column():
+                generate_examples_directly_button = gr.Button(
+                    "Generate Examples Directly", variant="secondary"
+                )
+                examples_directly_output_dataframe = gr.DataFrame(
+                    label="Examples Directly",
+                    headers=["Input", "Output"],
+                    interactive=False,
+                    datatype=["str", "str"],
+                    row_count=(1, "dynamic"),
+                    col_count=(2, "fixed"),
+                )
+
+            with gr.Column():
+                generate_examples_from_briefs_button = gr.Button(
+                    "Generate Examples from Briefs", variant="secondary"
+                )
+                examples_from_briefs_output_dataframe = gr.DataFrame(
+                    label="Examples from Briefs",
+                    headers=["Input", "Output"],
+                    interactive=False,
+                    datatype=["str", "str"],
+                    row_count=(1, "dynamic"),
+                    col_count=(2, "fixed"),
+                )
 
     clear_button = gr.ClearButton(
         [
             input_dataframe,
             description_output,
+            suggestions_output,
+            examples_directly_output_dataframe,
             input_analysis_output,
             example_briefs_output,
             examples_from_briefs_output_dataframe,
@@ -453,6 +493,7 @@ with gr.Blocks(title="Task Description Generator") as demo:
         ],
         outputs=[
             description_output,
+            suggestions_output,
             examples_directly_output_dataframe,
             input_analysis_output,
             example_briefs_output,
@@ -464,7 +505,7 @@ with gr.Blocks(title="Task Description Generator") as demo:
     generate_description_button.click(
         fn=generate_description,
         inputs=[input_dataframe, model_name, temperature],
-        outputs=[description_output],
+        outputs=[description_output, suggestions_output],
     )
 
     generate_examples_directly_button.click(
@@ -588,6 +629,18 @@ with gr.Blocks(title="Task Description Generator") as demo:
             selected_group_input,
             selected_group_output,
         ],
+    )
+
+    generate_suggestions_button.click(
+        fn=generate_suggestions,
+        inputs=[description_output, input_dataframe, model_name, temperature],
+        outputs=[suggestions_output],
+    )
+
+    apply_suggestions_button.click(
+        fn=apply_suggestions,
+        inputs=[description_output, suggestions_output, input_dataframe, model_name, temperature],
+        outputs=[description_output],
     )
 
 if __name__ == "__main__":
