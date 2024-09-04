@@ -179,8 +179,8 @@ with gr.Blocks(title="Task Description Generator") as demo:
     )
     with gr.Group():
         with gr.Row():
-            new_example_input = gr.Textbox(label="Selected Example Input", lines=2, show_copy_button=True)
-            new_example_output = gr.Textbox(label="Selected Example Output", lines=2, show_copy_button=True)
+            selected_example_input = gr.Textbox(label="Selected Example Input", lines=2, show_copy_button=True)
+            selected_example_output = gr.Textbox(label="Selected Example Output", lines=2, show_copy_button=True)
         append_example_button = gr.Button("Append to Input Examples", variant="secondary")
     with gr.Row():
         submit_button = gr.Button("Generate", variant="primary")
@@ -268,8 +268,8 @@ with gr.Blocks(title="Task Description Generator") as demo:
             example_briefs_output,
             examples_from_briefs_output,
             examples_output,
-            new_example_input,
-            new_example_output,
+            selected_example_input,
+            selected_example_output,
         ],
         value="Clear All"
     )
@@ -353,22 +353,28 @@ with gr.Blocks(title="Task Description Generator") as demo:
         outputs=[examples_from_briefs_output],
     )
 
+    input_df.select(
+        fn=format_selected_example,
+        inputs=[input_df],
+        outputs=[selected_example_input, selected_example_output],
+    )
+
     examples_directly_output.select(
         fn=format_selected_example,
         inputs=[examples_directly_output],
-        outputs=[new_example_input, new_example_output],
+        outputs=[selected_example_input, selected_example_output],
     )
 
     examples_from_briefs_output.select(
         fn=format_selected_example,
         inputs=[examples_from_briefs_output],
-        outputs=[new_example_input, new_example_output],
+        outputs=[selected_example_input, selected_example_output],
     )
 
     examples_output.select(
         fn=format_selected_example,
         inputs=[examples_output],
-        outputs=[new_example_input, new_example_output],
+        outputs=[selected_example_input, selected_example_output],
     )
 
     gr.Markdown("### Manual Flagging", visible=False)
@@ -392,7 +398,7 @@ with gr.Blocks(title="Task Description Generator") as demo:
 
     append_example_button.click(
         fn=append_example_to_input,
-        inputs=[new_example_input, new_example_output, input_df],
+        inputs=[selected_example_input, selected_example_output, input_df],
         outputs=[input_df],
     )
 
