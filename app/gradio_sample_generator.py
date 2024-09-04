@@ -177,105 +177,109 @@ with gr.Blocks(title="Task Description Generator") as demo:
         "Enter a JSON object with 'input' and 'output' fields to generate a task description and additional examples."
     )
 
+
+    input_df = gr.DataFrame(
+        label="Input Examples",
+        headers=["Input", "Output"],
+        datatype=["str", "str"],
+        row_count=(1, "dynamic"),
+        col_count=(2, "fixed"),
+    )
+    with gr.Accordion("Import/Export JSON", open=False):
+        json_file = gr.File(
+            label="Import/Export JSON", file_types=[".json"], type="filepath"
+        )
+        export_button = gr.Button("Export to JSON")
+
+    with gr.Accordion("Model Settings", open=False):
+        model_name = gr.Dropdown(
+            label="Model Name",
+            choices=[
+                "llama3-70b-8192",
+                "llama3-8b-8192",
+                "llama-3.1-70b-versatile",
+                "llama-3.1-8b-instant",
+                "gemma2-9b-it",
+            ],
+            value="llama3-70b-8192",
+        )
+        temperature = gr.Slider(
+            label="Temperature", value=1.0, minimum=0.0, maximum=1.0, step=0.1
+        )
+        generating_batch_size = gr.Slider(
+            label="Generating Batch Size", value=3, minimum=1, maximum=10, step=1
+        )
     with gr.Row():
-        with gr.Column(scale=1):  # Inputs column
-            input_df = gr.DataFrame(
-                label="Input Examples",
-                headers=["Input", "Output"],
-                datatype=["str", "str"],
-                row_count=(1, "dynamic"),
-                col_count=(2, "fixed"),
-            )
-            json_file = gr.File(
-                label="Import/Export JSON", file_types=[".json"], type="filepath"
-            )
-            export_button = gr.Button("Export to JSON")
-            model_name = gr.Dropdown(
-                label="Model Name",
-                choices=[
-                    "llama3-70b-8192",
-                    "llama3-8b-8192",
-                    "llama-3.1-70b-versatile",
-                    "llama-3.1-8b-instant",
-                    "gemma2-9b-it",
-                ],
-                value="llama3-70b-8192",
-            )
-            temperature = gr.Slider(
-                label="Temperature", value=1.0, minimum=0.0, maximum=1.0, step=0.1
-            )
-            generating_batch_size = gr.Slider(
-                label="Generating Batch Size", value=3, minimum=1, maximum=10, step=1
-            )
-            with gr.Row():
-                submit_button = gr.Button("Generate", variant="primary")
-                generate_description_button = gr.Button(
-                    "Generate Description", variant="secondary"
-                )
+        submit_button = gr.Button("Generate", variant="primary")
+        generate_description_button = gr.Button(
+            "Generate Description", variant="secondary"
+        )
 
-        with gr.Column(scale=1):  # Outputs column
-            description_output = gr.Textbox(
-                label="Description", lines=5, show_copy_button=True
-            )
-            with gr.Row():
-                generate_examples_directly_button = gr.Button(
-                    "Generate Examples Directly", variant="secondary"
-                )
-                analyze_input_button = gr.Button(
-                    "Analyze Input", variant="secondary"
-                )
-            examples_directly_output = gr.DataFrame(
-                label="Examples Directly",
-                headers=["Input", "Output"],
-                interactive=False,
-                datatype=["str", "str"],
-                row_count=(1, "dynamic"),
-                col_count=(2, "fixed"),
-            )
-            input_analysis_output = gr.Textbox(
-                label="Input Analysis", lines=5, show_copy_button=True
-            )
-            generate_briefs_button = gr.Button(
-                "Generate Briefs", variant="secondary"
-            )
-            example_briefs_output = gr.Textbox(
-                label="Example Briefs", lines=5, show_copy_button=True
-            )
-            generate_examples_from_briefs_button = gr.Button(
-                "Generate Examples from Briefs", variant="secondary"
-            )
-            examples_from_briefs_output = gr.DataFrame(
-                label="Examples from Briefs",
-                headers=["Input", "Output"],
-                interactive=False,
-                datatype=["str", "str"],
-                row_count=(1, "dynamic"),
-                col_count=(2, "fixed"),
-            )
-            examples_output = gr.DataFrame(
-                label="Examples",
-                headers=["Input", "Output"],
-                interactive=False,
-                datatype=["str", "str"],
-                row_count=(1, "dynamic"),
-                col_count=(2, "fixed"),
-            )
-            new_example_json = gr.Textbox(
-                label="New Example JSON", lines=5, show_copy_button=True
-            )
-            append_example_button = gr.Button("Append to Input Examples", variant="secondary")
 
-            clear_button = gr.ClearButton(
-                [
-                    input_df,
-                    description_output,
-                    input_analysis_output,
-                    example_briefs_output,
-                    examples_from_briefs_output,
-                    examples_output,
-                    new_example_json,
-                ]
+    with gr.Accordion("Description and Analysis", open=False):
+        description_output = gr.Textbox(
+            label="Description", lines=5, show_copy_button=True
+        )
+        with gr.Row():
+            generate_examples_directly_button = gr.Button(
+                "Generate Examples Directly", variant="secondary"
             )
+            analyze_input_button = gr.Button(
+                "Analyze Input", variant="secondary"
+            )
+        examples_directly_output = gr.DataFrame(
+            label="Examples Directly",
+            headers=["Input", "Output"],
+            interactive=False,
+            datatype=["str", "str"],
+            row_count=(1, "dynamic"),
+            col_count=(2, "fixed"),
+        )
+        input_analysis_output = gr.Textbox(
+            label="Input Analysis", lines=5, show_copy_button=True
+        )
+    with gr.Accordion("Briefs and Examples", open=False):
+        generate_briefs_button = gr.Button(
+            "Generate Briefs", variant="secondary"
+        )
+        example_briefs_output = gr.Textbox(
+            label="Example Briefs", lines=5, show_copy_button=True
+        )
+        generate_examples_from_briefs_button = gr.Button(
+            "Generate Examples from Briefs", variant="secondary"
+        )
+        examples_from_briefs_output = gr.DataFrame(
+            label="Examples from Briefs",
+            headers=["Input", "Output"],
+            interactive=False,
+            datatype=["str", "str"],
+            row_count=(1, "dynamic"),
+            col_count=(2, "fixed"),
+        )
+    examples_output = gr.DataFrame(
+        label="Examples",
+        headers=["Input", "Output"],
+        interactive=False,
+        datatype=["str", "str"],
+        row_count=(1, "dynamic"),
+        col_count=(2, "fixed"),
+    )
+    new_example_json = gr.Textbox(
+        label="New Example JSON", lines=5, show_copy_button=True
+    )
+    append_example_button = gr.Button("Append to Input Examples", variant="secondary")
+
+    clear_button = gr.ClearButton(
+        [
+            input_df,
+            description_output,
+            input_analysis_output,
+            example_briefs_output,
+            examples_from_briefs_output,
+            examples_output,
+            new_example_json,
+        ]
+    )
 
     json_file.change(
         fn=import_json,
