@@ -1,10 +1,19 @@
 import json
 import gradio as gr
+import pandas as pd
 from langchain_openai import ChatOpenAI
 from meta_prompt.sample_generator import TaskDescriptionGenerator
 
-def process_json(input_json, model_name, generating_batch_size, temperature):
+def examples_to_json(examples):
+    pd_examples = pd.DataFrame(examples)
+    pd_examples.columns = pd_examples.columns.str.lower()
+    return pd_examples.to_json(orient="records")
+
+def process_json(examples, model_name, generating_batch_size, temperature):
     try:
+        # Convert the gradio dataframe into a JSON array
+        input_json = examples_to_json(examples)
+        
         model = ChatOpenAI(model=model_name, temperature=temperature, max_retries=3)
         generator = TaskDescriptionGenerator(model)
         result = generator.process(input_json, generating_batch_size)
@@ -18,8 +27,10 @@ def process_json(input_json, model_name, generating_batch_size, temperature):
     except Exception as e:
         raise gr.Error(f"An error occurred: {str(e)}")
     
-def generate_description_only(input_json, model_name, temperature):
+def generate_description_only(examples, model_name, temperature):
     try:
+        input_json = examples_to_json(examples)
+
         model = ChatOpenAI(model=model_name, temperature=temperature, max_retries=3)
         generator = TaskDescriptionGenerator(model)
         description = generator.generate_description(input_json)
@@ -45,11 +56,13 @@ def generate_briefs(description, input_analysis, generating_batch_size, model_na
     except Exception as e:
         raise gr.Error(f"An error occurred: {str(e)}")
     
-def generate_examples_from_briefs(description, new_example_briefs, input_str, generating_batch_size, model_name, temperature):
+def generate_examples_from_briefs(description, new_example_briefs, examples, generating_batch_size, model_name, temperature):
     try:
+        input_json = examples_to_json(examples)
+
         model = ChatOpenAI(model=model_name, temperature=temperature, max_retries=3)
         generator = TaskDescriptionGenerator(model)
-        result = generator.generate_examples_from_briefs(description, new_example_briefs, input_str, generating_batch_size)
+        result = generator.generate_examples_from_briefs(description, new_example_briefs, input_json, generating_batch_size)
         examples = [[example["input"], example["output"]] for example in result["examples"]]
         return examples
     except Exception as e:
@@ -57,9 +70,10 @@ def generate_examples_from_briefs(description, new_example_briefs, input_str, ge
     
 def generate_examples_directly(description, raw_example, generating_batch_size, model_name, temperature):
     try:
+        input_json = examples_to_json(raw_example)
         model = ChatOpenAI(model=model_name, temperature=temperature, max_retries=3)
         generator = TaskDescriptionGenerator(model)
-        result = generator.generate_examples_directly(description, raw_example, generating_batch_size)
+        result = generator.generate_examples_directly(description, input_json, generating_batch_size)
         examples = [[example["input"], example["output"]] for example in result["examples"]]
         return examples
     except Exception as e:
@@ -78,7 +92,12 @@ with gr.Blocks(title="Task Description Generator") as demo:
 
     with gr.Row():
         with gr.Column(scale=1):  # Inputs column
-            input_json = gr.Textbox(label="Input JSON", lines=10, show_copy_button=True)
+            input_df = gr.DataFrame(
+                label="Input Examples",
+                headers=["Input", "Output"],
+                datatype=["str", "str"],
+                row_count=(1, "dynamic"),
+            )
             model_name = gr.Dropdown(
                 label="Model Name",
                 choices=["llama3-70b-8192", "llama3-8b-8192", "llama-3.1-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it"],
@@ -104,25 +123,25 @@ with gr.Blocks(title="Task Description Generator") as demo:
             examples_output = gr.DataFrame(label="Examples", headers=["Input", "Output"], interactive=False)
             new_example_json = gr.Textbox(label="New Example JSON", lines=5, show_copy_button=True)
 
-            clear_button = gr.ClearButton([input_json, description_output, input_analysis_output,
+            clear_button = gr.ClearButton([input_df, description_output, input_analysis_output,
                                            example_briefs_output, examples_from_briefs_output,
                                            examples_output, new_example_json])
 
     submit_button.click(
         fn=process_json,
-        inputs=[input_json, model_name, generating_batch_size, temperature],
+        inputs=[input_df, model_name, generating_batch_size, temperature],  # Package first row
         outputs=[description_output, examples_directly_output, input_analysis_output, example_briefs_output, examples_from_briefs_output, examples_output]
     )
 
     generate_description_button.click(
         fn=generate_description_only,
-        inputs=[input_json, model_name, temperature],
+        inputs=[input_df, model_name, temperature],  # Package first row
         outputs=[description_output]
     )
 
     generate_examples_directly_button.click(
         fn=generate_examples_directly,
-        inputs=[description_output, input_json, generating_batch_size, model_name, temperature],
+        inputs=[description_output, input_df, generating_batch_size, model_name, temperature],  # Package first row
         outputs=[examples_directly_output]
     )
 
@@ -140,7 +159,7 @@ with gr.Blocks(title="Task Description Generator") as demo:
 
     generate_examples_from_briefs_button.click(
         fn=generate_examples_from_briefs,
-        inputs=[description_output, example_briefs_output, input_json, generating_batch_size, model_name, temperature],
+        inputs=[description_output, example_briefs_output, input_df, generating_batch_size, model_name, temperature],
         outputs=[examples_from_briefs_output]
     )
 
@@ -170,7 +189,7 @@ with gr.Blocks(title="Task Description Generator") as demo:
     flagging_callback = gr.CSVLogger()
     flag_button.click(
         lambda *args: flagging_callback.flag(args),
-        inputs=[input_json, model_name, generating_batch_size, description_output, examples_output, flag_reason],
+        inputs=[input_df, model_name, generating_batch_size, description_output, examples_output, flag_reason],
         outputs=[]
     )
 
