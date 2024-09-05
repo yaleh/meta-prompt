@@ -171,44 +171,72 @@ def chat_log_2_chatbot_list(chat_log: str) -> List[List[str]]:
             print(line)
     return chatbot_list
 
-def on_model_tab_select(simple_model_name, 
-                        advanced_optimizer_model_name, advanced_executor_model_name,
-                        expert_prompt_initial_developer_model_name,
-                        expert_prompt_acceptance_criteria_developer_model_name,
-                        expert_prompt_developer_model_name,
-                        expert_prompt_executor_model_name,
-                        expert_prompt_history_analyzer_model_name,
-                        expert_prompt_analyzer_model_name,
-                        expert_prompt_suggester_model_name,
-                        event: gr.SelectData):
-    if event.value == 'Simple':
+def on_prompt_model_tab_state_change(config, model_tab_select_state,
+                              simple_model_name, advanced_optimizer_model_name, advanced_executor_model_name,
+                              expert_prompt_initial_developer_model_name,
+                              expert_prompt_initial_developer_temperature,
+                              expert_prompt_acceptance_criteria_developer_model_name,
+                              expert_prompt_acceptance_criteria_temperature,
+                              expert_prompt_developer_model_name,
+                              expert_prompt_developer_temperature,
+                              expert_prompt_executor_model_name,
+                              expert_prompt_executor_temperature,
+                              expert_prompt_history_analyzer_model_name,
+                              expert_prompt_history_analyzer_temperature,
+                              expert_prompt_analyzer_model_name,
+                              expert_prompt_analyzer_temperature,
+                              expert_prompt_suggester_model_name,
+                              expert_prompt_suggester_temperature):
+    if model_tab_select_state == 'Simple':
         return simple_model_name, \
+            config.default_llm_temperature, \
             simple_model_name, \
+            config.default_llm_temperature, \
             simple_model_name, \
+            config.default_llm_temperature, \
             simple_model_name, \
+            config.default_llm_temperature, \
             simple_model_name, \
+            config.default_llm_temperature, \
             simple_model_name, \
-            simple_model_name
-    elif event.value == 'Advanced':
+            config.default_llm_temperature, \
+            simple_model_name, \
+            config.default_llm_temperature
+    elif model_tab_select_state == 'Advanced':
         return advanced_optimizer_model_name, \
+            config.default_llm_temperature, \
             advanced_optimizer_model_name, \
+            config.default_llm_temperature, \
             advanced_optimizer_model_name, \
+            config.default_llm_temperature, \
             advanced_executor_model_name, \
+            config.default_llm_temperature, \
             advanced_optimizer_model_name, \
+            config.default_llm_temperature, \
             advanced_optimizer_model_name, \
-            advanced_optimizer_model_name
-    elif event.value == 'Expert':
+            config.default_llm_temperature
+    elif model_tab_select_state == 'Expert':
         return expert_prompt_initial_developer_model_name, \
+            expert_prompt_initial_developer_temperature, \
             expert_prompt_acceptance_criteria_developer_model_name, \
+            expert_prompt_acceptance_criteria_temperature, \
             expert_prompt_developer_model_name, \
+            expert_prompt_developer_temperature, \
             expert_prompt_executor_model_name, \
+            expert_prompt_executor_temperature, \
             expert_prompt_history_analyzer_model_name, \
+            expert_prompt_history_analyzer_temperature, \
             expert_prompt_analyzer_model_name, \
-            expert_prompt_suggester_model_name
+            expert_prompt_analyzer_temperature, \
+            expert_prompt_suggester_model_name, \
+            expert_prompt_suggester_temperature
     else:
-        raise ValueError(f"Invalid model tab selected: {event.value}")
-    
-def evaluate_system_message(config, system_message, user_message, executor_model_name):
+        raise ValueError(f"Invalid model tab selected: {model_tab_select_state}")
+
+def on_model_tab_select(event: gr.SelectData):
+    return event.value
+
+def evaluate_system_message(config, system_message, user_message, executor_model_name, executor_temperature):
     """
     Evaluate a system message by using it to generate a response from an
     executor model based on the current active tab and provided user message.
@@ -236,7 +264,7 @@ def evaluate_system_message(config, system_message, user_message, executor_model
         Exception: For any other unexpected errors that occur during the
             execution of this function.
     """
-    llm = initialize_llm(config, executor_model_name)
+    llm = initialize_llm(config, executor_model_name, {'temperature': executor_temperature})
     template = ChatPromptTemplate.from_messages([
         ("system", "{system_message}"),
         ("human", "{user_message}")
@@ -251,7 +279,7 @@ def evaluate_system_message(config, system_message, user_message, executor_model
         raise gr.Error(f"Error: {e}")
 
 
-def generate_acceptance_criteria(config, user_message, expected_output, acceptance_criteria_model_name, prompt_template_group):
+def generate_acceptance_criteria(config, user_message, expected_output, acceptance_criteria_model_name, acceptance_criteria_temperature, prompt_template_group):
     """
     Generate acceptance criteria based on the user message and expected output.
 
@@ -280,7 +308,7 @@ def generate_acceptance_criteria(config, user_message, expected_output, acceptan
         )
         logger.addHandler(log_handler)
 
-    llm = initialize_llm(config, acceptance_criteria_model_name)
+    llm = initialize_llm(config, acceptance_criteria_model_name, {'temperature': acceptance_criteria_temperature})
     if prompt_template_group is None:
         prompt_template_group = 'default'
     prompt_templates = prompt_templates_confz2langchain(
@@ -309,6 +337,7 @@ def generate_initial_system_message(
     user_message: str,
     expected_output: str,
     initial_developer_model_name: str,
+    initial_developer_temperature: float,
     prompt_template_group: Optional[str] = None
 ) -> tuple:
     """
@@ -335,7 +364,7 @@ def generate_initial_system_message(
         )
         logger.addHandler(log_handler)
 
-    llm = initialize_llm(config, initial_developer_model_name)
+    llm = initialize_llm(config, initial_developer_model_name, {'temperature': initial_developer_temperature})
 
     if prompt_template_group is None:
         prompt_template_group = 'default'
@@ -371,9 +400,13 @@ def process_message_with_models(
     config,
     user_message: str, expected_output: str, acceptance_criteria: str,
     initial_system_message: str, recursion_limit: int, max_output_age: int,
-    initial_developer_model_name: str, acceptance_criteria_model_name: str,
-    developer_model_name: str, executor_model_name: str, history_analyzer_model_name: str,
-    analyzer_model_name: str, suggester_model_name: str,
+    initial_developer_model_name: str, initial_developer_temperature: float,
+    acceptance_criteria_model_name: str, acceptance_criteria_temperature: float,
+    developer_model_name: str, developer_temperature: float,
+    executor_model_name: str, executor_temperature: float,
+    history_analyzer_model_name: str, history_analyzer_temperature: float,
+    analyzer_model_name: str, analyzer_temperature: float,
+    suggester_model_name: str, suggester_temperature: float,
     prompt_template_group: Optional[str] = None,
     aggressive_exploration: bool = False
 ) -> tuple:
@@ -423,13 +456,13 @@ def process_message_with_models(
         prompt_template_group = 'default'
     prompt_templates = prompt_templates_confz2langchain(config.prompt_templates[prompt_template_group])
     llms = {
-        NODE_PROMPT_INITIAL_DEVELOPER: initialize_llm(config, initial_developer_model_name),
-        NODE_ACCEPTANCE_CRITERIA_DEVELOPER: initialize_llm(config, acceptance_criteria_model_name),
-        NODE_PROMPT_DEVELOPER: initialize_llm(config, developer_model_name),
-        NODE_PROMPT_EXECUTOR: initialize_llm(config, executor_model_name),
-        NODE_OUTPUT_HISTORY_ANALYZER: initialize_llm(config, history_analyzer_model_name),
-        NODE_PROMPT_ANALYZER: initialize_llm(config, analyzer_model_name),
-        NODE_PROMPT_SUGGESTER: initialize_llm(config, suggester_model_name)
+        NODE_PROMPT_INITIAL_DEVELOPER: initialize_llm(config, initial_developer_model_name, {'temperature': initial_developer_temperature}),
+        NODE_ACCEPTANCE_CRITERIA_DEVELOPER: initialize_llm(config, acceptance_criteria_model_name, {'temperature': acceptance_criteria_temperature}),
+        NODE_PROMPT_DEVELOPER: initialize_llm(config, developer_model_name, {'temperature': developer_temperature}),
+        NODE_PROMPT_EXECUTOR: initialize_llm(config, executor_model_name, {'temperature': executor_temperature}),
+        NODE_OUTPUT_HISTORY_ANALYZER: initialize_llm(config, history_analyzer_model_name, {'temperature': history_analyzer_temperature}),
+        NODE_PROMPT_ANALYZER: initialize_llm(config, analyzer_model_name, {'temperature': analyzer_temperature}),
+        NODE_PROMPT_SUGGESTER: initialize_llm(config, suggester_model_name, {'temperature': suggester_temperature})
     }
     meta_prompt_graph = MetaPromptGraph(llms=llms, prompts=prompt_templates,
                                         aggressive_exploration=aggressive_exploration,
@@ -513,15 +546,14 @@ def convert_examples_to_json(examples):
     return pd_examples.to_json(orient="records")
 
 def process_json_data(
+    config,
     examples, model_name, generating_batch_size, temperature
 ):
     try:
         # Convert the gradio dataframe into a JSON array
         input_json = convert_examples_to_json(examples)
 
-        model = ChatOpenAI(
-            model=model_name, temperature=temperature, max_retries=3
-        )
+        model = initialize_llm(config, model_name, {'temperature': temperature, 'max_retries': 3})
         generator = TaskDescriptionGenerator(model)
         result = generator.process(input_json, generating_batch_size)
 
@@ -553,11 +585,11 @@ def process_json_data(
     except Exception as e:
         raise gr.Error(f"An error occurred: {str(e)}")
     
-def generate_description(examples, model_name, temperature):
+def generate_description(config, examples, model_name, temperature):
     try:
         input_json = convert_examples_to_json(examples)
 
-        model = ChatOpenAI(model=model_name, temperature=temperature, max_retries=3)
+        model = initialize_llm(config, model_name, {'temperature': temperature, 'max_retries': 3})
         generator = TaskDescriptionGenerator(model)
         result = generator.generate_description(input_json)
         description = result["description"]
@@ -566,9 +598,9 @@ def generate_description(examples, model_name, temperature):
     except Exception as e:
         raise gr.Error(f"An error occurred: {str(e)}")
 
-def analyze_input_data(description, model_name, temperature):
+def analyze_input_data(config, description, model_name, temperature):
     try:
-        model = ChatOpenAI(model=model_name, temperature=temperature, max_retries=3)
+        model = initialize_llm(config, model_name, {'temperature': temperature, 'max_retries': 3})
         generator = TaskDescriptionGenerator(model)
         input_analysis = generator.analyze_input(description)
         return input_analysis
@@ -576,12 +608,10 @@ def analyze_input_data(description, model_name, temperature):
         raise gr.Error(f"An error occurred: {str(e)}")
     
 def generate_example_briefs(
-    description, input_analysis, generating_batch_size, model_name, temperature
+    config, description, input_analysis, generating_batch_size, model_name, temperature
 ):
     try:
-        model = ChatOpenAI(
-            model=model_name, temperature=temperature, max_retries=3
-        )
+        model = initialize_llm(config, model_name, {'temperature': temperature, 'max_retries': 3})
         generator = TaskDescriptionGenerator(model)
         briefs = generator.generate_briefs(
             description, input_analysis, generating_batch_size
@@ -592,13 +622,11 @@ def generate_example_briefs(
 
 
 def generate_examples_using_briefs(
-    description, new_example_briefs, examples, generating_batch_size, model_name, temperature
+    config, description, new_example_briefs, examples, generating_batch_size, model_name, temperature
 ):
     try:
         input_json = convert_examples_to_json(examples)
-        model = ChatOpenAI(
-            model=model_name, temperature=temperature, max_retries=3
-        )
+        model = initialize_llm(config, model_name, {'temperature': temperature, 'max_retries': 3})
         generator = TaskDescriptionGenerator(model)
         result = generator.generate_examples_from_briefs(
             description, new_example_briefs, input_json, generating_batch_size
@@ -613,11 +641,11 @@ def generate_examples_using_briefs(
 
 
 def generate_examples_from_description(
-    description, raw_example, generating_batch_size, model_name, temperature
+    config, description, raw_example, generating_batch_size, model_name, temperature
 ):
     try:
         input_json = convert_examples_to_json(raw_example)
-        model = ChatOpenAI(model=model_name, temperature=temperature, max_retries=3)
+        model = initialize_llm(config, model_name, {'temperature': temperature, 'max_retries': 3})
         generator = TaskDescriptionGenerator(model)
         result = generator.generate_examples_directly(
             description, input_json, generating_batch_size
@@ -717,20 +745,20 @@ def input_dataframe_change(
         selected_group_output,
     )
 
-def generate_suggestions(description, examples, model_name, temperature):
+def generate_suggestions(config, description, examples, model_name, temperature):
     try:
         input_json = convert_examples_to_json(examples)
-        model = ChatOpenAI(model=model_name, temperature=temperature, max_retries=3)
+        model = initialize_llm(config, model_name, {'temperature': temperature, 'max_retries': 3})
         generator = TaskDescriptionGenerator(model)
         result = generator.generate_suggestions(input_json, description)
         return gr.update(choices=result["suggestions"])
     except Exception as e:
         raise gr.Error(f"An error occurred: {str(e)}")
 
-def apply_suggestions(description, suggestions, examples, model_name, temperature):
+def apply_suggestions(config, description, suggestions, examples, model_name, temperature):
     try:
         input_json = convert_examples_to_json(examples)
-        model = ChatOpenAI(model=model_name, temperature=temperature, max_retries=3)
+        model = initialize_llm(config, model_name, {'temperature': temperature, 'max_retries': 3})
         generator = TaskDescriptionGenerator(model)
         result = generator.update_description(input_json, description, suggestions)
         return result["description"]
