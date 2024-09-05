@@ -5,6 +5,9 @@ import logging
 from pathlib import Path
 import csv
 import io
+import tempfile
+
+import pandas as pd
 
 import gradio as gr
 from gradio import CSVLogger, utils
@@ -18,7 +21,7 @@ from pythonjsonlogger import jsonlogger
 
 from app.config import MetaPromptConfig, RoleMessage
 from meta_prompt import *
-
+from meta_prompt.sample_generator import TaskDescriptionGenerator
 
 def prompt_templates_confz2langchain(
     prompt_templates: Dict[str, Dict[str, List[RoleMessage]]]
@@ -502,3 +505,234 @@ def initialize_llm(config: MetaPromptConfig, model_name: str, model_config: Opti
 
 class FileConfig(BaseConfig):
     config_file: str = 'config.yml'  # default path
+
+
+def convert_examples_to_json(examples):
+    pd_examples = pd.DataFrame(examples)
+    pd_examples.columns = pd_examples.columns.str.lower()
+    return pd_examples.to_json(orient="records")
+
+def process_json_data(
+    examples, model_name, generating_batch_size, temperature
+):
+    try:
+        # Convert the gradio dataframe into a JSON array
+        input_json = convert_examples_to_json(examples)
+
+        model = ChatOpenAI(
+            model=model_name, temperature=temperature, max_retries=3
+        )
+        generator = TaskDescriptionGenerator(model)
+        result = generator.process(input_json, generating_batch_size)
+
+        description = result["description"]
+        examples_directly = [
+            [example["input"], example["output"]]
+            for example in result["examples_directly"]["examples"]
+        ]
+        input_analysis = result["examples_from_briefs"]["input_analysis"]
+        new_example_briefs = result["examples_from_briefs"]["new_example_briefs"]
+        examples_from_briefs = [
+            [example["input"], example["output"]]
+            for example in result["examples_from_briefs"]["examples"]
+        ]
+        examples = [
+            [example["input"], example["output"]]
+            for example in result["additional_examples"]
+        ]
+        suggestions = result.get("suggestions", [])
+        return (
+            description,
+            gr.update(choices=suggestions, value=[]),
+            examples_directly,
+            input_analysis,
+            new_example_briefs,
+            examples_from_briefs,
+            examples,
+        )
+    except Exception as e:
+        raise gr.Error(f"An error occurred: {str(e)}")
+    
+def generate_description(examples, model_name, temperature):
+    try:
+        input_json = convert_examples_to_json(examples)
+
+        model = ChatOpenAI(model=model_name, temperature=temperature, max_retries=3)
+        generator = TaskDescriptionGenerator(model)
+        result = generator.generate_description(input_json)
+        description = result["description"]
+        suggestions = result["suggestions"]
+        return description, gr.update(choices=suggestions, value=[])
+    except Exception as e:
+        raise gr.Error(f"An error occurred: {str(e)}")
+
+def analyze_input_data(description, model_name, temperature):
+    try:
+        model = ChatOpenAI(model=model_name, temperature=temperature, max_retries=3)
+        generator = TaskDescriptionGenerator(model)
+        input_analysis = generator.analyze_input(description)
+        return input_analysis
+    except Exception as e:
+        raise gr.Error(f"An error occurred: {str(e)}")
+    
+def generate_example_briefs(
+    description, input_analysis, generating_batch_size, model_name, temperature
+):
+    try:
+        model = ChatOpenAI(
+            model=model_name, temperature=temperature, max_retries=3
+        )
+        generator = TaskDescriptionGenerator(model)
+        briefs = generator.generate_briefs(
+            description, input_analysis, generating_batch_size
+        )
+        return briefs
+    except Exception as e:
+        raise gr.Error(f"An error occurred: {str(e)}")
+
+
+def generate_examples_using_briefs(
+    description, new_example_briefs, examples, generating_batch_size, model_name, temperature
+):
+    try:
+        input_json = convert_examples_to_json(examples)
+        model = ChatOpenAI(
+            model=model_name, temperature=temperature, max_retries=3
+        )
+        generator = TaskDescriptionGenerator(model)
+        result = generator.generate_examples_from_briefs(
+            description, new_example_briefs, input_json, generating_batch_size
+        )
+        examples = [
+            [example["input"], example["output"]]
+            for example in result["examples"]
+        ]
+        return examples
+    except Exception as e:
+        raise gr.Error(f"An error occurred: {str(e)}")
+
+
+def generate_examples_from_description(
+    description, raw_example, generating_batch_size, model_name, temperature
+):
+    try:
+        input_json = convert_examples_to_json(raw_example)
+        model = ChatOpenAI(model=model_name, temperature=temperature, max_retries=3)
+        generator = TaskDescriptionGenerator(model)
+        result = generator.generate_examples_directly(
+            description, input_json, generating_batch_size
+        )
+        examples = [
+            [example["input"], example["output"]] for example in result["examples"]
+        ]
+        return examples
+    except Exception as e:
+        raise gr.Error(f"An error occurred: {str(e)}")
+
+def format_selected_input_example_dataframe(evt: gr.SelectData, examples):
+    if evt.index[0] < len(examples):
+        selected_example = examples.iloc[evt.index[0]]
+        return "update", evt.index[0]+1, selected_example.iloc[0], selected_example.iloc[1]
+    return None, None, None, None
+
+def format_selected_example(evt: gr.SelectData, examples):
+    if evt.index[0] < len(examples):
+        selected_example = examples.iloc[evt.index[0]]
+        return (
+            "append",
+            None,
+            selected_example.iloc[0],
+            selected_example.iloc[1],
+        )
+    return None, None, None, None
+
+def import_json_data(file, input_dataframe):
+    if file is not None:
+        df = pd.read_json(file.name)
+        # Uppercase the first letter of each column name
+        df.columns = df.columns.str.title()
+        return df
+    return input_dataframe
+
+def export_json_data(dataframe):
+    if dataframe is not None and not dataframe.empty:
+        # Copy the dataframe and lowercase the column names
+        df_copy = dataframe.copy()
+        df_copy.columns = df_copy.columns.str.lower()
+        
+        json_str = df_copy.to_json(orient="records", indent=2)
+
+        # create a temporary file with the json string
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as temp_file:
+            temp_file.write(json_str.encode("utf-8"))
+            temp_file_path = temp_file.name
+
+        return temp_file_path
+    return None
+
+
+def append_example_to_input_dataframe(
+    new_example_input, new_example_output, input_dataframe
+):
+    try:
+        new_row = pd.DataFrame(
+            [[new_example_input, new_example_output]], columns=["Input", "Output"]
+        )
+        updated_df = pd.concat([input_dataframe, new_row], ignore_index=True)
+        return updated_df, None, None, None, None
+    except KeyError:
+        raise gr.Error("Invalid input or output")
+
+
+def delete_selected_dataframe_row(row_index, input_dataframe):
+    if row_index is not None and row_index > 0:
+        input_dataframe = input_dataframe.drop(index=row_index - 1).reset_index(
+            drop=True
+        )
+        return input_dataframe, None, None, None, None
+    return input_dataframe, None, None, None, None
+
+
+def update_selected_dataframe_row(
+    selected_example_input, selected_example_output, selected_row_index, input_dataframe
+):
+    if selected_row_index is not None and selected_row_index > 0:
+        input_dataframe.iloc[selected_row_index - 1] = [
+            selected_example_input,
+            selected_example_output,
+        ]
+        return input_dataframe, None, None, None, None
+    return input_dataframe, None, None, None, None
+
+
+def input_dataframe_change(
+    input_dataframe, selected_group_mode, selected_group_index, selected_group_input, selected_group_output
+):
+    if len(input_dataframe) <= 1:
+        return None, None, None, None
+    return (
+        selected_group_mode,
+        selected_group_index,
+        selected_group_input,
+        selected_group_output,
+    )
+
+def generate_suggestions(description, examples, model_name, temperature):
+    try:
+        input_json = convert_examples_to_json(examples)
+        model = ChatOpenAI(model=model_name, temperature=temperature, max_retries=3)
+        generator = TaskDescriptionGenerator(model)
+        result = generator.generate_suggestions(input_json, description)
+        return gr.update(choices=result["suggestions"])
+    except Exception as e:
+        raise gr.Error(f"An error occurred: {str(e)}")
+
+def apply_suggestions(description, suggestions, examples, model_name, temperature):
+    try:
+        input_json = convert_examples_to_json(examples)
+        model = ChatOpenAI(model=model_name, temperature=temperature, max_retries=3)
+        generator = TaskDescriptionGenerator(model)
+        result = generator.update_description(input_json, description, suggestions)
+        return result["description"]
+    except Exception as e:
+        raise gr.Error(f"An error occurred: {str(e)}")

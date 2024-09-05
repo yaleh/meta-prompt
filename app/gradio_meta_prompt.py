@@ -30,235 +30,625 @@ with gr.Blocks(title='Meta Prompt') as demo:
         gr.Markdown(f"""<h1 style='text-align: left; margin-bottom: 1rem'>Meta Prompt</h1>
 <p style="text-align:left">A tool for generating and analyzing natural language prompts using multiple language models.</p>
 <a href="https://github.com/yaleh/meta-prompt"><img src="https://img.shields.io/badge/GitHub-blue?logo=github" alt="GitHub"></a>""")
+
+    input_dataframe = gr.DataFrame(
+        label="Input Examples",
+        headers=["Input", "Output"],
+        datatype=["str", "str"],
+        column_widths=["50%", "50%"],
+        row_count=(1, "dynamic"),
+        col_count=(2, "fixed"),
+        interactive=False,
+        wrap=True
+    )
+
     with gr.Row():
-        with gr.Column():
-            user_message_input = gr.Textbox(
-                label="User Message",
-                show_copy_button=True
-            )
-            expected_output_input = gr.Textbox(
-                label="Expected Output",
-                show_copy_button=True
-            )
-            with gr.Accordion("Initial System Message & Acceptance Criteria", open=False):
+        selected_example_input = gr.Textbox(
+            label="Selected Example Input",
+            lines=2,
+            show_copy_button=True,
+            value="",
+        )
+        selected_example_output = gr.Textbox(
+            label="Selected Example Output",
+            lines=2,
+            show_copy_button=True,
+            value="",
+        )
 
-                with gr.Group():
-                    initial_system_message_input = gr.Textbox(
-                        label="Initial System Message",
-                        show_copy_button=True,
-                        value=""
-                    )
-                    with gr.Row():
-                        evaluate_initial_system_message_button = gr.Button(
-                            value="Evaluate",
-                            variant="secondary"
-                        )
-                        generate_initial_system_message_button = gr.Button(
-                            value="Generate",
-                            variant="secondary"
-                        )
+    selected_group_mode = gr.State(None)  # None, "update", "append"
+    selected_group_index = gr.State(None)  # None, int
+    selected_group_input = gr.State("")
+    selected_group_output = gr.State("")
 
-                with gr.Group():
-                    acceptance_criteria_input = gr.Textbox(
-                        label="Acceptance Criteria (Compared with Expected Output [EO])",
-                        show_copy_button=True
-                    )
-                    generate_acceptance_criteria_button = gr.Button(
-                        value="Generate",
-                        variant="secondary"
-                    )
+    selected_group_input.change(
+        fn=lambda x: x,
+        inputs=[selected_group_input],
+        outputs=[selected_example_input],
+    )
+    selected_group_output.change(
+        fn=lambda x: x,
+        inputs=[selected_group_output],
+        outputs=[selected_example_output],
+    )
 
-                recursion_limit_input = gr.Number(
-                    label="Recursion Limit",
-                    value=config.recursion_limit,
-                    precision=0,
-                    minimum=1,
-                    maximum=config.recursion_limit_max,
-                    step=1
-                )
-                max_output_age = gr.Number(
-                    label="Max Output Age",
-                    value=config.max_output_age,
-                    precision=0,
-                    minimum=1,
-                    maximum=config.max_output_age_max,
-                    step=1
-                )
-                prompt_template_group = gr.Dropdown(
-                    label="Prompt Template Group",
-                    choices=list(config.prompt_templates.keys()),
-                    value=list(config.prompt_templates.keys())[0]
-                )
-                aggressive_exploration = gr.Checkbox(
-                    label="Aggressive Exploration",
-                    value=config.aggressive_exploration
-                )
-            with gr.Row():
-                with gr.Tabs() as llm_tabs:
-                    with gr.Tab('Simple') as simple_llm_tab:
-                        simple_model_name_input = gr.Dropdown(
-                            label="Model Name",
-                            choices=config.llms.keys(),
-                            value=list(config.llms.keys())[0],
-                        )
-                        # Connect the inputs and outputs to the function
-                        with gr.Row():
-                            simple_submit_button = gr.Button(
-                                value="Submit", variant="primary")
-                            simple_clear_button = gr.ClearButton(
-                                [user_message_input, expected_output_input,
-                                acceptance_criteria_input, initial_system_message_input],
-                                value='Clear All')
-                    with gr.Tab('Advanced') as advanced_llm_tab:
-                        advanced_optimizer_model_name_input = gr.Dropdown(
-                            label="Optimizer Model Name",
-                            choices=config.llms.keys(),
-                            value=list(config.llms.keys())[0],
-                        )
-                        advanced_executor_model_name_input = gr.Dropdown(
-                            label="Executor Model Name",
-                            choices=config.llms.keys(),
-                            value=list(config.llms.keys())[0],
-                        )
-                        # Connect the inputs and outputs to the function
-                        with gr.Row():
-                            advanced_submit_button = gr.Button(
-                                value="Submit", variant="primary")
-                            advanced_clear_button = gr.ClearButton(
-                                components=[user_message_input, expected_output_input,
-                                            acceptance_criteria_input, initial_system_message_input],
-                                value='Clear All')
-                    with gr.Tab('Expert') as expert_llm_tab:
-                        with gr.Row():
-                            expert_prompt_initial_developer_model_name_input = gr.Dropdown(
-                                label="Initial Developer Model Name",
-                                choices=config.llms.keys(),
-                                value=list(config.llms.keys())[0],
-                            )
-                            expert_prompt_initial_developer_temperature_input = gr.Number(
-                                label="Initial Developer Temperature", value=0.1,
-                                precision=1, minimum=0, maximum=1, step=0.1,
-                                interactive=True)
-
-                        with gr.Row():
-                            expert_prompt_acceptance_criteria_model_name_input = gr.Dropdown(
-                                label="Acceptance Criteria Model Name",
-                                choices=config.llms.keys(),
-                                value=list(config.llms.keys())[0],
-                            )
-                            expert_prompt_acceptance_criteria_temperature_input = gr.Number(
-                                label="Acceptance Criteria Temperature", value=0.1,
-                                precision=1, minimum=0, maximum=1, step=0.1,
-                                interactive=True)
-
-                        with gr.Row():
-                            expert_prompt_developer_model_name_input = gr.Dropdown(
-                                label="Developer Model Name",
-                                choices=config.llms.keys(),
-                                value=list(config.llms.keys())[0],
-                            )
-                            expert_prompt_developer_temperature_input = gr.Number(
-                                label="Developer Temperature", value=0.1,
-                                precision=1, minimum=0, maximum=1, step=0.1,
-                                interactive=True)
-
-                        with gr.Row():
-                            expert_prompt_executor_model_name_input = gr.Dropdown(
-                                label="Executor Model Name",
-                                choices=config.llms.keys(),
-                                value=list(config.llms.keys())[0],
-                            )
-                            expert_prompt_executor_temperature_input = gr.Number(
-                                label="Executor Temperature", value=0.1,
-                                precision=1, minimum=0, maximum=1, step=0.1,
-                                interactive=True)
-
-                        with gr.Row():
-                            expert_output_history_analyzer_model_name_input = gr.Dropdown(
-                                label="History Analyzer Model Name",
-                                choices=config.llms.keys(),
-                                value=list(config.llms.keys())[0],
-                            )
-                            expert_output_history_analyzer_temperature_input = gr.Number(
-                                label="History Analyzer Temperature", value=0.1,
-                                precision=1, minimum=0, maximum=1, step=0.1,
-                                interactive=True)
-
-                        with gr.Row():
-                            expert_prompt_analyzer_model_name_input = gr.Dropdown(
-                                label="Analyzer Model Name",
-                                choices=config.llms.keys(),
-                                value=list(config.llms.keys())[0],
-                            )
-                            expert_prompt_analyzer_temperature_input = gr.Number(
-                                label="Analyzer Temperature", value=0.1,
-                                precision=1, minimum=0, maximum=1, step=0.1,
-                                interactive=True)
-
-                        with gr.Row():
-                            expert_prompt_suggester_model_name_input = gr.Dropdown(
-                                label="Suggester Model Name",
-                                choices=config.llms.keys(),
-                                value=list(config.llms.keys())[0],
-                            )
-                            expert_prompt_suggester_temperature_input = gr.Number(
-                                label="Suggester Temperature", value=0.1,
-                                precision=1, minimum=0, maximum=1, step=0.1,
-                                interactive=True)
-
-                        # Connect the inputs and outputs to the function
-                        with gr.Row():
-                            expert_submit_button = gr.Button(
-                                value="Submit", variant="primary")
-                            expert_clear_button = gr.ClearButton(
-                                components=[user_message_input, expected_output_input,
-                                            acceptance_criteria_input, initial_system_message_input],
-                                value='Clear All')
-        with gr.Column():
-            with gr.Group():
-                system_message_output = gr.Textbox(
-                    label="System Message", show_copy_button=True)
+    @gr.render(
+        inputs=[
+            selected_group_mode,
+            selected_group_index,
+            selected_group_input,
+            selected_group_output,
+        ],
+        triggers=[selected_group_mode.change],
+    )
+    def selected_group(mode, index, input, output):
+        if mode is None:
+            return
+        with gr.Group():
+            if mode == "update":
                 with gr.Row():
-                    evaluate_system_message_button = gr.Button(
-                        value="Evaluate", variant="secondary")
-                    copy_to_initial_system_message_button = gr.Button(
-                        value="Copy to Initial System Message", variant="secondary")
-            output_output = gr.Textbox(label="Output", show_copy_button=True)
-            analysis_output = gr.Textbox(
-                label="Analysis", show_copy_button=True)
-            flag_button = gr.Button(
-                value="Flag", variant="secondary", visible=config.allow_flagging)
-            with gr.Accordion("Details", open=False, visible=config.verbose):
-                logs_chatbot = gr.Chatbot(
-                    label='Messages', show_copy_button=True, layout='bubble',
-                    bubble_full_width=False, render_markdown=False
+                    selected_row_index = gr.Number(
+                        label="Selected Row Index", value=index, precision=0, interactive=False
+                    )
+                    delete_row_button = gr.Button(
+                        "Delete Selected Row", variant="secondary"
+                    )
+                with gr.Row():
+                    update_row_button = gr.Button(
+                        "Update Selected Row", variant="secondary"
+                    )
+                    close_button = gr.Button("Close", variant="secondary")
+
+                delete_row_button.click(
+                    fn=delete_selected_dataframe_row,
+                    inputs=[selected_row_index, input_dataframe],
+                    outputs=[
+                        input_dataframe,
+                        selected_group_mode,
+                        selected_group_index,
+                        selected_group_input,
+                        selected_group_output,
+                    ],
                 )
-                clear_logs_button = gr.ClearButton(
-                    [logs_chatbot], value='Clear Logs')
 
-    # Load examples
-    examples = gr.Examples(config.examples_path, inputs=[
-        user_message_input,
-        expected_output_input,
-        acceptance_criteria_input,
-        initial_system_message_input,
-        recursion_limit_input,
-        simple_model_name_input
-    ])
+                update_row_button.click(
+                    fn=update_selected_dataframe_row,
+                    inputs=[
+                        selected_example_input,
+                        selected_example_output,
+                        selected_row_index,
+                        input_dataframe,
+                    ],
+                    outputs=[
+                        input_dataframe,
+                        selected_group_mode,
+                        selected_group_index,
+                        selected_group_input,
+                        selected_group_output,
+                    ],
+                )
+            elif mode == "append":
+                with gr.Row():
+                    append_example_button = gr.Button(
+                        "Append to Input Examples", variant="secondary"
+                    )
+                    close_button = gr.Button("Close", variant="secondary")
 
-    model_states = {
-        "initial_developer": gr.State(value=simple_model_name_input.value), # None | str
-        "acceptance_criteria": gr.State(value=simple_model_name_input.value), # None | str
-        "developer": gr.State(value=simple_model_name_input.value), # None | str
-        "executor": gr.State(value=simple_model_name_input.value), # None | str
-        "history_analyzer": gr.State(value=simple_model_name_input.value), # None | str
-        "analyzer": gr.State(value=simple_model_name_input.value), # None | str
-        "suggester": gr.State(value=simple_model_name_input.value) # None | str
-    }
+                append_example_button.click(
+                    fn=append_example_to_input_dataframe,
+                    inputs=[
+                        selected_example_input,
+                        selected_example_output,
+                        input_dataframe,
+                    ],
+                    outputs=[
+                        input_dataframe,
+                        selected_group_mode,
+                        selected_group_index,
+                        selected_group_input,
+                        selected_group_output,
+                    ],
+                )
 
-    config_state = gr.State(value=config)
+            close_button.click(
+                fn=lambda: None,
+                inputs=[],
+                outputs=[selected_group_mode],
+            )
 
-    # set up event handlers
+    with gr.Accordion("Import/Export JSON", open=False):
+        json_file_object = gr.File(
+            label="Import/Export JSON", file_types=[".json"], type="filepath"
+        )
+        export_button = gr.Button("Export to JSON")
+
+    with gr.Tabs() as tabs:
+
+        with gr.Tab("Scope"):
+
+            with gr.Row():
+                submit_button = gr.Button("Generate", variant="primary")
+                scope_clear_button = gr.ClearButton(
+                    [
+                        input_dataframe
+                    ],
+                    value="Clear All"
+                )
+
+            examples_output_dataframe = gr.DataFrame(
+                # label="Examples",
+                headers=["Input", "Output"],
+                interactive=False,
+                datatype=["str", "str"],
+                column_widths=["50%", "50%"],
+                row_count=(1, "dynamic"),
+                col_count=(2, "fixed"),
+                wrap=True
+            )
+
+            with gr.Accordion("Model Settings", open=False):
+                model_name = gr.Dropdown(
+                    label="Model Name",
+                    choices=[
+                        "llama3-70b-8192",
+                        "llama3-8b-8192",
+                        "llama-3.1-70b-versatile",
+                        "llama-3.1-8b-instant",
+                        "gemma2-9b-it",
+                    ],
+                    value="llama3-70b-8192",
+                )
+                temperature = gr.Slider(
+                    label="Temperature", value=1.0, minimum=0.0, maximum=1.0, step=0.1
+                )
+                generating_batch_size = gr.Slider(
+                    label="Generating Batch Size", value=3, minimum=1, maximum=10, step=1
+                )
+
+            with gr.Accordion("Analysis", open=False):
+                with gr.Row():
+                    with gr.Column():
+                        generate_description_button = gr.Button(
+                            "Generate Description", variant="secondary"
+                        )
+                        description_output = gr.Textbox(
+                            label="Description", lines=5, show_copy_button=True
+                        )
+                    with gr.Column():
+                        # Suggestions components
+                        generate_suggestions_button = gr.Button(
+                            "Generate Suggestions", variant="secondary")
+                        suggestions_output = gr.Dropdown(
+                            label="Suggestions", choices=[], multiselect=True, allow_custom_value=True)
+                        apply_suggestions_button = gr.Button(
+                            "Apply Suggestions", variant="secondary")
+
+                with gr.Row():
+                    with gr.Column():
+                        analyze_input_button = gr.Button(
+                            "Analyze Input", variant="secondary"
+                        )
+                        input_analysis_output = gr.Textbox(
+                            label="Input Analysis", lines=5, show_copy_button=True
+                        )
+                    with gr.Column():
+                        generate_briefs_button = gr.Button(
+                            "Generate Briefs", variant="secondary"
+                        )
+                        example_briefs_output = gr.Textbox(
+                            label="Example Briefs", lines=5, show_copy_button=True
+                        )
+
+                with gr.Row():
+                    with gr.Column():
+                        generate_examples_directly_button = gr.Button(
+                            "Generate Examples Directly", variant="secondary"
+                        )
+                        examples_directly_output_dataframe = gr.DataFrame(
+                            label="Examples Directly",
+                            headers=["Input", "Output"],
+                            interactive=False,
+                            datatype=["str", "str"],
+                            column_widths=["50%", "50%"],
+                            row_count=(1, "dynamic"),
+                            col_count=(2, "fixed"),
+                            wrap=True
+                        )
+
+                    with gr.Column():
+                        generate_examples_from_briefs_button = gr.Button(
+                            "Generate Examples from Briefs", variant="secondary"
+                        )
+                        examples_from_briefs_output_dataframe = gr.DataFrame(
+                            label="Examples from Briefs",
+                            headers=["Input", "Output"],
+                            interactive=False,
+                            datatype=["str", "str"],
+                            column_widths=["50%", "50%"],
+                            row_count=(1, "dynamic"),
+                            col_count=(2, "fixed"),
+                            wrap=True
+                        )
+
+            scope_clear_button.add(
+                [
+                    description_output,
+                    suggestions_output,
+                    examples_directly_output_dataframe,
+                    input_analysis_output,
+                    example_briefs_output,
+                    examples_from_briefs_output_dataframe,
+                    examples_output_dataframe
+                ]
+            )
+
+        with gr.Tab("Prompt"):
+
+            with gr.Row():
+                prompt_submit_button = gr.Button(value="Submit", variant="primary")
+                prompt_clear_button = gr.ClearButton(value='Clear All')
+
+            with gr.Row():
+                with gr.Column():
+                    with gr.Accordion("Initial System Message & Acceptance Criteria", open=False):
+
+                        with gr.Group():
+                            initial_system_message_input = gr.Textbox(
+                                label="Initial System Message",
+                                show_copy_button=True,
+                                value=""
+                            )
+                            with gr.Row():
+                                evaluate_initial_system_message_button = gr.Button(
+                                    value="Evaluate",
+                                    variant="secondary"
+                                )
+                                generate_initial_system_message_button = gr.Button(
+                                    value="Generate",
+                                    variant="secondary"
+                                )
+
+                        with gr.Group():
+                            acceptance_criteria_input = gr.Textbox(
+                                label="Acceptance Criteria (Compared with Expected Output [EO])",
+                                show_copy_button=True
+                            )
+                            generate_acceptance_criteria_button = gr.Button(
+                                value="Generate",
+                                variant="secondary"
+                            )
+
+                        recursion_limit_input = gr.Number(
+                            label="Recursion Limit",
+                            value=config.recursion_limit,
+                            precision=0,
+                            minimum=1,
+                            maximum=config.recursion_limit_max,
+                            step=1
+                        )
+                        max_output_age = gr.Number(
+                            label="Max Output Age",
+                            value=config.max_output_age,
+                            precision=0,
+                            minimum=1,
+                            maximum=config.max_output_age_max,
+                            step=1
+                        )
+                        prompt_template_group = gr.Dropdown(
+                            label="Prompt Template Group",
+                            choices=list(config.prompt_templates.keys()),
+                            value=list(config.prompt_templates.keys())[0]
+                        )
+                        aggressive_exploration = gr.Checkbox(
+                            label="Aggressive Exploration",
+                            value=config.aggressive_exploration
+                        )
+                    with gr.Row():
+                        with gr.Tabs() as llm_tabs:
+                            with gr.Tab('Simple') as simple_llm_tab:
+                                simple_model_name_input = gr.Dropdown(
+                                    label="Model Name",
+                                    choices=config.llms.keys(),
+                                    value=list(config.llms.keys())[0],
+                                )
+                            with gr.Tab('Advanced') as advanced_llm_tab:
+                                advanced_optimizer_model_name_input = gr.Dropdown(
+                                    label="Optimizer Model Name",
+                                    choices=config.llms.keys(),
+                                    value=list(config.llms.keys())[0],
+                                )
+                                advanced_executor_model_name_input = gr.Dropdown(
+                                    label="Executor Model Name",
+                                    choices=config.llms.keys(),
+                                    value=list(config.llms.keys())[0],
+                                )
+                            with gr.Tab('Expert') as expert_llm_tab:
+                                with gr.Row():
+                                    expert_prompt_initial_developer_model_name_input = gr.Dropdown(
+                                        label="Initial Developer Model Name",
+                                        choices=config.llms.keys(),
+                                        value=list(config.llms.keys())[0],
+                                    )
+                                    expert_prompt_initial_developer_temperature_input = gr.Number(
+                                        label="Initial Developer Temperature", value=0.1,
+                                        precision=1, minimum=0, maximum=1, step=0.1,
+                                        interactive=True)
+
+                                with gr.Row():
+                                    expert_prompt_acceptance_criteria_model_name_input = gr.Dropdown(
+                                        label="Acceptance Criteria Model Name",
+                                        choices=config.llms.keys(),
+                                        value=list(config.llms.keys())[0],
+                                    )
+                                    expert_prompt_acceptance_criteria_temperature_input = gr.Number(
+                                        label="Acceptance Criteria Temperature", value=0.1,
+                                        precision=1, minimum=0, maximum=1, step=0.1,
+                                        interactive=True)
+
+                                with gr.Row():
+                                    expert_prompt_developer_model_name_input = gr.Dropdown(
+                                        label="Developer Model Name",
+                                        choices=config.llms.keys(),
+                                        value=list(config.llms.keys())[0],
+                                    )
+                                    expert_prompt_developer_temperature_input = gr.Number(
+                                        label="Developer Temperature", value=0.1,
+                                        precision=1, minimum=0, maximum=1, step=0.1,
+                                        interactive=True)
+
+                                with gr.Row():
+                                    expert_prompt_executor_model_name_input = gr.Dropdown(
+                                        label="Executor Model Name",
+                                        choices=config.llms.keys(),
+                                        value=list(config.llms.keys())[0],
+                                    )
+                                    expert_prompt_executor_temperature_input = gr.Number(
+                                        label="Executor Temperature", value=0.1,
+                                        precision=1, minimum=0, maximum=1, step=0.1,
+                                        interactive=True)
+
+                                with gr.Row():
+                                    expert_output_history_analyzer_model_name_input = gr.Dropdown(
+                                        label="History Analyzer Model Name",
+                                        choices=config.llms.keys(),
+                                        value=list(config.llms.keys())[0],
+                                    )
+                                    expert_output_history_analyzer_temperature_input = gr.Number(
+                                        label="History Analyzer Temperature", value=0.1,
+                                        precision=1, minimum=0, maximum=1, step=0.1,
+                                        interactive=True)
+
+                                with gr.Row():
+                                    expert_prompt_analyzer_model_name_input = gr.Dropdown(
+                                        label="Analyzer Model Name",
+                                        choices=config.llms.keys(),
+                                        value=list(config.llms.keys())[0],
+                                    )
+                                    expert_prompt_analyzer_temperature_input = gr.Number(
+                                        label="Analyzer Temperature", value=0.1,
+                                        precision=1, minimum=0, maximum=1, step=0.1,
+                                        interactive=True)
+
+                                with gr.Row():
+                                    expert_prompt_suggester_model_name_input = gr.Dropdown(
+                                        label="Suggester Model Name",
+                                        choices=config.llms.keys(),
+                                        value=list(config.llms.keys())[0],
+                                    )
+                                    expert_prompt_suggester_temperature_input = gr.Number(
+                                        label="Suggester Temperature", value=0.1,
+                                        precision=1, minimum=0, maximum=1, step=0.1,
+                                        interactive=True)
+
+                with gr.Column():
+                    with gr.Group():
+                        system_message_output = gr.Textbox(
+                            label="System Message", show_copy_button=True)
+                        with gr.Row():
+                            evaluate_system_message_button = gr.Button(
+                                value="Evaluate", variant="secondary")
+                            copy_to_initial_system_message_button = gr.Button(
+                                value="Copy to Initial System Message", variant="secondary")
+                    output_output = gr.Textbox(
+                        label="Output", show_copy_button=True)
+                    analysis_output = gr.Textbox(
+                        label="Analysis", show_copy_button=True)
+                    flag_button = gr.Button(
+                        value="Flag", variant="secondary", visible=config.allow_flagging)
+                    with gr.Accordion("Details", open=False, visible=config.verbose):
+                        logs_chatbot = gr.Chatbot(
+                            label='Messages', show_copy_button=True, layout='bubble',
+                            bubble_full_width=False, render_markdown=False
+                        )
+                        clear_logs_button = gr.ClearButton(
+                            [logs_chatbot], value='Clear Logs')
+
+            # Load examples
+            examples = gr.Examples(config.examples_path, inputs=[
+                selected_example_input,
+                selected_example_output,
+                acceptance_criteria_input,
+                initial_system_message_input,
+                recursion_limit_input,
+                simple_model_name_input
+            ])
+
+            model_states = {
+                # None | str
+                "initial_developer": gr.State(value=simple_model_name_input.value),
+                # None | str
+                "acceptance_criteria": gr.State(value=simple_model_name_input.value),
+                # None | str
+                "developer": gr.State(value=simple_model_name_input.value),
+                # None | str
+                "executor": gr.State(value=simple_model_name_input.value),
+                # None | str
+                "history_analyzer": gr.State(value=simple_model_name_input.value),
+                # None | str
+                "analyzer": gr.State(value=simple_model_name_input.value),
+                # None | str
+                "suggester": gr.State(value=simple_model_name_input.value)
+            }
+
+            config_state = gr.State(value=config)
+
+    # set up event handlers for the scope tab
+
+    json_file_object.change(
+        fn=import_json_data,
+        inputs=[json_file_object, input_dataframe],
+        outputs=[input_dataframe],
+    )
+
+    export_button.click(
+        fn=export_json_data,
+        inputs=[input_dataframe],
+        outputs=[json_file_object],
+    )
+
+    submit_button.click(
+        fn=process_json_data,
+        inputs=[
+            input_dataframe,
+            model_name,
+            generating_batch_size,
+            temperature,
+        ],
+        outputs=[
+            description_output,
+            suggestions_output,
+            examples_directly_output_dataframe,
+            input_analysis_output,
+            example_briefs_output,
+            examples_from_briefs_output_dataframe,
+            examples_output_dataframe,
+        ],
+    )
+
+    generate_description_button.click(
+        fn=generate_description,
+        inputs=[input_dataframe, model_name, temperature],
+        outputs=[description_output, suggestions_output],
+    )
+
+    generate_examples_directly_button.click(
+        fn=generate_examples_from_description,
+        inputs=[
+            description_output,
+            input_dataframe,
+            generating_batch_size,
+            model_name,
+            temperature,
+        ],
+        outputs=[examples_directly_output_dataframe],
+    )
+
+    analyze_input_button.click(
+        fn=analyze_input_data,
+        inputs=[description_output, model_name, temperature],
+        outputs=[input_analysis_output],
+    )
+
+    generate_briefs_button.click(
+        fn=generate_example_briefs,
+        inputs=[
+            description_output,
+            input_analysis_output,
+            generating_batch_size,
+            model_name,
+            temperature,
+        ],
+        outputs=[example_briefs_output],
+    )
+
+    generate_examples_from_briefs_button.click(
+        fn=generate_examples_using_briefs,
+        inputs=[
+            description_output,
+            example_briefs_output,
+            input_dataframe,
+            generating_batch_size,
+            model_name,
+            temperature,
+        ],
+        outputs=[examples_from_briefs_output_dataframe],
+    )
+
+    input_dataframe.select(
+        fn=format_selected_input_example_dataframe,
+        inputs=[input_dataframe],
+        outputs=[
+            selected_group_mode,
+            selected_group_index,
+            selected_group_input,
+            selected_group_output,
+        ],
+    )
+
+    examples_directly_output_dataframe.select(
+        fn=format_selected_example,
+        inputs=[examples_directly_output_dataframe],
+        outputs=[
+            selected_group_mode,
+            selected_group_index,
+            selected_group_input,
+            selected_group_output,
+        ],
+    )
+
+    examples_from_briefs_output_dataframe.select(
+        fn=format_selected_example,
+        inputs=[examples_from_briefs_output_dataframe],
+        outputs=[
+            selected_group_mode,
+            selected_group_index,
+            selected_group_input,
+            selected_group_output,
+        ],
+    )
+
+    examples_output_dataframe.select(
+        fn=format_selected_example,
+        inputs=[examples_output_dataframe],
+        outputs=[
+            selected_group_mode,
+            selected_group_index,
+            selected_group_input,
+            selected_group_output,
+        ],
+    )
+
+    input_dataframe.change(
+        fn=input_dataframe_change,
+        inputs=[
+            input_dataframe,
+            selected_group_mode,
+            selected_group_index,
+            selected_group_input,
+            selected_group_output,
+        ],
+        outputs=[
+            selected_group_mode,
+            selected_group_index,
+            selected_group_input,
+            selected_group_output,
+        ],
+    )
+
+    generate_suggestions_button.click(
+        fn=generate_suggestions,
+        inputs=[description_output, input_dataframe, model_name, temperature],
+        outputs=[suggestions_output],
+    )
+
+    apply_suggestions_button.click(
+        fn=apply_suggestions,
+        inputs=[description_output, suggestions_output,
+                input_dataframe, model_name, temperature],
+        outputs=[description_output],
+    )
+
+    # set up event handlers for the prompt tab
     simple_llm_tab.select(
         on_model_tab_select,
         [
@@ -334,14 +724,14 @@ with gr.Blocks(title='Meta Prompt') as demo:
 
     generate_acceptance_criteria_button.click(
         generate_acceptance_criteria,
-        inputs=[config_state, user_message_input, expected_output_input,
+        inputs=[config_state, selected_example_input, selected_example_output,
                 model_states["acceptance_criteria"],
                 prompt_template_group],
         outputs=[acceptance_criteria_input, logs_chatbot]
     )
     generate_initial_system_message_button.click(
         generate_initial_system_message,
-        inputs=[config_state, user_message_input, expected_output_input,
+        inputs=[config_state, selected_example_input, selected_example_output,
                 model_states["initial_developer"],
                 prompt_template_group],
         outputs=[initial_system_message_input, logs_chatbot]
@@ -352,7 +742,7 @@ with gr.Blocks(title='Meta Prompt') as demo:
         inputs=[
             config_state,
             initial_system_message_input,
-            user_message_input,
+            selected_example_input,
             model_states["executor"]
         ],
         outputs=[output_output]
@@ -362,7 +752,7 @@ with gr.Blocks(title='Meta Prompt') as demo:
         inputs=[
             config_state,
             system_message_output,
-            user_message_input,
+            selected_example_input,
             model_states["executor"]
         ],
         outputs=[output_output]
@@ -373,75 +763,17 @@ with gr.Blocks(title='Meta Prompt') as demo:
         outputs=[initial_system_message_input]
     )
 
-    simple_clear_button.add([system_message_output, output_output,
-                        analysis_output, logs_chatbot])
-    advanced_clear_button.add([system_message_output, output_output,
-                                analysis_output, logs_chatbot])
+    prompt_clear_button.add([selected_example_input, selected_example_output,
+                             acceptance_criteria_input, initial_system_message_input, 
+                             system_message_output, output_output,
+                             analysis_output, logs_chatbot])
 
-    simple_submit_button.click(
+    prompt_submit_button.click(
         process_message_with_models,
         inputs=[
             config_state,
-            user_message_input,
-            expected_output_input,
-            acceptance_criteria_input,
-            initial_system_message_input,
-            recursion_limit_input,
-            max_output_age,
-            model_states["initial_developer"],
-            model_states["acceptance_criteria"],
-            model_states["developer"],
-            model_states["executor"],
-            model_states["history_analyzer"],
-            model_states["analyzer"],
-            model_states["suggester"],
-            prompt_template_group,
-            aggressive_exploration
-        ],
-        outputs=[
-            system_message_output,
-            output_output,
-            analysis_output,
-            acceptance_criteria_input,
-            logs_chatbot
-        ]
-    )
-
-    advanced_submit_button.click(
-        process_message_with_models,
-        inputs=[
-            config_state,
-            user_message_input,
-            expected_output_input,
-            acceptance_criteria_input,
-            initial_system_message_input,
-            recursion_limit_input,
-            max_output_age,
-            model_states["initial_developer"],
-            model_states["acceptance_criteria"],
-            model_states["developer"],
-            model_states["executor"],
-            model_states["history_analyzer"],
-            model_states["analyzer"],
-            model_states["suggester"],
-            prompt_template_group,
-            aggressive_exploration
-        ],
-        outputs=[
-            system_message_output,
-            output_output,
-            analysis_output,
-            acceptance_criteria_input,
-            logs_chatbot
-        ]
-    )
-
-    expert_submit_button.click(
-        process_message_with_models,
-        inputs=[
-            config_state,
-            user_message_input,
-            expected_output_input,
+            selected_example_input,
+            selected_example_output,
             acceptance_criteria_input,
             initial_system_message_input,
             recursion_limit_input,
@@ -466,8 +798,8 @@ with gr.Blocks(title='Meta Prompt') as demo:
     )
 
     flagging_inputs = [
-        user_message_input,
-        expected_output_input,
+        selected_example_input,
+        selected_example_output,
         acceptance_criteria_input,
         initial_system_message_input
     ]
