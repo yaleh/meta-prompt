@@ -19,6 +19,7 @@ class PromptGroup(BaseModel):
 
 class MetaPromptConfig(BaseConfig):
     llms: Optional[dict[str, LLMConfig]]
+    default_llm_temperature: Optional[float] = 0.1
     aggressive_exploration: Optional[bool] = False
     examples_path: Optional[str]
     server_name: Optional[str] = None

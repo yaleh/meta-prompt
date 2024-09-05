@@ -43,7 +43,16 @@ with gr.Blocks(title='Meta Prompt') as demo:
                 interactive=False,
                 wrap=True
             )
+        with gr.Column(scale=1, min_width=100):
+            with gr.Group():
+                json_file_object = gr.File(
+                    label="Import/Export JSON", file_types=[".json"], type="filepath",
+                    min_width=80
+                )
+                export_button = gr.Button("Export to JSON")
 
+    with gr.Row():
+        with gr.Column(scale=3):
             selected_example_input = gr.Textbox(
                 label="Selected Example Input",
                 lines=2,
@@ -57,13 +66,7 @@ with gr.Blocks(title='Meta Prompt') as demo:
                 value="",
             )
 
-        with gr.Column(scale=1):
-            with gr.Accordion("Import/Export JSON", open=False):
-                json_file_object = gr.File(
-                    label="Import/Export JSON", file_types=[".json"], type="filepath"
-                )
-                export_button = gr.Button("Export to JSON")
-
+        with gr.Column(scale=1, min_width=100):
             selected_group_mode = gr.State(None)  # None, "update", "append"
             selected_group_index = gr.State(None)  # None, int
             selected_group_input = gr.State("")
@@ -98,26 +101,13 @@ with gr.Blocks(title='Meta Prompt') as demo:
                             selected_row_index = gr.Number(
                                 label="Selected Row Index", value=index, precision=0, interactive=False
                             )
-                            delete_row_button = gr.Button(
-                                "Delete Selected Row", variant="secondary"
-                            )
-                        with gr.Row():
                             update_row_button = gr.Button(
                                 "Update Selected Row", variant="secondary"
                             )
-                            close_button = gr.Button("Close", variant="secondary")
-
-                        delete_row_button.click(
-                            fn=delete_selected_dataframe_row,
-                            inputs=[selected_row_index, input_dataframe],
-                            outputs=[
-                                input_dataframe,
-                                selected_group_mode,
-                                selected_group_index,
-                                selected_group_input,
-                                selected_group_output,
-                            ],
-                        )
+                            delete_row_button = gr.Button(
+                                "Delete Selected Row", variant="secondary"
+                            )
+                            # close_button = gr.Button("Close", variant="secondary")
 
                         update_row_button.click(
                             fn=update_selected_dataframe_row,
@@ -135,12 +125,25 @@ with gr.Blocks(title='Meta Prompt') as demo:
                                 selected_group_output,
                             ],
                         )
+
+                        delete_row_button.click(
+                            fn=delete_selected_dataframe_row,
+                            inputs=[selected_row_index, input_dataframe],
+                            outputs=[
+                                input_dataframe,
+                                selected_group_mode,
+                                selected_group_index,
+                                selected_group_input,
+                                selected_group_output,
+                            ],
+                        )
+
                     elif mode == "append":
                         with gr.Row():
                             append_example_button = gr.Button(
                                 "Append to Input Examples", variant="secondary"
                             )
-                            close_button = gr.Button("Close", variant="secondary")
+                            # close_button = gr.Button("Close", variant="secondary")
 
                         append_example_button.click(
                             fn=append_example_to_input_dataframe,
@@ -158,18 +161,18 @@ with gr.Blocks(title='Meta Prompt') as demo:
                             ],
                         )
 
-                    close_button.click(
-                        fn=lambda: None,
-                        inputs=[],
-                        outputs=[selected_group_mode],
-                    )
+                    # close_button.click(
+                    #     fn=lambda: None,
+                    #     inputs=[],
+                    #     outputs=[selected_group_mode],
+                    # )
 
     with gr.Tabs() as tabs:
 
         with gr.Tab("Scope"):
 
             with gr.Row():
-                submit_button = gr.Button("Generate", variant="primary")
+                scope_submit_button = gr.Button("Generate", variant="primary", interactive=False)
                 scope_clear_button = gr.ClearButton(
                     [
                         input_dataframe
@@ -303,16 +306,23 @@ with gr.Blocks(title='Meta Prompt') as demo:
                                     value="Generate",
                                     variant="secondary"
                                 )
+                                pull_task_description_output_button = gr.Button(
+                                    value="→ Pull Output", variant="secondary")
+                                pull_system_message_output_button = gr.Button(
+                                    value="Pull Output ←", variant="secondary")
 
                         with gr.Group():
                             acceptance_criteria_input = gr.Textbox(
                                 label="Acceptance Criteria (Compared with Expected Output [EO])",
                                 show_copy_button=True
                             )
-                            generate_acceptance_criteria_button = gr.Button(
-                                value="Generate",
-                                variant="secondary"
-                            )
+                            with gr.Row():
+                                generate_acceptance_criteria_button = gr.Button(
+                                    value="Generate",
+                                    variant="secondary"
+                                )
+                                pull_acceptance_criteria_output_button = gr.Button(
+                                    value="Pull Output ←", variant="secondary")
 
                         recursion_limit_input = gr.Number(
                             label="Recursion Limit",
@@ -443,10 +453,10 @@ with gr.Blocks(title='Meta Prompt') as demo:
                         with gr.Row():
                             evaluate_system_message_button = gr.Button(
                                 value="Evaluate", variant="secondary")
-                            copy_to_initial_system_message_button = gr.Button(
-                                value="Copy to Initial System Message", variant="secondary")
                     output_output = gr.Textbox(
                         label="Output", show_copy_button=True)
+                    acceptance_criteria_output = gr.Textbox(
+                        label="Acceptance Criteria", show_copy_button=True)
                     analysis_output = gr.Textbox(
                         label="Analysis", show_copy_button=True)
                     flag_button = gr.Button(
@@ -463,10 +473,10 @@ with gr.Blocks(title='Meta Prompt') as demo:
             examples = gr.Examples(config.examples_path, inputs=[
                 selected_example_input,
                 selected_example_output,
-                acceptance_criteria_input,
-                initial_system_message_input,
-                recursion_limit_input,
-                simple_model_name_input
+                # acceptance_criteria_input,
+                # initial_system_message_input,
+                # recursion_limit_input,
+                # simple_model_name_input
             ])
 
             prompt_model_tab_state = gr.State(value='Simple')
@@ -498,9 +508,22 @@ with gr.Blocks(title='Meta Prompt') as demo:
 
             config_state = gr.State(value=config)
 
+            scope_inputs_ready_state = gr.State(value=False)
             prompt_inputs_ready_state = gr.State(value=False)
 
     # set up event handlers for the scope tab
+    input_dataframe.change(
+        fn=lambda x: len(x) > 0, # input_dataframe has at least 1 data row 
+        inputs=[input_dataframe],
+        outputs=[scope_inputs_ready_state],
+    )
+
+    scope_inputs_ready_state.change(
+        fn=lambda x: [gr.update(interactive=x)] * 5,
+        inputs=[scope_inputs_ready_state],
+        outputs=[scope_submit_button, generate_description_button,
+                 generate_examples_directly_button, analyze_input_button, generate_briefs_button],
+    )
 
     json_file_object.change(
         fn=import_json_data,
@@ -514,7 +537,7 @@ with gr.Blocks(title='Meta Prompt') as demo:
         outputs=[json_file_object],
     )
 
-    submit_button.click(
+    scope_submit_button.click(
         fn=process_json_data,
         inputs=[
             config_state,
@@ -662,7 +685,7 @@ with gr.Blocks(title='Meta Prompt') as demo:
         fn=apply_suggestions,
         inputs=[config_state, description_output, suggestions_output,
                 input_dataframe, scope_model_name, temperature],
-        outputs=[description_output],
+        outputs=[description_output, suggestions_output],
     )
 
     # set up event handlers for the prompt tab
@@ -771,7 +794,7 @@ with gr.Blocks(title='Meta Prompt') as demo:
                 model_name_states["acceptance_criteria"],
                 model_temperature_states["acceptance_criteria"],
                 prompt_template_group],
-        outputs=[acceptance_criteria_input, logs_chatbot]
+        outputs=[acceptance_criteria_output, logs_chatbot]
     )
     generate_initial_system_message_button.click(
         generate_initial_system_message,
@@ -804,16 +827,26 @@ with gr.Blocks(title='Meta Prompt') as demo:
         ],
         outputs=[output_output]
     )
-    copy_to_initial_system_message_button.click(
+    pull_task_description_output_button.click(
+        lambda x: x,
+        inputs=[description_output],
+        outputs=[initial_system_message_input]
+    )
+    pull_system_message_output_button.click(
         lambda x: x,
         inputs=[system_message_output],
         outputs=[initial_system_message_input]
+    )
+    pull_acceptance_criteria_output_button.click(
+        lambda x: x,
+        inputs=[acceptance_criteria_output],
+        outputs=[acceptance_criteria_input]
     )
 
     prompt_clear_button.add([selected_example_input, selected_example_output,
                              acceptance_criteria_input, initial_system_message_input, 
                              system_message_output, output_output,
-                             analysis_output, logs_chatbot])
+                             acceptance_criteria_output, analysis_output, logs_chatbot])
 
     prompt_submit_button.click(
         process_message_with_models,
@@ -846,7 +879,7 @@ with gr.Blocks(title='Meta Prompt') as demo:
             system_message_output,
             output_output,
             analysis_output,
-            acceptance_criteria_input,
+            acceptance_criteria_output,
             logs_chatbot
         ]
     )
@@ -854,8 +887,8 @@ with gr.Blocks(title='Meta Prompt') as demo:
     flagging_inputs = [
         selected_example_input,
         selected_example_output,
-        acceptance_criteria_input,
-        initial_system_message_input
+        # acceptance_criteria_input,
+        # initial_system_message_input
     ]
 
     # Configure flagging

@@ -632,9 +632,10 @@ def generate_examples_using_briefs(
             description, new_example_briefs, input_json, generating_batch_size
         )
         examples = [
-            [example["input"], example["output"]]
+            [str(example["input"]), str(example["output"])]
             for example in result["examples"]
         ]
+
         return examples
     except Exception as e:
         raise gr.Error(f"An error occurred: {str(e)}")
@@ -651,7 +652,7 @@ def generate_examples_from_description(
             description, input_json, generating_batch_size
         )
         examples = [
-            [example["input"], example["output"]] for example in result["examples"]
+            [str(example["input"]), str(example["output"])] for example in result["examples"]
         ]
         return examples
     except Exception as e:
@@ -761,6 +762,6 @@ def apply_suggestions(config, description, suggestions, examples, model_name, te
         model = initialize_llm(config, model_name, {'temperature': temperature, 'max_retries': 3})
         generator = TaskDescriptionGenerator(model)
         result = generator.update_description(input_json, description, suggestions)
-        return result["description"]
+        return result["description"], gr.update(choices=result["suggestions"], value=[])
     except Exception as e:
         raise gr.Error(f"An error occurred: {str(e)}")
