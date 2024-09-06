@@ -36,20 +36,28 @@ with gr.Blocks(title='Meta Prompt') as demo:
             input_dataframe = gr.DataFrame(
                 label="Input Examples",
                 headers=["Input", "Output"],
+                value=[],
                 datatype=["str", "str"],
                 column_widths=["50%", "50%"],
                 row_count=(1, "dynamic"),
                 col_count=(2, "fixed"),
-                interactive=False,
+                interactive=True,
                 wrap=True
             )
         with gr.Column(scale=1, min_width=100):
             with gr.Group():
+                editable_checkbox = gr.Checkbox(label="Editable", value=True)
                 json_file_object = gr.File(
                     label="Import/Export JSON", file_types=[".json"], type="filepath",
                     min_width=80
                 )
                 export_button = gr.Button("Export to JSON")
+                clear_inputs_button = gr.ClearButton(
+                    [
+                        input_dataframe
+                    ],
+                    value="Clear Inputs"
+                )
 
     with gr.Row():
         with gr.Column(scale=3):
@@ -83,89 +91,83 @@ with gr.Blocks(title='Meta Prompt') as demo:
                 outputs=[selected_example_output],
             )
 
-            @gr.render(
-                inputs=[
-                    selected_group_mode,
-                    selected_group_index,
-                    selected_group_input,
-                    selected_group_output,
+            with (selected_input_group := gr.Group(visible=False)):
+                with gr.Row():
+                    selected_row_index = gr.Number(
+                        label="Selected Row Index", value=0, precision=0, interactive=False, visible=False
+                    )
+                    update_row_button = gr.Button(
+                        "Update Selected Row", variant="secondary", visible=False
+                    )
+                    delete_row_button = gr.Button(
+                        "Delete Selected Row", variant="secondary", visible=False
+                    )
+                    append_example_button = gr.Button(
+                        "Append to Input Examples", variant="secondary", visible=False
+                    )
+
+                update_row_button.click(
+                    fn=update_selected_dataframe_row,
+                    inputs=[
+                        selected_example_input,
+                        selected_example_output,
+                        selected_row_index,
+                        input_dataframe,
+                    ],
+                    outputs=[
+                        input_dataframe,
+                        selected_group_mode,
+                        selected_group_index,
+                        selected_group_input,
+                        selected_group_output,
+                    ],
+                )
+
+                delete_row_button.click(
+                    fn=delete_selected_dataframe_row,
+                    inputs=[selected_row_index, input_dataframe],
+                    outputs=[
+                        input_dataframe,
+                        selected_group_mode,
+                        selected_group_index,
+                        selected_group_input,
+                        selected_group_output,
+                    ],
+                )
+
+                append_example_button.click(
+                    fn=append_example_to_input_dataframe,
+                    inputs=[
+                        selected_example_input,
+                        selected_example_output,
+                        input_dataframe,
+                    ],
+                    outputs=[
+                        input_dataframe,
+                        selected_group_mode,
+                        selected_group_index,
+                        selected_group_input,
+                        selected_group_output,
+                    ],
+                )
+
+            selected_group_mode.change(
+                fn=lambda mode: [
+                    gr.update(visible=(mode is not None)),
+                    gr.update(visible=(mode == "update")),
+                    gr.update(visible=(mode == "update")),
+                    gr.update(visible=(mode == "update")),
+                    gr.update(visible=(mode == "append")),
                 ],
-                triggers=[selected_group_mode.change],
+                inputs=[selected_group_mode],
+                outputs=[selected_input_group, selected_row_index, update_row_button, delete_row_button, append_example_button],
             )
-            def selected_group(mode, index, input, output):
-                if mode is None:
-                    return
-                with gr.Group():
-                    if mode == "update":
-                        with gr.Row():
-                            selected_row_index = gr.Number(
-                                label="Selected Row Index", value=index, precision=0, interactive=False
-                            )
-                            update_row_button = gr.Button(
-                                "Update Selected Row", variant="secondary"
-                            )
-                            delete_row_button = gr.Button(
-                                "Delete Selected Row", variant="secondary"
-                            )
-                            # close_button = gr.Button("Close", variant="secondary")
 
-                        update_row_button.click(
-                            fn=update_selected_dataframe_row,
-                            inputs=[
-                                selected_example_input,
-                                selected_example_output,
-                                selected_row_index,
-                                input_dataframe,
-                            ],
-                            outputs=[
-                                input_dataframe,
-                                selected_group_mode,
-                                selected_group_index,
-                                selected_group_input,
-                                selected_group_output,
-                            ],
-                        )
-
-                        delete_row_button.click(
-                            fn=delete_selected_dataframe_row,
-                            inputs=[selected_row_index, input_dataframe],
-                            outputs=[
-                                input_dataframe,
-                                selected_group_mode,
-                                selected_group_index,
-                                selected_group_input,
-                                selected_group_output,
-                            ],
-                        )
-
-                    elif mode == "append":
-                        with gr.Row():
-                            append_example_button = gr.Button(
-                                "Append to Input Examples", variant="secondary"
-                            )
-                            # close_button = gr.Button("Close", variant="secondary")
-
-                        append_example_button.click(
-                            fn=append_example_to_input_dataframe,
-                            inputs=[
-                                selected_example_input,
-                                selected_example_output,
-                                input_dataframe,
-                            ],
-                            outputs=[
-                                input_dataframe,
-                                selected_group_mode,
-                                selected_group_index,
-                                selected_group_input,
-                                selected_group_output,
-                            ],
-                        )
-
-                    # close_button.click(
-                    #     fn=lambda: None,
-                    #     inputs=[],
-                    #     outputs=[selected_group_mode],
-                    # )
+            selected_group_index.change(
+                fn=lambda index: gr.update(value=index),
+                inputs=[selected_group_index],
+                outputs=[selected_row_index],
+            )
 
     with gr.Tabs() as tabs:
 
@@ -175,9 +177,8 @@ with gr.Blocks(title='Meta Prompt') as demo:
                 scope_submit_button = gr.Button("Generate", variant="primary", interactive=False)
                 scope_clear_button = gr.ClearButton(
                     [
-                        input_dataframe
                     ],
-                    value="Clear All"
+                    value="Clear Outputs"
                 )
 
             examples_output_dataframe = gr.DataFrame(
@@ -285,7 +286,7 @@ with gr.Blocks(title='Meta Prompt') as demo:
 
             with gr.Row():
                 prompt_submit_button = gr.Button(value="Submit", variant="primary", interactive=False)
-                prompt_clear_button = gr.ClearButton(value='Clear All')
+                prompt_clear_button = gr.ClearButton(value='Clear Output')
 
             with gr.Row():
                 with gr.Column():
@@ -473,10 +474,6 @@ with gr.Blocks(title='Meta Prompt') as demo:
             examples = gr.Examples(config.examples_path, inputs=[
                 selected_example_input,
                 selected_example_output,
-                # acceptance_criteria_input,
-                # initial_system_message_input,
-                # recursion_limit_input,
-                # simple_model_name_input
             ])
 
             prompt_model_tab_state = gr.State(value='Simple')
@@ -511,9 +508,24 @@ with gr.Blocks(title='Meta Prompt') as demo:
             scope_inputs_ready_state = gr.State(value=False)
             prompt_inputs_ready_state = gr.State(value=False)
 
+    # event handlers for inputs
+    editable_checkbox.change(
+        fn=lambda x: gr.update(interactive=x),
+        inputs=[editable_checkbox],
+        outputs=[input_dataframe],
+    )
+
+    clear_inputs_button.add(
+        [selected_group_input, selected_example_output, selected_group_index, selected_group_mode]
+    )
+
     # set up event handlers for the scope tab
+    def valid_input_dataframe(x):
+        # validate it's not empty and not all the values are ''
+        return not x.empty and not x.isnull().any().any() and not x.eq('').any().any()
+
     input_dataframe.change(
-        fn=lambda x: len(x) > 0, # input_dataframe has at least 1 data row 
+        fn=valid_input_dataframe, # input_dataframe has at least 1 data row and no NaN values
         inputs=[input_dataframe],
         outputs=[scope_inputs_ready_state],
     )
@@ -843,7 +855,7 @@ with gr.Blocks(title='Meta Prompt') as demo:
         outputs=[acceptance_criteria_input]
     )
 
-    prompt_clear_button.add([selected_example_input, selected_example_output,
+    prompt_clear_button.add([
                              acceptance_criteria_input, initial_system_message_input, 
                              system_message_output, output_output,
                              acceptance_criteria_output, analysis_output, logs_chatbot])
@@ -884,11 +896,15 @@ with gr.Blocks(title='Meta Prompt') as demo:
         ]
     )
 
+    examples.load_input_event.then(
+        lambda: "append",
+        None,
+        selected_group_mode,
+    )
+
     flagging_inputs = [
         selected_example_input,
-        selected_example_output,
-        # acceptance_criteria_input,
-        # initial_system_message_input
+        selected_example_output
     ]
 
     # Configure flagging
