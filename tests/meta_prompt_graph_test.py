@@ -7,6 +7,10 @@ from langchain_openai import ChatOpenAI
 from meta_prompt import *
 from meta_prompt.consts import NODE_ACCEPTANCE_CRITERIA_DEVELOPER
 from langgraph.graph import END
+import os
+# from dotenv import load_dotenv
+
+# load_dotenv()
 
 class TestMetaPromptGraph(unittest.TestCase):
     def setUp(self):
@@ -54,12 +58,7 @@ class TestMetaPromptGraph(unittest.TestCase):
         llms = {
             "output_history_analyzer": MagicMock(
                 invoke=lambda prompt: MagicMock(
-                    content="""# Analysis
-
-    This analysis compares two outputs to the expected output based on specific
-    criteria.
-
-    # Output ID closer to Expected Output: B"""
+                    content="{\"closerOutputID\": 2, \"analysis\": \"The output should use the `reverse()` method.\"}"
                 )
             )
         }
@@ -99,7 +98,7 @@ class TestMetaPromptGraph(unittest.TestCase):
         """
         llms = {
             NODE_PROMPT_ANALYZER: MagicMock(
-                invoke=lambda prompt: MagicMock(content="Accept: Yes")
+                invoke=lambda prompt: MagicMock(content="{\"Accept\": \"Yes\"}")
             )
         }
         meta_prompt_graph = MetaPromptGraph(llms=llms)
@@ -133,10 +132,20 @@ class TestMetaPromptGraph(unittest.TestCase):
         executes it with a given input state. It then verifies that the output
         state contains the expected keys and values.
         """
-        model_name = "google/gemma-2-9b-it"
-        llm = ChatOpenAI(model_name=model_name)
+        model_name = os.getenv("TEST_MODEL_NAME_EXECUTOR")
+        raw_llm = ChatOpenAI(model_name=model_name)
 
-        meta_prompt_graph = MetaPromptGraph(llms=llm)
+        llms = {
+            NODE_PROMPT_INITIAL_DEVELOPER: raw_llm,
+            NODE_ACCEPTANCE_CRITERIA_DEVELOPER: raw_llm,
+            NODE_PROMPT_DEVELOPER: raw_llm,
+            NODE_PROMPT_EXECUTOR: raw_llm,
+            NODE_OUTPUT_HISTORY_ANALYZER: raw_llm.bind(response_format={"type": "json_object"}),
+            NODE_PROMPT_ANALYZER: raw_llm.bind(response_format={"type": "json_object"}),
+            NODE_PROMPT_SUGGESTER: raw_llm,
+        }
+
+        meta_prompt_graph = MetaPromptGraph(llms=llms)
         input_state = AgentState(
             user_message="How do I reverse a list in Python?",
             expected_output="Use the `[::-1]` slicing technique or the "
@@ -161,7 +170,7 @@ class TestMetaPromptGraph(unittest.TestCase):
 
         user_message = "How can I create a list of numbers in Python?"
         messages = [("system", output_state["best_system_message"]), ("human", user_message)]
-        result = llm.invoke(messages)
+        result = raw_llm.invoke(messages)
 
         assert hasattr(result, "content"), "The result should have the attribute 'content'"
         print(result.content)
@@ -176,10 +185,10 @@ class TestMetaPromptGraph(unittest.TestCase):
         state contains the expected keys and values.
         """
         optimizer_llm = ChatOpenAI(
-            model_name="deepseek/deepseek-chat", temperature=0.5
+            model_name=os.getenv("TEST_MODEL_NAME_OPTIMIZER"), temperature=0.5
         )
         executor_llm = ChatOpenAI(
-            model_name="meta-llama/llama-3-8b-instruct", temperature=0.01
+            model_name=os.getenv("TEST_MODEL_NAME_EXECUTOR"), temperature=0.01
         )
 
         llms = {
@@ -188,7 +197,7 @@ class TestMetaPromptGraph(unittest.TestCase):
             NODE_PROMPT_DEVELOPER: optimizer_llm,
             NODE_PROMPT_EXECUTOR: executor_llm,
             NODE_OUTPUT_HISTORY_ANALYZER: optimizer_llm,
-            NODE_PROMPT_ANALYZER: optimizer_llm,
+            NODE_PROMPT_ANALYZER: optimizer_llm.bind(response_format={"type": "json_object"}),
             NODE_PROMPT_SUGGESTER: optimizer_llm,
         }
 
@@ -236,7 +245,7 @@ class TestMetaPromptGraph(unittest.TestCase):
         responses = [
             Mock(type="content", content="Explain how to reverse a list in Python."),  # NODE_PROMPT_INITIAL_DEVELOPER
             Mock(type="content", content="Here's one way: `my_list[::-1]`"),  # NODE_PROMPT_EXECUTOR
-            Mock(type="content", content="Accept: Yes"),  # NODE_PPROMPT_ANALYZER
+            Mock(type="content", content="{\"Accept\": \"Yes\"}"),  # NODE_PPROMPT_ANALYZER
         ]
         llm.invoke = functools.partial(next, iter(responses))
 
@@ -270,12 +279,12 @@ class TestMetaPromptGraph(unittest.TestCase):
         responses = [
             Mock(type="content", content="Explain how to reverse a list in Python."),  # NODE_PROMPT_INITIAL_DEVELOPER
             Mock(type="content", content="Here's one way: `my_list[::-1]`"),  # NODE_PROMPT_EXECUTOR
-            Mock(type="content", content="Accept: No"),  # NODE_PPROMPT_ANALYZER
+            Mock(type="content", content="{\"Accept\": \"No\"}"),  # NODE_PPROMPT_ANALYZER
             Mock(type="content", content="Try using the `reverse()` method instead."),  # NODE_PROMPT_SUGGESTER
             Mock(type="content", content="Explain how to reverse a list in Python. Output in a Markdown List."),  # NODE_PROMPT_DEVELOPER
             Mock(type="content", content="Here's one way: `my_list.reverse()`"),  # NODE_PROMPT_EXECUTOR
-            Mock(type="content", content="# Output ID closer to Expected Output: B"), # NODE_OUTPUT_HISTORY_ANALYZER
-            Mock(type="content", content="Accept: Yes"),  # NODE_PPROMPT_ANALYZER
+            Mock(type="content", content="{\"closerOutputID\": 2, \"analysis\": \"The output should use the `reverse()` method.\"}"), # NODE_OUTPUT_HISTORY_ANALYZER
+            Mock(type="content", content="{\"Accept\": \"Yes\"}"),  # NODE_PPROMPT_ANALYZER
         ]
         llm.invoke = lambda _: responses.pop(0)
 
@@ -303,7 +312,7 @@ class TestMetaPromptGraph(unittest.TestCase):
         """
 
         llms = {
-            NODE_ACCEPTANCE_CRITERIA_DEVELOPER: ChatOpenAI(model_name="deepseek/deepseek-chat")
+            NODE_ACCEPTANCE_CRITERIA_DEVELOPER: ChatOpenAI(model_name=os.getenv("TEST_MODEL_NAME_ACCEPTANCE_CRITERIA_DEVELOPER"))
         }
         meta_prompt_graph = MetaPromptGraph(llms=llms)
         workflow = meta_prompt_graph._create_acceptance_criteria_workflow()

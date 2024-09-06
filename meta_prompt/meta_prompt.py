@@ -116,11 +116,6 @@ class MetaPromptGraph:
         self.prompt_templates.update(prompts)
 
         self.aggressive_exploration = aggressive_exploration
-        
-        # Bind response_format to llm here
-        nodes_to_bind = [NODE_OUTPUT_HISTORY_ANALYZER, NODE_PROMPT_ANALYZER, NODE_PROMPT_SUGGESTER]
-        for node in nodes_to_bind:
-            self.llms[node] = self.llms[node].bind(response_format={"type": "json_object"})
 
     def _create_acceptance_criteria_workflow(self) -> StateGraph:
         """

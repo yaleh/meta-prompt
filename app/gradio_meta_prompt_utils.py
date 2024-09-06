@@ -466,6 +466,12 @@ def process_message_with_models(
         NODE_PROMPT_ANALYZER: initialize_llm(config, analyzer_model_name, {'temperature': analyzer_temperature}),
         NODE_PROMPT_SUGGESTER: initialize_llm(config, suggester_model_name, {'temperature': suggester_temperature})
     }
+
+    # Bind response_format to llm here
+    nodes_to_bind = [NODE_OUTPUT_HISTORY_ANALYZER, NODE_PROMPT_ANALYZER, NODE_PROMPT_SUGGESTER] 
+    for node in nodes_to_bind:
+        llms[node] = llms[node].bind(response_format={"type": "json_object"})
+
     meta_prompt_graph = MetaPromptGraph(llms=llms, prompts=prompt_templates,
                                         aggressive_exploration=aggressive_exploration,
                                         verbose=config.verbose, logger=logger)

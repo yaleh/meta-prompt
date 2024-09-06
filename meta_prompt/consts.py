@@ -166,85 +166,93 @@ Create a [name], Here's the descriptions [description]. Start with "GPT Descript
         ("human", "{user_message}")
     ]),
     NODE_OUTPUT_HISTORY_ANALYZER: ChatPromptTemplate.from_messages([
-        ("system", """You are a text comparing program. You read the Acceptance Criteria, compare the compare the Expected Output with two different outputs, and decide which one is closer to the Expected Output. When comparing the outputs, ignore the differences which are acceptable or ignorable according to the Acceptance Criteria.
+        ("system", """{{
+"task_description": "You are a text comparing program. Your task is to read the Acceptance Criteria, compare the Expected Output with two different outputs (Output 1 and Output 2), and decide which one is closer to the Expected Output, ignoring the differences that are acceptable or ignorable according to the Acceptance Criteria. Provide an analysis of your comparison and clearly indicate the output ID that is closer to the Expected Output. Note that if the Acceptance Criteria mention language and format requirements, these always have the highest priority. Outputs with significant differences in language or format compared to the Expected Output should always be evaluated as having greater differences.",
+"requirements": [
+    "Read and understand the provided Acceptance Criteria carefully.",
+    "Compare the Expected Output with two different outputs (Output 1 and Output 2).",
+    "Ignore the differences that are specified as acceptable or ignorable in the Acceptance Criteria.",
+    "Determine which output (Output 1 or Output 2) is closer to the Expected Output based on the Acceptance Criteria.",
+    "Provide a detailed analysis of your comparison and decision-making process.",
+    "Clearly indicate the output ID (either 1 or 2) that is closer to the Expected Output."
+],
+"output_format": {{
+    "type": "object",
+    "properties": {{
+    "analysis": {{
+        "type": "string",
+        "description": "A detailed analysis explaining the comparison and decision-making process based on the Acceptance Criteria."
+    }},
+    "closerOutputID": {{
+        "type": "integer",
+        "description": "The output ID (1 or 2) that is closer to the Expected Output, or 0 if both outputs are equally close."
+    }}
+    }},
+    "required": [
+    "analysis",
+    "closerOutputID"
+    ]
+}},
+"output_example": {{
+    "analysis": "The Acceptance Criteria specified that the output should be in English and follow a specific JSON format. Output 1 matches these high-priority requirements, while Output 2 is in Spanish and uses XML format. Although both outputs contain similar information, the language and format differences in Output 2 are considered significant. Therefore, Output 1 is closer to the Expected Output despite some minor content differences.",
+    "closerOutputID": 1
+}},
 
-You output the following analysis according to the Acceptance Criteria:
-
-* Your analysis in a Markdown list.
-* Indicates an output ID that is closer to the Expected Output, in the following format:
-
-```
-# Analysis
-
-...
-
-# Output ID closer to Expected Output: [ID]
-```
-
-You must choose one of the two outputs. If both outputs are exactly the same, output the following:
-
-```
-# Analysis
-
-...
-
-# Draw
-```
+"evaluation_criteria": [
+    "The analysis should demonstrate a clear understanding of the Acceptance Criteria, with the highest priority given to language and format requirements if specified.",
+    "The comparison should accurately identify and ignore acceptable or ignorable differences, while emphasizing significant language or format discrepancies.",
+    "The decision should be based on a thorough analysis of the outputs in relation to the Expected Output, prioritizing language and format matching when required.",
+    "The output ID indicated as closer to the Expected Output should align with the analysis, reflecting the importance of language and format requirements."
+],
+"error_handling": [
+    "If the Acceptance Criteria are unclear or contradictory, provide an analysis explaining the ambiguity and suggest possible interpretations.",
+    "If neither output is closer to the Expected Output, provide an analysis explaining why and use \"closerOutputID\": 0."
+],
+"ethical_considerations": [
+    "Ensure that the comparison process is unbiased and solely based on the Acceptance Criteria.",
+    "Do not introduce personal opinions or preferences into the analysis."
+],
+"conclusion": "Confirm that your output adheres to the specified language and format, includes a detailed analysis, and clearly indicates the closer output ID based on the Acceptance Criteria."
+}}
 """),
-        ("human", """
-# Output ID: A
-
-```
-{best_output}
-```
-
-# Output ID: B
-
-```
-{output}
-```
-
-# Acceptance Criteria
-
-{acceptance_criteria}
-
-# Expected Output
-
-```
-{expected_output}
-```
+        ("human", """<|Start_Output_ID_1|>{best_output}<|End_Output_ID_1|>
+<|Start_Output_ID_2|>{output}<|End_Output_ID_2|>
+<|Start_Acceptance_Criteria|>{acceptance_criteria}<|End_Acceptance_Criteria|>
+<|Start_Expected_Output|>{expected_output}<|End_Expected_Output|>
 """)
     ]),
     NODE_PROMPT_ANALYZER: ChatPromptTemplate.from_messages([
-        ("system", """You are a text comparing program. You compare the following output texts, analysis the System Message and provide a detailed analysis according to `Acceptance Criteria`. Then you decide whether `Actual Output` is acceptable.
+        ("system", """**TASK:** Compare the Expected Output with the Actual Output according to the Acceptance Criteria. Provide a JSON output with your analysis.
 
-Provide your analysis in the following format:
+**Requirements:**
+- Compare Expected and Actual Outputs strictly following the Acceptance Criteria.
+- Set `Accept` to "Yes" only if all criteria are met; otherwise, set it to "No."
+- List acceptable and unacceptable differences based on the criteria.
 
+**Output Format:** JSON with:
+- `Accept: (Yes/No)`
+- `Acceptable Differences: []`
+- `Unacceptable Differences: []`
+
+**Example Output:**
+```json
+{{
+    "Accept": "No",
+    "Acceptable Differences": [
+        "Spelling variations: 'colour' vs 'color'"
+    ],
+    "Unacceptable Differences": [
+        "Missing section: 'Conclusion'",
+        "Incorrect date format: '2023/10/12' vs '12-10-2023'"
+    ]
+}}
 ```
-- Acceptable Differences: [List acceptable differences succinctly]
-- Unacceptable Differences: [List unacceptable differences succinctly]
-- Accept: [Yes/No]
-```
-
-* Compare Expected Output and Actual Output with the guidance of Accept Criteria.
-* Only set 'Accept' to 'Yes', if Accept Criteria are all met. Otherwise, set 'Accept' to 'No'.
-* List only the acceptable differences according to Accept Criteria in 'acceptable Differences' section.
-* List only the unacceptable differences according to Accept Criteria in 'Unacceptable Differences' section.
 
 # Acceptance Criteria
 
-```
 {acceptance_criteria}
-```
 """),
-        ("human", """
-# System Message
-
-```
-{system_message}
-```
-
-# Expected Output
+        ("human", """# Expected Output
 
 ```
 {expected_output}
