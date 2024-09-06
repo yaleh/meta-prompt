@@ -806,7 +806,7 @@ with gr.Blocks(title='Meta Prompt') as demo:
                 model_name_states["acceptance_criteria"],
                 model_temperature_states["acceptance_criteria"],
                 prompt_template_group],
-        outputs=[acceptance_criteria_output, logs_chatbot]
+        outputs=[acceptance_criteria_input, logs_chatbot]
     )
     generate_initial_system_message_button.click(
         generate_initial_system_message,

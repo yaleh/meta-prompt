@@ -214,6 +214,8 @@ def on_prompt_model_tab_state_change(config, model_tab_select_state,
             advanced_optimizer_model_name, \
             config.default_llm_temperature, \
             advanced_optimizer_model_name, \
+            config.default_llm_temperature, \
+            advanced_executor_model_name, \
             config.default_llm_temperature
     elif model_tab_select_state == 'Expert':
         return expert_prompt_initial_developer_model_name, \
