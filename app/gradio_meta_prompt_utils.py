@@ -559,17 +559,17 @@ def process_json_data(
 
         description = result["description"]
         examples_directly = [
-            [example["input"], example["output"]]
+            [str(example["input"]), str(example["output"])]
             for example in result["examples_directly"]["examples"]
         ]
         input_analysis = result["examples_from_briefs"]["input_analysis"]
         new_example_briefs = result["examples_from_briefs"]["new_example_briefs"]
         examples_from_briefs = [
-            [example["input"], example["output"]]
+            [str(example["input"]), str(example["output"])]
             for example in result["examples_from_briefs"]["examples"]
         ]
         examples = [
-            [example["input"], example["output"]]
+            [str(example["input"]), str(example["output"])]
             for example in result["additional_examples"]
         ]
         suggestions = result.get("suggestions", [])
@@ -704,11 +704,11 @@ def append_example_to_input_dataframe(
     new_example_input, new_example_output, input_dataframe
 ):
     try:
-        new_row = pd.DataFrame(
-            [[new_example_input, new_example_output]], columns=["Input", "Output"]
-        )
-        updated_df = pd.concat([input_dataframe, new_row], ignore_index=True)
-        return updated_df, None, None, None, None
+        if input_dataframe.empty or (input_dataframe.iloc[-1] == ['', '']).all():
+            input_dataframe.iloc[-1] = [new_example_input, new_example_output]
+        else:
+            input_dataframe = pd.concat([input_dataframe, pd.DataFrame([[new_example_input, new_example_output]], columns=["Input", "Output"])], ignore_index=True)
+        return input_dataframe, None, None, None, None
     except KeyError:
         raise gr.Error("Invalid input or output")
 
