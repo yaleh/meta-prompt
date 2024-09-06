@@ -116,7 +116,11 @@ class MetaPromptGraph:
         self.prompt_templates.update(prompts)
 
         self.aggressive_exploration = aggressive_exploration
-
+        
+        # Bind response_format to llm here
+        nodes_to_bind = [NODE_OUTPUT_HISTORY_ANALYZER, NODE_PROMPT_ANALYZER, NODE_PROMPT_SUGGESTER]
+        for node in nodes_to_bind:
+            self.llms[node] = self.llms[node].bind(response_format={"type": "json_object"})
 
     def _create_acceptance_criteria_workflow(self) -> StateGraph:
         """
@@ -465,8 +469,7 @@ class MetaPromptGraph:
             })
 
 
-        json_llm = self.llms[NODE_OUTPUT_HISTORY_ANALYZER].bind(response_format={"type": "json_object"})
-        response = json_llm.invoke(prompt)
+        response = self.llms[NODE_OUTPUT_HISTORY_ANALYZER].invoke(prompt)
 
         logger.debug({
             'node': NODE_OUTPUT_HISTORY_ANALYZER,
@@ -532,8 +535,7 @@ class MetaPromptGraph:
                 'message': message.content
             })
 
-        json_llm = self.llms[NODE_OUTPUT_HISTORY_ANALYZER].bind(response_format={"type": "json_object"})
-        response = json_llm.invoke(prompt)
+        response = self.llms[NODE_PROMPT_ANALYZER].invoke(prompt)
         logger.debug({
             'node': NODE_PROMPT_ANALYZER,
             'action': 'response',
@@ -592,3 +594,4 @@ class MetaPromptGraph:
             str: The decision to continue or end the workflow.
         """
         return "continue" if not state["accepted"] else END
+
