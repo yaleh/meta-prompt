@@ -281,18 +281,20 @@ def evaluate_system_message(config, system_message, user_message, executor_model
         raise gr.Error(f"Error: {e}")
 
 
-def generate_acceptance_criteria(config, user_message, expected_output, acceptance_criteria_model_name, acceptance_criteria_temperature, prompt_template_group):
+def generate_acceptance_criteria(config, system_message, user_message, expected_output, acceptance_criteria_model_name, acceptance_criteria_temperature, prompt_template_group):
     """
-    Generate acceptance criteria based on the user message and expected output.
+    Generate acceptance criteria based on the system message, user message, and expected output.
 
     This function uses the MetaPromptGraph's run_acceptance_criteria_graph method
     to generate acceptance criteria.
 
     Args:
+        system_message (str): The system message to use when generating acceptance criteria.
         user_message (str): The user's input message.
         expected_output (str): The anticipated response or outcome from the language
             model based on the user's message.
         acceptance_criteria_model_name (str): The name of the acceptance criteria model to use.
+        acceptance_criteria_temperature (float): The temperature to use for the acceptance criteria model.
         prompt_template_group (Optional[str], optional): The group of prompt templates
             to use. Defaults to None.
 
@@ -321,10 +323,11 @@ def generate_acceptance_criteria(config, user_message, expected_output, acceptan
     }, prompts=prompt_templates,
     verbose=config.verbose, logger=logger)
     state = AgentState(
+        system_message=system_message,
         user_message=user_message,
         expected_output=expected_output
     )
-    output_state = acceptance_criteria_graph.run_acceptance_criteria_graph(state)
+    output_state = acceptance_criteria_graph.run_node_graph(NODE_ACCEPTANCE_CRITERIA_DEVELOPER, state)
 
     if log_handler:
         log_handler.close()
@@ -386,7 +389,7 @@ def generate_initial_system_message(
         expected_output=expected_output
     )
 
-    output_state = initial_system_message_graph.run_prompt_initial_developer_graph(state)
+    output_state = initial_system_message_graph.run_node_graph(NODE_PROMPT_INITIAL_DEVELOPER, state)
 
     if log_handler:
         log_handler.close()
@@ -713,7 +716,7 @@ def append_example_to_input_dataframe(
 ):
     try:
         if input_dataframe.empty or (input_dataframe.iloc[-1] == ['', '']).all():
-            input_dataframe.iloc[-1] = [new_example_input, new_example_output]
+            input_dataframe = pd.DataFrame([[new_example_input, new_example_output]], columns=["Input", "Output"])
         else:
             input_dataframe = pd.concat([input_dataframe, pd.DataFrame([[new_example_input, new_example_output]], columns=["Input", "Output"])], ignore_index=True)
         return input_dataframe, None, None, None, None
@@ -773,3 +776,42 @@ def apply_suggestions(config, description, suggestions, examples, model_name, te
         return result["description"], gr.update(choices=result["suggestions"], value=[])
     except Exception as e:
         raise gr.Error(f"An error occurred: {str(e)}")
+
+def evaluate_output(
+    config,
+    expected_output: str,
+    output: str,
+    acceptance_criteria: str,
+    prompt_analyzer_model_name: str,
+    prompt_analyzer_temperature: float,
+    prompt_template_group: Optional[str] = None
+) -> str:
+    # Package the required variables into an AgentState dictionary
+    state = AgentState(
+        acceptance_criteria=acceptance_criteria,
+        expected_output=expected_output,
+        output=output
+    )
+
+    # Initialize the acceptance criteria model
+    llm = initialize_llm(config, prompt_analyzer_model_name, {'temperature': prompt_analyzer_temperature}).bind(response_format={"type": "json_object"})
+
+    # Get the prompt templates
+    if prompt_template_group is None:
+        prompt_template_group = 'default'
+    prompt_templates = prompt_templates_confz2langchain(
+        config.prompt_templates[prompt_template_group]
+    )
+
+    # Create the MetaPromptGraph instance
+    acceptance_criteria_graph = MetaPromptGraph(
+        llms={NODE_PROMPT_ANALYZER: llm},
+        prompts=prompt_templates,
+        verbose=config.verbose
+    )
+
+    # Run the node graph for evaluation
+    output_state = acceptance_criteria_graph.run_node_graph(NODE_PROMPT_ANALYZER, state)
+
+    # Return the evaluation result
+    return output_state.get('analysis', "Error: The output state does not contain a valid 'analysis'")

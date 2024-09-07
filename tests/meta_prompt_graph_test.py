@@ -8,9 +8,6 @@ from meta_prompt import *
 from meta_prompt.consts import NODE_ACCEPTANCE_CRITERIA_DEVELOPER
 from langgraph.graph import END
 import os
-# from dotenv import load_dotenv
-
-# load_dotenv()
 
 class TestMetaPromptGraph(unittest.TestCase):
     def setUp(self):
@@ -315,7 +312,7 @@ class TestMetaPromptGraph(unittest.TestCase):
             NODE_ACCEPTANCE_CRITERIA_DEVELOPER: ChatOpenAI(model_name=os.getenv("TEST_MODEL_NAME_ACCEPTANCE_CRITERIA_DEVELOPER"))
         }
         meta_prompt_graph = MetaPromptGraph(llms=llms)
-        workflow = meta_prompt_graph._create_acceptance_criteria_workflow()
+        workflow = meta_prompt_graph._create_workflow_for_node(NODE_ACCEPTANCE_CRITERIA_DEVELOPER)
 
         # Check if the workflow contains the correct node
         self.assertIn(NODE_ACCEPTANCE_CRITERIA_DEVELOPER, workflow.nodes)
@@ -360,7 +357,7 @@ class TestMetaPromptGraph(unittest.TestCase):
             user_message="How do I reverse a list in Python?",
             expected_output="The output should use the `reverse()` method.",
         )
-        output_state = meta_prompt_graph.run_acceptance_criteria_graph(state)
+        output_state = meta_prompt_graph.run_node_graph(NODE_ACCEPTANCE_CRITERIA_DEVELOPER, state)
 
         # Check if the output state contains the acceptance criteria
         self.assertIsNotNone(output_state["acceptance_criteria"])
@@ -382,7 +379,7 @@ class TestMetaPromptGraph(unittest.TestCase):
         }
         meta_prompt_graph = MetaPromptGraph(llms=llms)
         state = AgentState(user_message="How do I reverse a list in Python?")
-        output_state = meta_prompt_graph.run_prompt_initial_developer_graph(state)
+        output_state = meta_prompt_graph.run_node_graph(NODE_PROMPT_INITIAL_DEVELOPER, state)
 
         # Check if the output state contains the initial developer prompt
         self.assertIsNotNone(output_state['system_message'])

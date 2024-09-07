@@ -117,46 +117,50 @@ class MetaPromptGraph:
 
         self.aggressive_exploration = aggressive_exploration
 
-    def _create_acceptance_criteria_workflow(self) -> StateGraph:
-        """
-        Create a workflow state graph for acceptance criteria.
+
+    def _create_workflow_for_node(self, node: str) -> StateGraph:
+        """Create a workflow state graph for the specified node.
+
+        Args:
+            node (str): The node name to create the workflow for.
 
         Returns:
             StateGraph: A state graph representing the workflow.
         """
         workflow = StateGraph(AgentState)
         workflow.add_node(
-            NODE_ACCEPTANCE_CRITERIA_DEVELOPER,
+            node,
             lambda x: self._prompt_node(
-                NODE_ACCEPTANCE_CRITERIA_DEVELOPER,
-                "acceptance_criteria",
+                node,
+                self._get_target_attribute_for_node(node),
                 x
             )
         )
-        workflow.add_edge(NODE_ACCEPTANCE_CRITERIA_DEVELOPER, END)
-        workflow.set_entry_point(NODE_ACCEPTANCE_CRITERIA_DEVELOPER)
+        workflow.add_edge(node, END)
+        workflow.set_entry_point(node)
         return workflow
 
 
-    def _create_prompt_initial_developer_workflow(self) -> StateGraph:
-        """
-        Create a workflow state graph for the initial developer prompt.
+    def _get_target_attribute_for_node(self, node: str) -> str:
+        """Get the target attribute for the specified node.
+
+        Args:
+            node (str): The node name.
 
         Returns:
-            StateGraph: A state graph representing the workflow.
+            str: The target attribute for the node.
         """
-        workflow = StateGraph(AgentState)
-        workflow.add_node(
-            NODE_PROMPT_INITIAL_DEVELOPER,
-            lambda x: self._prompt_node(
-                NODE_PROMPT_INITIAL_DEVELOPER,
-                "system_message",
-                x
-            )
-        )
-        workflow.add_edge(NODE_PROMPT_INITIAL_DEVELOPER, END)
-        workflow.set_entry_point(NODE_PROMPT_INITIAL_DEVELOPER)
-        return workflow
+        # Define a mapping of nodes to their target attributes
+        node_to_attribute = {
+            NODE_ACCEPTANCE_CRITERIA_DEVELOPER: "acceptance_criteria",
+            NODE_PROMPT_INITIAL_DEVELOPER: "system_message",
+            NODE_PROMPT_DEVELOPER: "system_message",
+            NODE_PROMPT_EXECUTOR: "output",
+            NODE_OUTPUT_HISTORY_ANALYZER: "analysis",
+            NODE_PROMPT_ANALYZER: "analysis",
+            NODE_PROMPT_SUGGESTER: "suggestions"
+        }
+        return node_to_attribute.get(node, "")
 
 
     def _create_workflow(self) -> StateGraph:
@@ -251,45 +255,26 @@ class MetaPromptGraph:
 
         return workflow
 
-    
-    def run_acceptance_criteria_graph(self, state: AgentState) -> AgentState:
-        """Run the acceptance criteria graph with the given state.
+
+    def run_node_graph(self, node: str, state: AgentState) -> AgentState:
+        """Run the graph for the specified node with the given state.
 
         Args:
+            node (str): The node name to run.
             state (AgentState): The current state of the agent.
 
         Returns:
             AgentState: The output state of the agent after invoking the graph.
         """
-        self.logger.debug("Creating acceptance criteria workflow")
-        workflow = self._create_acceptance_criteria_workflow()
+        self.logger.debug(f"Creating workflow for node: {node}")
+        workflow = self._create_workflow_for_node(node)
         memory = MemorySaver()
         graph = workflow.compile(checkpointer=memory)
         config = {"configurable": {"thread_id": "1"}}
-        self.logger.debug("Invoking graph with state: %s", pprint.pformat(state))
+        self.logger.debug(f"Invoking graph for node {node} with state: %s", pprint.pformat(state))
         output_state = graph.invoke(state, config)
-        self.logger.debug("Output state: %s", pprint.pformat(output_state))
-        return output_state
-
-
-    def run_prompt_initial_developer_graph(self, state: AgentState) -> AgentState:
-        """Run the prompt initial developer graph with the given state.
-
-        Args:
-            state (AgentState): The current state of the agent.
-
-        Returns:
-            AgentState: The output state of the agent after invoking the graph.
-        """
-        self.logger.debug("Creating prompt initial developer workflow")
-        workflow = self._create_prompt_initial_developer_workflow()
-        memory = MemorySaver()
-        graph = workflow.compile(checkpointer=memory)
-        config = {"configurable": {"thread_id": "1"}}
-        self.logger.debug("Invoking graph with state: %s", pprint.pformat(state))
-        output_state = graph.invoke(state, config)
-        self.logger.debug("Output state: %s", pprint.pformat(output_state))
-        return output_state
+        self.logger.debug(f"Output state for node {node}: %s", pprint.pformat(output_state))
+        return output_state    
     
 
     def run_meta_prompt_graph(

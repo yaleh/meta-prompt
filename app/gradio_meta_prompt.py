@@ -318,6 +318,7 @@ with gr.Blocks(title='Meta Prompt') as demo:
                                 show_copy_button=True
                             )
                             with gr.Row():
+                                evaluate_acceptance_criteria_input_button = gr.Button("Evaluate")
                                 generate_acceptance_criteria_button = gr.Button(
                                     value="Generate",
                                     variant="secondary"
@@ -456,8 +457,11 @@ with gr.Blocks(title='Meta Prompt') as demo:
                                 value="Evaluate", variant="secondary")
                     output_output = gr.Textbox(
                         label="Output", show_copy_button=True)
-                    acceptance_criteria_output = gr.Textbox(
-                        label="Acceptance Criteria", show_copy_button=True)
+                    with gr.Group():
+                        acceptance_criteria_output = gr.Textbox(
+                            label="Acceptance Criteria", show_copy_button=True)
+                        evaluate_acceptance_criteria_output_button = gr.Button(
+                            value="Evaluate", variant="secondary")
                     analysis_output = gr.Textbox(
                         label="Analysis", show_copy_button=True)
                     flag_button = gr.Button(
@@ -802,12 +806,40 @@ with gr.Blocks(title='Meta Prompt') as demo:
 
     generate_acceptance_criteria_button.click(
         generate_acceptance_criteria,
-        inputs=[config_state, selected_example_input, selected_example_output,
+        inputs=[config_state, initial_system_message_input, 
+                selected_example_input, selected_example_output,
                 model_name_states["acceptance_criteria"],
                 model_temperature_states["acceptance_criteria"],
                 prompt_template_group],
         outputs=[acceptance_criteria_input, logs_chatbot]
     )
+    evaluate_acceptance_criteria_input_button.click(
+        fn=evaluate_output,
+        inputs=[
+            config_state,
+            selected_example_output,
+            output_output,
+            acceptance_criteria_input,
+            model_name_states["analyzer"],
+            model_temperature_states["analyzer"],
+            prompt_template_group
+        ],
+        outputs=[analysis_output]
+    )
+    evaluate_acceptance_criteria_output_button.click(
+        fn=evaluate_output,
+        inputs=[
+            config_state,
+            selected_example_output,
+            output_output,
+            acceptance_criteria_output,
+            model_name_states["analyzer"],
+            model_temperature_states["analyzer"],
+            prompt_template_group
+        ],
+        outputs=[analysis_output]
+    )
+
     generate_initial_system_message_button.click(
         generate_initial_system_message,
         inputs=[config_state, selected_example_input, selected_example_output,
