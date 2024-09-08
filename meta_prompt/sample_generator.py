@@ -9,56 +9,62 @@ from langchain.output_parsers import YamlOutputParser
 
 # Define prompt strings as constants
 DESCRIPTION_PROMPT = [
-    ("system", """Given the JSON example(s) for a task type:
-     
-{raw_example}
-
-Provide a concise description of the task type, including the format and style
-of the input and output. If there are multiple examples, provide an overall
-description and ignore unique parts.
-
-Format your response as follows:
-Task Description: [Your description here]
-""")
+    ("system", """{{
+  "task_description": "Given a JSON example for a task type, provide a concise description of the task type, including the format and style of the input and output. If there are multiple examples, provide an overall description and ignore unique parts. Output a JSON object.",
+  "requirements": [
+    "Analyze the provided JSON example(s) to understand the task type",
+    "Focus on the common format and style across examples, if multiple are given",
+    "Ignore any unique parts that do not generalize across examples",
+    "Provide a concise description summarizing the key aspects of the task type"
+  ],
+  "output_format": {{
+    "type": "object",
+    "properties": {{
+      "description": {{
+        "type": "string",
+        "description": "A concise description of the task type, including input and output format and style"
+      }}
+    }},
+    "required": ["description"]
+  }},
+  "output_example": {{
+    "description": "This task involves analyzing financial reports in JSON format to calculate key metrics and generate a summary report. The input JSON contains fields like revenue, expenses, and dates, while the output is a JSON object with the calculated metrics and summary."
+  }}
+}}
+"""),
+    ("user", """{raw_example}""")
 ]
 
 DESCRIPTION_UPDATING_PROMPT = [
-    ("system", """Given the task type description and suggestions, update the task type description according to the suggestions.
-     
-1. Input Information:
-   - You will receive a task type description and suggestions for updating the description.
-   - Carefully read and understand the provided information.
-
-2. Task Analysis:
-   - Identify the core elements and characteristics of the task.
-   - Consider possible generalization dimensions such as task domain, complexity, input/output format, application scenarios, etc.
-
-3. Update Task Description:
-   - Apply the suggestions to update the task description. Don't change anything that is not suggested.
-   - Ensure the updated description is clear, specific, and directly related to the task.
-
-4. Output Format:
-   - Format your response as follows:
-     
-Task Description: [Your updated description here]
-     
-   - Output the updated `Task Description` only. Don't output anything else.
-
-5. Completeness Check:
-   - Ensure all important aspects of the task description are covered.
-   - Check for any missing key information or dimensions.
-
-6. Quantity Requirement:
-   - Provide at least 5 specification suggestions across different dimensions.
+    ("system", """{{
+"task_description": "Given the task type description and suggestions, update the task type description according to the suggestions. Output a JSON object.",
+"requirements": [
+"Carefully read and understand the provided task type description and suggestions",
+"Identify the core elements and characteristics of the task",
+"Consider possible generalization dimensions such as task domain, complexity, input/output format, application scenarios, etc.",
+"Apply the suggestions to update the task description without changing anything that is not suggested",
+"Ensure the updated description is clear, specific, and directly related to the task",
+"Provide at least 5 specification suggestions across different dimensions"
+],
+"output_format": {{
+"type": "object",
+"properties": {{
+"description": {{
+"type": "string",
+"description": "The updated task type description based on the provided suggestions"
+}}
+}},
+"required": ["description"]
+}},
+"output_example": {{
+"description": "An example of an updated task type description based on the provided suggestions"
+}}
+}}
 """),
-    ("user", """***Task Description:***
-
-{description}
-
-***Suggestions:***
-
-{suggestions}
-
+    ("user", """{{
+"task_description": "{description}",
+"suggestions": "{suggestions}"
+}}
 """)
 ]
 
@@ -191,8 +197,16 @@ class TaskDescriptionGenerator:
         output_parser = StrOutputParser()
         json_parse = JsonOutputParser()
 
-        self.description_chain = self.description_prompt | model | output_parser
-        self.description_updating_chain = self.description_updating_prompt | model | output_parser
+        self.description_chain = (self.description_prompt | json_model | json_parse).with_retry(
+            retry_if_exception_type=(BadRequestError,), # Retry only on ValueError
+            wait_exponential_jitter=True, # Add jitter to the exponential backoff
+            stop_after_attempt=2 # Try twice
+        ).with_fallbacks([RunnableLambda(lambda x: {"description": ""})]) | (lambda x: x["description"])
+        self.description_updating_chain = (self.description_updating_prompt | json_model | json_parse).with_retry(
+            retry_if_exception_type=(BadRequestError,), # Retry only on ValueError
+            wait_exponential_jitter=True, # Add jitter to the exponential backoff
+            stop_after_attempt=2 # Try twice
+        ).with_fallbacks([RunnableLambda(lambda x: {"description": ""})]) | (lambda x: x["description"])
         self.specification_suggestions_chain = (self.specification_suggestions_prompt | json_model | json_parse).with_retry(
             retry_if_exception_type=(BadRequestError,), # Retry only on ValueError
             wait_exponential_jitter=True, # Add jitter to the exponential backoff
