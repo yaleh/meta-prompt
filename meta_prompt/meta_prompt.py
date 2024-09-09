@@ -7,7 +7,9 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.errors import GraphRecursionError
 from langgraph.graph import StateGraph, START, END
 from langchain_core.runnables.base import RunnableLike
-from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.output_parsers import JsonOutputParser, StrOutputParser
+from langchain_core.runnables import RunnableLambda
+from openai import BadRequestError
 from pydantic import BaseModel
 from typing import Annotated, Dict, Optional, Union, TypedDict
 from .consts import *
@@ -400,17 +402,17 @@ class MetaPromptGraph:
                 }
             )
 
-        response = self.llms[node].invoke(formatted_messages)
+        chain = self.llms[node] | StrOutputParser()
+        response = chain.invoke(formatted_messages)
         logger.debug(
             {
                 'node': node,
                 'action': 'response',
-                'type': response.type,
-                'message': response.content
+                'message': response
             }
         )
 
-        return {target_attribute: response.content}
+        return {target_attribute: response}
 
 
     def _output_history_analyzer(self, state: AgentState) -> AgentState:
@@ -451,7 +453,14 @@ class MetaPromptGraph:
 
         chain = (
             self.prompt_templates[NODE_OUTPUT_HISTORY_ANALYZER] | self.llms[NODE_OUTPUT_HISTORY_ANALYZER] | JsonOutputParser()
-        )
+        ).with_retry(
+            retry_if_exception_type=(BadRequestError,), # Retry only on ValueError
+            wait_exponential_jitter=True, # Add jitter to the exponential backoff
+            stop_after_attempt=2 # Try twice
+        ).with_fallbacks([RunnableLambda(lambda x: {
+            "analysis": "",
+            "closerOutputID": 0
+        })])
         analysis_dict = chain.invoke(state)
 
         logger.debug({
@@ -511,7 +520,15 @@ class MetaPromptGraph:
 
         chain = (
             self.prompt_templates[NODE_PROMPT_ANALYZER] | self.llms[NODE_PROMPT_ANALYZER] | JsonOutputParser()
-        )
+        ).with_retry(
+            retry_if_exception_type=(BadRequestError,), # Retry only on ValueError
+            wait_exponential_jitter=True, # Add jitter to the exponential backoff
+            stop_after_attempt=2 # Try twice
+        ).with_fallbacks([RunnableLambda(lambda x: {
+            "Accept": "No",
+            "Acceptable Differences": [],
+            "Unacceptable Differences": []
+        })])
         result = chain.invoke(state)
 
         logger.debug({

@@ -301,14 +301,16 @@ with gr.Blocks(title='Meta Prompt') as demo:
                             with gr.Row():
                                 evaluate_initial_system_message_button = gr.Button(
                                     value="Evaluate",
-                                    variant="secondary"
+                                    variant="secondary",
+                                    interactive=False
                                 )
                                 generate_initial_system_message_button = gr.Button(
                                     value="Generate",
-                                    variant="secondary"
+                                    variant="secondary",
+                                    interactive=False
                                 )
                                 pull_task_description_output_button = gr.Button(
-                                    value="→ Pull Output", variant="secondary")
+                                    value="→ Pull Description", variant="secondary")
                                 pull_system_message_output_button = gr.Button(
                                     value="Pull Output ←", variant="secondary")
 
@@ -318,10 +320,15 @@ with gr.Blocks(title='Meta Prompt') as demo:
                                 show_copy_button=True
                             )
                             with gr.Row():
-                                evaluate_acceptance_criteria_input_button = gr.Button("Evaluate")
+                                evaluate_acceptance_criteria_input_button = gr.Button(
+                                    value="Evaluate",
+                                    variant="secondary",
+                                    interactive=False
+                                )
                                 generate_acceptance_criteria_button = gr.Button(
                                     value="Generate",
-                                    variant="secondary"
+                                    variant="secondary",
+                                    interactive=False
                                 )
                                 pull_acceptance_criteria_output_button = gr.Button(
                                     value="Pull Output ←", variant="secondary")
@@ -454,18 +461,18 @@ with gr.Blocks(title='Meta Prompt') as demo:
                             label="System Message", show_copy_button=True)
                         with gr.Row():
                             evaluate_system_message_button = gr.Button(
-                                value="Evaluate", variant="secondary")
+                                value="Evaluate", variant="secondary", interactive=False)
                     output_output = gr.Textbox(
                         label="Output", show_copy_button=True)
                     with gr.Group():
                         acceptance_criteria_output = gr.Textbox(
                             label="Acceptance Criteria", show_copy_button=True)
                         evaluate_acceptance_criteria_output_button = gr.Button(
-                            value="Evaluate", variant="secondary")
+                            value="Evaluate", variant="secondary", interactive=False)
                     analysis_output = gr.Textbox(
                         label="Analysis", show_copy_button=True)
                     flag_button = gr.Button(
-                        value="Flag", variant="secondary", visible=config.allow_flagging)
+                        value="Flag", variant="secondary", visible=config.allow_flagging, interactive=False)
                     with gr.Accordion("Details", open=False, visible=config.verbose):
                         logs_chatbot = gr.Chatbot(
                             label='Messages', show_copy_button=True, layout='bubble',
@@ -713,9 +720,15 @@ with gr.Blocks(title='Meta Prompt') as demo:
         )
 
     prompt_inputs_ready_state.change(
-        fn=lambda x: gr.update(interactive=x),
+        fn=lambda x: [gr.update(interactive=x)] * 8,
         inputs=[prompt_inputs_ready_state],
-        outputs=[prompt_submit_button],
+        outputs=[
+            prompt_submit_button,
+            evaluate_initial_system_message_button, generate_initial_system_message_button,
+            evaluate_system_message_button, evaluate_acceptance_criteria_input_button,
+            generate_acceptance_criteria_button, evaluate_acceptance_criteria_output_button,
+            flag_button
+        ],
     )
 
     simple_llm_tab.select(

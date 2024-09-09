@@ -23,12 +23,12 @@ class TestMetaPromptGraph(unittest.TestCase):
         and verifies that the updated state has the output attribute updated with
         the mocked response content.
         """
+        llm = Mock(spec=BaseLanguageModel)
+        llm.config_specs = []
+        llm.invoke = lambda x, y=None: "Mocked response content"
+
         llms = {
-            NODE_PROMPT_INITIAL_DEVELOPER: MagicMock(
-                invoke=MagicMock(
-                    return_value=MagicMock(content="Mocked response content")
-                )
-            )
+            NODE_PROMPT_INITIAL_DEVELOPER: llm
         }
 
         graph = MetaPromptGraph(llms=llms)
@@ -52,15 +52,11 @@ class TestMetaPromptGraph(unittest.TestCase):
         response and verifies that the updated state has the best output, best
         system message, and best output age updated correctly.
         """
-        llms = {
-            "output_history_analyzer": MagicMock(
-                invoke=lambda prompt: MagicMock(
-                    content="{\"closerOutputID\": 2, \"analysis\": \"The output should use the `reverse()` method.\"}"
-                )
-            )
-        }
+        llm = Mock(spec=BaseLanguageModel)
+        llm.config_specs = []
+        llm.invoke = lambda x, y: "{\"closerOutputID\": 2, \"analysis\": \"The output should use the `reverse()` method.\"}"
         prompts = {}
-        meta_prompt_graph = MetaPromptGraph(llms=llms, prompts=prompts)
+        meta_prompt_graph = MetaPromptGraph(llms=llm, prompts=prompts)
         state = AgentState(
             user_message="How do I reverse a list in Python?",
             expected_output="Use the `[::-1]` slicing technique or the `list.reverse()` method.",
@@ -93,12 +89,13 @@ class TestMetaPromptGraph(unittest.TestCase):
         response and verifies that the updated state has the accepted attribute
         set to True.
         """
-        llms = {
-            NODE_PROMPT_ANALYZER: MagicMock(
-                invoke=lambda prompt: MagicMock(content="{\"Accept\": \"Yes\"}")
-            )
-        }
-        meta_prompt_graph = MetaPromptGraph(llms=llms)
+        # llms = {
+        #     NODE_PROMPT_ANALYZER: lambda prompt: "{\"Accept\": \"Yes\"}"
+        # }
+        llm = Mock(spec=BaseLanguageModel)
+        llm.config_specs = []
+        llm.invoke = lambda x, y: "{\"Accept\": \"Yes\"}"
+        meta_prompt_graph = MetaPromptGraph(llms=llm)
         state = AgentState(
             output="Test output", expected_output="Expected output",
             acceptance_criteria="Acceptance criteria: ...",
@@ -137,8 +134,8 @@ class TestMetaPromptGraph(unittest.TestCase):
             NODE_ACCEPTANCE_CRITERIA_DEVELOPER: raw_llm,
             NODE_PROMPT_DEVELOPER: raw_llm,
             NODE_PROMPT_EXECUTOR: raw_llm,
-            NODE_OUTPUT_HISTORY_ANALYZER: raw_llm.bind(response_format={"type": "json_object"}),
-            NODE_PROMPT_ANALYZER: raw_llm.bind(response_format={"type": "json_object"}),
+            NODE_OUTPUT_HISTORY_ANALYZER: raw_llm,
+            NODE_PROMPT_ANALYZER: raw_llm,
             NODE_PROMPT_SUGGESTER: raw_llm,
         }
 
@@ -239,12 +236,14 @@ class TestMetaPromptGraph(unittest.TestCase):
         """
         # Create a mock LLM that returns predefined responses based on the input messages
         llm = Mock(spec=BaseLanguageModel)
+        llm.config_specs = []
         responses = [
-            Mock(type="content", content="Explain how to reverse a list in Python."),  # NODE_PROMPT_INITIAL_DEVELOPER
-            Mock(type="content", content="Here's one way: `my_list[::-1]`"),  # NODE_PROMPT_EXECUTOR
-            Mock(type="content", content="{\"Accept\": \"Yes\"}"),  # NODE_PPROMPT_ANALYZER
+            "Explain how to reverse a list in Python.",  # NODE_PROMPT_INITIAL_DEVELOPER
+            "Here's one way: `my_list[::-1]`",  # NODE_PROMPT_EXECUTOR
+            "{\"Accept\": \"Yes\"}",  # NODE_PPROMPT_ANALYZER
         ]
-        llm.invoke = functools.partial(next, iter(responses))
+        # everytime llm.invoke was called, it returns a item in responses
+        llm.invoke = lambda x, y=None: responses.pop(0)
 
         meta_prompt_graph = MetaPromptGraph(llms=llm)
         input_state = AgentState(
@@ -273,17 +272,18 @@ class TestMetaPromptGraph(unittest.TestCase):
         """
         # Create a mock LLM that returns predefined responses based on the input messages
         llm = Mock(spec=BaseLanguageModel)
+        llm.config_specs = []
         responses = [
-            Mock(type="content", content="Explain how to reverse a list in Python."),  # NODE_PROMPT_INITIAL_DEVELOPER
-            Mock(type="content", content="Here's one way: `my_list[::-1]`"),  # NODE_PROMPT_EXECUTOR
-            Mock(type="content", content="{\"Accept\": \"No\"}"),  # NODE_PPROMPT_ANALYZER
-            Mock(type="content", content="Try using the `reverse()` method instead."),  # NODE_PROMPT_SUGGESTER
-            Mock(type="content", content="Explain how to reverse a list in Python. Output in a Markdown List."),  # NODE_PROMPT_DEVELOPER
-            Mock(type="content", content="Here's one way: `my_list.reverse()`"),  # NODE_PROMPT_EXECUTOR
-            Mock(type="content", content="{\"closerOutputID\": 2, \"analysis\": \"The output should use the `reverse()` method.\"}"), # NODE_OUTPUT_HISTORY_ANALYZER
-            Mock(type="content", content="{\"Accept\": \"Yes\"}"),  # NODE_PPROMPT_ANALYZER
+            "Explain how to reverse a list in Python.",  # NODE_PROMPT_INITIAL_DEVELOPER
+            "Here's one way: `my_list[::-1]`",  # NODE_PROMPT_EXECUTOR
+            "{\"Accept\": \"No\"}",  # NODE_PPROMPT_ANALYZER
+            "Try using the `reverse()` method instead.",  # NODE_PROMPT_SUGGESTER
+            "Explain how to reverse a list in Python. Output in a Markdown List.",  # NODE_PROMPT_DEVELOPER
+            "Here's one way: `my_list.reverse()`",  # NODE_PROMPT_EXECUTOR
+            "{\"closerOutputID\": 2, \"analysis\": \"The output should use the `reverse()` method.\"}", # NODE_OUTPUT_HISTORY_ANALYZER
+            "{\"Accept\": \"Yes\"}",  # NODE_PPROMPT_ANALYZER
         ]
-        llm.invoke = lambda _: responses.pop(0)
+        llm.invoke = lambda x, y = None: responses.pop(0)
 
         meta_prompt_graph = MetaPromptGraph(llms=llm)
         input_state = AgentState(
@@ -347,12 +347,10 @@ class TestMetaPromptGraph(unittest.TestCase):
         This test case verifies that the run_acceptance_criteria_graph method
         returns a state with acceptance criteria.
         """
-        llms = {
-            NODE_ACCEPTANCE_CRITERIA_DEVELOPER: MagicMock(
-                invoke=lambda prompt: MagicMock(content="Acceptance criteria: ...")
-            )
-        }
-        meta_prompt_graph = MetaPromptGraph(llms=llms)
+        llm = Mock(spec=BaseLanguageModel)
+        llm.config_specs = []
+        llm.invoke = lambda x, y: "{\"Acceptance criteria\": \"Acceptance criteria: ...\"}"
+        meta_prompt_graph = MetaPromptGraph(llms=llm)
         state = AgentState(
             user_message="How do I reverse a list in Python?",
             expected_output="The output should use the `reverse()` method.",
@@ -372,12 +370,10 @@ class TestMetaPromptGraph(unittest.TestCase):
         This test case verifies that the run_prompt_initial_developer_graph method
         returns a state with an initial developer prompt.
         """
-        llms = {
-            NODE_PROMPT_INITIAL_DEVELOPER: MagicMock(
-                invoke=lambda prompt: MagicMock(content="Initial developer prompt: ...")
-            )
-        }
-        meta_prompt_graph = MetaPromptGraph(llms=llms)
+        llm = Mock(spec=BaseLanguageModel)
+        llm.config_specs = []
+        llm.invoke = lambda x, y: "{\"Initial developer prompt\": \"Initial developer prompt: ...\"}"
+        meta_prompt_graph = MetaPromptGraph(llms=llm)
         state = AgentState(user_message="How do I reverse a list in Python?")
         output_state = meta_prompt_graph.run_node_graph(NODE_PROMPT_INITIAL_DEVELOPER, state)
 

@@ -222,46 +222,60 @@ Create a [name], Here's the descriptions [description]. Start with "GPT Descript
 """)
     ]),
     NODE_PROMPT_ANALYZER: ChatPromptTemplate.from_messages([
-        ("system", """**TASK:** Compare the Expected Output with the Actual Output according to the Acceptance Criteria. Provide a JSON output with your analysis.
-
-**Requirements:**
-- Compare Expected and Actual Outputs strictly following the Acceptance Criteria.
-- Set `Accept` to "Yes" only if all criteria are met; otherwise, set it to "No."
-- List acceptable and unacceptable differences based on the criteria.
-
-**Output Format:** JSON with:
-- `Accept: (Yes/No)`
-- `Acceptable Differences: []`
-- `Unacceptable Differences: []`
-
-**Example Output:**
-```json
-{{
+        ("system", """{{
+  "task_description": "Compare the Expected Output with the Actual Output according to the Acceptance Criteria and provide a JSON output with the analysis.",
+  "requirements": [
+    "Strictly follow the Acceptance Criteria to compare Expected and Actual Outputs",
+    "Set 'Accept' to 'Yes' only if all criteria are met, otherwise set it to 'No'",
+    "List acceptable and unacceptable differences based on the criteria"
+  ],
+  "output_format": {{
+    "type": "object",
+    "properties": {{
+      "Accept": {{
+        "type": "string",
+        "enum": ["Yes", "No"]
+      }},
+      "Acceptable Differences": {{
+        "type": "array",
+        "items": {{
+          "type": "string"
+        }}
+      }},
+      "Unacceptable Differences": {{
+        "type": "array",
+        "items": {{
+          "type": "string"
+        }}
+      }}
+    }},
+    "required": ["Accept", "Acceptable Differences", "Unacceptable Differences"]
+  }},
+  "output_example": {{
     "Accept": "No",
     "Acceptable Differences": [
-        "Spelling variations: 'colour' vs 'color'"
+      "Spelling variations: 'colour' vs 'color'"
     ],
     "Unacceptable Differences": [
-        "Missing section: 'Conclusion'",
-        "Incorrect date format: '2023/10/12' vs '12-10-2023'"
+      "Missing section: 'Conclusion'",
+      "Incorrect date format: '2023/10/12' vs '12-10-2023'"
     ]
+  }}
 }}
 ```
-
-# Acceptance Criteria
-
-{acceptance_criteria}
 """),
-        ("human", """# Expected Output
-
-```
+        ("human", """<|Start_Expected_Output|>
 {expected_output}
-```
-
-# Actual Output
-
-```
+<|End_Expected_Output|>
+<|Start_Actual_Output|>
+{expected_output}
+<|End_Expected_Output|>
+<|Start_Actual_Output|>
 {output}
+<|End_Actual_Output|>
+<|Start_Acceptance_Criteria|>
+{acceptance_criteria}
+<|End_Acceptance_Criteria|>
 ```
 """)
     ]),
