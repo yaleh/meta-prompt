@@ -7,6 +7,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.errors import GraphRecursionError
 from langgraph.graph import StateGraph, START, END
 from langchain_core.runnables.base import RunnableLike
+from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel
 from typing import Annotated, Dict, Optional, Union, TypedDict
 from .consts import *
@@ -448,24 +449,17 @@ class MetaPromptGraph:
                 'message': message.content
             })
 
-
-        response = self.llms[NODE_OUTPUT_HISTORY_ANALYZER].invoke(prompt)
+        chain = (
+            self.prompt_templates[NODE_OUTPUT_HISTORY_ANALYZER] | self.llms[NODE_OUTPUT_HISTORY_ANALYZER] | JsonOutputParser()
+        )
+        analysis_dict = chain.invoke(state)
 
         logger.debug({
             'node': NODE_OUTPUT_HISTORY_ANALYZER,
             'action': 'response',
-            'type': response.type,
-            'message': response.content
+            'message': json.dumps(analysis_dict)
         })
 
-        response_content = response.content.strip()
-        if response_content.startswith('```json') and response_content.endswith('```'):
-            response_content = response_content[7:-3].strip()
-        elif response_content.startswith('```') and response_content.endswith('```'):
-            response_content = response_content[3:-3].strip()
-        analysis_dict = json.loads(response_content)
-        
-        analysis = analysis_dict["analysis"]
         closer_output_id = analysis_dict["closerOutputID"]
 
         if (state["best_output"] is None or
@@ -515,24 +509,20 @@ class MetaPromptGraph:
                 'message': message.content
             })
 
-        response = self.llms[NODE_PROMPT_ANALYZER].invoke(prompt)
+        chain = (
+            self.prompt_templates[NODE_PROMPT_ANALYZER] | self.llms[NODE_PROMPT_ANALYZER] | JsonOutputParser()
+        )
+        result = chain.invoke(state)
+
         logger.debug({
             'node': NODE_PROMPT_ANALYZER,
             'action': 'response',
-            'type': response.type,
-            'message': response.content
+            'message': json.dumps(result)
         })
 
-        response_content = response.content.strip()
-        if response_content.startswith('```json') and response_content.endswith('```'):
-            response_content = response_content[7:-3].strip()
-        elif response_content.startswith('```') and response_content.endswith('```'):
-            response_content = response_content[3:-3].strip()
-        analysis_dict = json.loads(response_content)
-        
         result_dict = {
-            "analysis": response.content,
-            "accepted": analysis_dict.get("Accept") == "Yes"
+            "analysis": json.dumps(result),
+            "accepted": result["Accept"] == "Yes"
         }
         logger.debug("Accepted: %s", result_dict["accepted"])
 
