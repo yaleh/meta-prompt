@@ -466,7 +466,7 @@ class MetaPromptGraph:
         logger.debug({
             'node': NODE_OUTPUT_HISTORY_ANALYZER,
             'action': 'response',
-            'message': json.dumps(analysis_dict)
+            'message': json.dumps(analysis_dict, ensure_ascii=False)
         })
 
         closer_output_id = analysis_dict["closerOutputID"]
@@ -534,11 +534,11 @@ class MetaPromptGraph:
         logger.debug({
             'node': NODE_PROMPT_ANALYZER,
             'action': 'response',
-            'message': json.dumps(result)
+            'message': json.dumps(result, ensure_ascii=False)
         })
 
         result_dict = {
-            "analysis": json.dumps(result),
+            "analysis": json.dumps(result, ensure_ascii=False),
             "accepted": result["Accept"] == "Yes"
         }
         logger.debug("Accepted: %s", result_dict["accepted"])
