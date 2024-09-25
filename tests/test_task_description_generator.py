@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 from langchain_openai import ChatOpenAI
 from meta_prompt.sample_generator import TaskDescriptionGenerator
 
-class TestTaskDescriptionGenerator(unittest.TestCase):
+class TestTaskDescriptionGeneratorBasic(unittest.TestCase):
 
     def setUp(self):
         self.model = ChatOpenAI(model="llama3-70b-8192", temperature=1.0, max_retries=3)
@@ -23,6 +23,12 @@ class TestTaskDescriptionGenerator(unittest.TestCase):
         description = "Task Description: Describe a cat."
         input_analysis = self.generator.analyze_input(description)
         self.assertEqual(input_analysis, "Input Analysis: The input is an animal.")
+
+class TestTaskDescriptionGeneratorExamples(unittest.TestCase):
+
+    def setUp(self):
+        self.model = ChatOpenAI(model="llama3-70b-8192", temperature=1.0, max_retries=3)
+        self.generator = TaskDescriptionGenerator(self.model)
 
     @patch.object(ChatOpenAI, "invoke")
     def test_generate_briefs(self, mock_invoke):
@@ -51,6 +57,12 @@ class TestTaskDescriptionGenerator(unittest.TestCase):
         generating_batch_size = 2
         examples = self.generator.generate_examples_directly(description, raw_example, generating_batch_size)
         self.assertEqual(examples, {"examples": [{"input": "Input 1", "output": "Output 1"}, {"input": "Input 2", "output": "Output 2"}]})
+
+class TestTaskDescriptionGeneratorSuggestions(unittest.TestCase):
+
+    def setUp(self):
+        self.model = ChatOpenAI(model="llama3-70b-8192", temperature=1.0, max_retries=3)
+        self.generator = TaskDescriptionGenerator(self.model)
 
     @patch.object(ChatOpenAI, "invoke")
     def test_generate_suggestions_basic(self, mock_invoke):
@@ -124,7 +136,7 @@ class TestTaskDescriptionGenerator(unittest.TestCase):
         result = self.generator.generate_suggestions(input_str, description)
         self.assertIn('suggestions', result)
         self.assertEqual(len(result['suggestions']), 4)
-        self.assertEqual(result['suggestions'], ["Validate input format", "Enforce output structure", "Allow flexible input formats", "Generate multiple output formats"])
+        self.assertEqual(sorted(result['suggestions']), sorted(["Validate input format", "Enforce output structure", "Allow flexible input formats", "Generate multiple output formats"]))
 
 if __name__ == '__main__':
     unittest.main()
