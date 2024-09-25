@@ -8,9 +8,6 @@ class TestTaskDescriptionGenerator(unittest.TestCase):
 
     def setUp(self):
         self.model = ChatOpenAI(model="llama3-70b-8192", temperature=1.0, max_retries=3)
-        # self.model = Mock(spec=BaseLanguageModel)
-        # self.model.config_specs = []
-        # self.model.invoke = lambda x, y=None: "Mocked response content"
         self.generator = TaskDescriptionGenerator(self.model)
 
     @patch.object(ChatOpenAI, "invoke")
