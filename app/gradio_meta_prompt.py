@@ -464,6 +464,15 @@ with gr.Blocks(title='Meta Prompt') as demo:
                                 value="Evaluate", variant="secondary", interactive=False)
                     output_output = gr.Textbox(
                         label="Output", show_copy_button=True)
+                    compare_output_button = gr.Button(
+                        value="Compare Output", variant="secondary")
+                    output_diff = gr.HighlightedText(
+                        label="Output Diff",
+                        combine_adjacent=True,
+                        show_legend=True,
+                        color_map={"+": "red", "-": "green"},
+                        visible=True
+                    )
                     with gr.Group():
                         acceptance_criteria_output = gr.Textbox(
                             label="Acceptance Criteria", show_copy_button=True)
@@ -899,7 +908,12 @@ with gr.Blocks(title='Meta Prompt') as demo:
         inputs=[acceptance_criteria_output],
         outputs=[acceptance_criteria_input]
     )
-
+    compare_output_button.click(
+        fn=compare_outputs,
+        inputs=[selected_example_output, output_output],
+        outputs=[output_diff],
+        api_name="compare_outputs"
+    )
     prompt_clear_button.add([
                              acceptance_criteria_input, initial_system_message_input, 
                              system_message_output, output_output,

@@ -1,0 +1,102 @@
+# Instructions
+
+Messages starting with `\` are instructions. Execute as follows:
+
+## \plan
+Generate a comprehensive, iteratively refined task plan.
+
+1. Create an initial task plan, breaking down the project into main components and subtasks.
+2. Review the plan for completeness, logical flow, and potential issues.
+3. Refine and expand the plan, addressing any gaps or concerns identified.
+4. Repeat steps 1-3 until the plan is thorough and satisfactory.
+
+Focus on clear task definitions, dependencies, potential challenges, and milestones. Provide a structured outline without implementation details.
+
+## \deep_thought
+Deep thought about the task.
+
+1. Generate/Update a plan for the task.
+2. Analyze and suggest changes to the plan.
+3. Go back to step 1 (at least once) until the plan is satisfactory.
+
+## \test_cases
+Generate a robust, iteratively refined test suite including both high-level scenarios and specific unit tests.
+
+1. Identify test scenarios and unit tests covering all functionality, edge cases, and errors.
+2. Review coverage, identify gaps, and suggest improvements.
+3. Refine and expand the test suite.
+4. Repeat steps 1-3 until the test suite is comprehensive and satisfactory.
+
+Focus on testing best practices, edge cases, and error scenarios. Provide guidance for test implementation without generating actual test code.
+
+## \unit_test
+Generate unit tests for the given function or class, focusing on edge cases and error scenarios.
+
+1. Implement test cases. If there is a `\test_cases` output, use that as a starting point.
+2. Review the implemented tests for coverage and effectiveness.
+3. Refine and expand the test code as needed.
+4. Repeat steps 1-3 until the unit tests are comprehensive and robust.
+
+Provide the final test code along with a brief explanation of the tests and any refinements made.
+
+## \format
+Format code using Python Style Guide (PEP 8).
+
+## \refactor
+Analyze code for potential improvements and suggest refactoring.
+
+## \optimize
+Identify performance bottlenecks and suggest optimizations.
+
+## \security_review
+Analyze code for potential security vulnerabilities and suggest fixes.
+
+## \docstring
+Generate or improve docstrings for functions and classes following PEP 257.
+
+## \type_hints
+Add or improve type hints to improve code readability and catch potential errors.
+
+## \error_handling
+Analyze and improve error handling and exception management.
+
+## \design_patterns
+Suggest appropriate design patterns for the given problem or refactoring.
+
+## \unit_test
+Generate unit tests for the given function or class, focusing on edge cases and error scenarios.
+
+## \complexity_analysis
+Analyze the time and space complexity of the given algorithm or function.
+
+## \logging
+Implement or improve logging throughout the codebase for better debugging and monitoring.
+
+## \review
+Perform a comprehensive code review, focusing on:
+
+- Code quality (readability, best practices, PEP 8)
+- Functionality (potential issues, bugs)
+- Architecture (design patterns, class structure)
+- Performance (bottlenecks, memory usage)
+- Security (vulnerabilities)
+- Documentation (comments, docstrings, README)
+- Testing (unit tests, coverage)
+- Dependencies and project structure
+
+# Python Style Guide
+
+- Follow PEP 8 guidelines for code formatting
+- Use 4 spaces for indentation (no tabs)
+- Limit lines to 79 characters for code, 72 for docstrings/comments
+- Use snake_case for function and variable names
+- Use PascalCase for class names
+- Use UPPER_CASE for constants
+- Use meaningful and descriptive names for variables, functions, and classes
+- Write docstrings for all public modules, functions, classes, and methods
+- Use type hints for function arguments and return values
+- Follow the Zen of Python (import this)
+- Prefer list comprehensions and generator expressions for simple loops
+- Use context managers (with statements) for resource management
+- Prefer exception handling over checking for conditions
+- Use virtual environments for project dependency management

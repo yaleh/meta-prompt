@@ -441,7 +441,7 @@ class MetaPromptGraph:
             return state
 
         prompt = self.prompt_templates[NODE_OUTPUT_HISTORY_ANALYZER].format_messages(
-            **state)
+            **(state.model_dump() if isinstance(state, BaseModel) else state))
 
         for message in prompt:
             logger.debug({
@@ -508,7 +508,7 @@ class MetaPromptGraph:
         """
         logger = self.logger.getChild(NODE_PROMPT_ANALYZER)
         prompt = self.prompt_templates[NODE_PROMPT_ANALYZER].format_messages(
-            **state)
+            **(state.model_dump() if isinstance(state, BaseModel) else state))
 
         for message in prompt:
             logger.debug({

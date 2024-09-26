@@ -13,6 +13,7 @@ langchain-openai = "^0.1.14"
 pydantic = "^2.8.2"
 python-json-logger = "^2.0.7"
 streamlit = "^1.38.0"
+parameterized = "^0.9.0"
 
 [tool.poetry.dev-dependencies]
 gradio = "^4.37.2"

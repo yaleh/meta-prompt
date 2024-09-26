@@ -383,9 +383,6 @@ prompt_templates:
           {expected_output}
           <|End_Expected_Output|>
           <|Start_Actual_Output|>
-          {expected_output}
-          <|End_Expected_Output|>
-          <|Start_Actual_Output|>
           {output}
           <|End_Actual_Output|>
           <|Start_Acceptance_Criteria|>
