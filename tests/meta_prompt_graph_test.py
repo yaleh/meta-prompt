@@ -1,16 +1,17 @@
 import json
+import os
+import pprint
 import unittest
 from unittest.mock import MagicMock, Mock, patch
-import functools
-import pprint
+
 from langchain_core.language_models import BaseLanguageModel
 from langchain_openai import ChatOpenAI
+from langgraph.errors import GraphRecursionError
+from langgraph.graph import END
+from openai import BadRequestError
+
 from meta_prompt import *
 from meta_prompt.consts import NODE_ACCEPTANCE_CRITERIA_DEVELOPER
-from langgraph.graph import END
-import os
-from langgraph.errors import GraphRecursionError
-from openai import BadRequestError
 
 class TestMetaPromptGraph(unittest.TestCase):
     def setUp(self):
@@ -69,7 +70,7 @@ class TestMetaPromptGraph(unittest.TestCase):
         """
         llm = Mock(spec=BaseLanguageModel)
         llm.config_specs = []
-        llm.invoke = lambda x, y: "{\"closerOutputID\": 2, \"analysis\": \"The output should use the `reverse()` method.\"}"
+        llm.invoke = lambda x, y: '{"closerOutputID": 2, "analysis": "The output should use the `reverse()` method."}'
         prompts = {}
         meta_prompt_graph = MetaPromptGraph(llms=llm, prompts=prompts)
         state = AgentState(
@@ -319,15 +320,19 @@ class TestMetaPromptGraph(unittest.TestCase):
         """
         Test the _create_acceptance_criteria_workflow method of MetaPromptGraph.
 
-        This test case verifies that the workflow created by the _create_acceptance_criteria_workflow method
-        contains the correct node and edge.
+        This test case verifies that the workflow created by the
+        _create_acceptance_criteria_workflow method contains the correct node and edge.
         """
 
         llms = {
-            NODE_ACCEPTANCE_CRITERIA_DEVELOPER: ChatOpenAI(model_name=os.getenv("TEST_MODEL_NAME_ACCEPTANCE_CRITERIA_DEVELOPER"))
+            NODE_ACCEPTANCE_CRITERIA_DEVELOPER: ChatOpenAI(
+                model_name=os.getenv("TEST_MODEL_NAME_ACCEPTANCE_CRITERIA_DEVELOPER")
+            )
         }
         meta_prompt_graph = MetaPromptGraph(llms=llms)
-        workflow = meta_prompt_graph._create_workflow_for_node(NODE_ACCEPTANCE_CRITERIA_DEVELOPER)
+        workflow = meta_prompt_graph._create_workflow_for_node(
+            NODE_ACCEPTANCE_CRITERIA_DEVELOPER
+        )
 
         # Check if the workflow contains the correct node
         self.assertIn(NODE_ACCEPTANCE_CRITERIA_DEVELOPER, workflow.nodes)
@@ -441,8 +446,16 @@ class TestMetaPromptGraph(unittest.TestCase):
 
         mock_prompt_analyzer = Mock(spec=BaseLanguageModel)
         mock_prompt_analyzer.invoke.side_effect = [
-            json.dumps({"Accept": "No", "Acceptable Differences": [], "Unacceptable Differences": []}),
-            json.dumps({"Accept": "Yes", "Acceptable Differences": [], "Unacceptable Differences": []})
+            json.dumps({
+                "Accept": "No",
+                "Acceptable Differences": [],
+                "Unacceptable Differences": []
+            }),
+            json.dumps({
+                "Accept": "Yes",
+                "Acceptable Differences": [],
+                "Unacceptable Differences": []
+            })
         ]
         mock_prompt_analyzer.config_specs = []
 
@@ -564,11 +577,19 @@ class TestMetaPromptGraph(unittest.TestCase):
         mock_executor.config_specs = []
 
         mock_history_analyzer = Mock(spec=BaseLanguageModel)
-        mock_history_analyzer.invoke.return_value = json.dumps({"closerOutputID": 2, "analysis": "Good job."})
+        mock_history_analyzer.invoke.return_value = json.dumps(
+            {"closerOutputID": 2, "analysis": "Good job."}
+        )
         mock_history_analyzer.config_specs = []
 
         mock_analyzer = Mock(spec=BaseLanguageModel)
-        mock_analyzer.invoke.return_value = json.dumps({"Accept": "Yes", "Acceptable Differences": [], "Unacceptable Differences": []})
+        mock_analyzer.invoke.return_value = json.dumps(
+            {
+                "Accept": "Yes",
+                "Acceptable Differences": [],
+                "Unacceptable Differences": [],
+            }
+        )
         mock_analyzer.config_specs = []
 
         mock_suggester = Mock(spec=BaseLanguageModel)
@@ -602,7 +623,11 @@ class TestMetaPromptGraph(unittest.TestCase):
         """
         mock_optimizer_llm = Mock(spec=BaseLanguageModel)
         mock_optimizer_llm.invoke.side_effect = [
-            BadRequestError("Bad request", response=Mock(status_code=400, request=Mock()), body=None),
+            BadRequestError(
+                "Bad request",
+                response=Mock(status_code=400, request=Mock()),
+                body=None
+            ),
             "Optimizer response after retry"
         ]
         mock_optimizer_llm.config_specs = []
@@ -679,15 +704,25 @@ class TestMetaPromptGraph(unittest.TestCase):
         mock_prompt_developer.config_specs = []
 
         mock_executor = Mock(spec=BaseLanguageModel)
-        mock_executor.invoke.return_value = "Executor provides a clear method using the `reverse()` method."
+        mock_executor.invoke.return_value = (
+            "Executor provides a clear method using the `reverse()` method."
+        )
         mock_executor.config_specs = []
 
         mock_history_analyzer = Mock(spec=BaseLanguageModel)
-        mock_history_analyzer.invoke.return_value = json.dumps({"closerOutputID": 1, "analysis": "Good output."})
+        mock_history_analyzer.invoke.return_value = json.dumps(
+            {"closerOutputID": 1, "analysis": "Good output."}
+        )
         mock_history_analyzer.config_specs = []
 
         mock_analyzer = Mock(spec=BaseLanguageModel)
-        mock_analyzer.invoke.return_value = json.dumps({"Accept": "Yes", "Acceptable Differences": [], "Unacceptable Differences": []})
+        mock_analyzer.invoke.return_value = json.dumps(
+            {
+                "Accept": "Yes",
+                "Acceptable Differences": [],
+                "Unacceptable Differences": [],
+            }
+        )
         mock_analyzer.config_specs = []
 
         mock_suggester = Mock(spec=BaseLanguageModel)
@@ -725,7 +760,11 @@ class TestMetaPromptGraph(unittest.TestCase):
         mock_initial_developer.config_specs = []
 
         mock_executor = Mock(spec=BaseLanguageModel)
-        mock_executor.invoke.side_effect = ["Executor output.", "Revised executor output.", "Final executor output."]
+        mock_executor.invoke.side_effect = [
+            "Executor output.",
+            "Revised executor output.",
+            "Final executor output."
+        ]
         mock_executor.config_specs = []
 
         mock_history_analyzer = Mock(spec=BaseLanguageModel)
@@ -737,17 +776,31 @@ class TestMetaPromptGraph(unittest.TestCase):
 
         mock_analyzer = Mock(spec=BaseLanguageModel)
         mock_analyzer.invoke.side_effect = [
-            json.dumps({"Accept": "No", "Acceptable Differences": [], "Unacceptable Differences": []}),
-            json.dumps({"Accept": "Yes", "Acceptable Differences": [], "Unacceptable Differences": []})
+            json.dumps({
+                "Accept": "No",
+                "Acceptable Differences": [],
+                "Unacceptable Differences": []
+            }),
+            json.dumps({
+                "Accept": "Yes",
+                "Acceptable Differences": [],
+                "Unacceptable Differences": []
+            })
         ]
         mock_analyzer.config_specs = []
 
         mock_suggester = Mock(spec=BaseLanguageModel)
-        mock_suggester.invoke.side_effect = ["Consider using an alternative method.", "No suggestion needed."]
+        mock_suggester.invoke.side_effect = [
+            "Consider using an alternative method.",
+            "No suggestion needed."
+        ]
         mock_suggester.config_specs = []
 
         mock_developer = Mock(spec=BaseLanguageModel)
-        mock_developer.invoke.side_effect = ["Revised developer prompt.", "Final developer prompt."]
+        mock_developer.invoke.side_effect = [
+            "Revised developer prompt.",
+            "Final developer prompt."
+        ]
         mock_developer.config_specs = []
 
         mock_acceptance_criteria = Mock(spec=BaseLanguageModel)
