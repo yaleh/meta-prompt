@@ -22,14 +22,17 @@ def last_non_empty(a, b):
     # return the last non-none value
     return next((s for s in (b, a) if s), None)
 
+class Example(TypedDict):
+    user_message: str
+    expected_output: str
+
 class AgentState(TypedDict):
     """
     Represents the state of an agent in a conversation.
 
     Attributes:
         max_output_age (int): The maximum age of the output.
-        user_message (str, optional): The user's message.
-        expected_output (str, optional): The expected output.
+        example (Example): Contains user_message and expected_output.
         acceptance_criteria (str, optional): The acceptance criteria.
         system_message (str, optional): The system message.
         output (str, optional): The output.
@@ -41,8 +44,7 @@ class AgentState(TypedDict):
         best_output_age (int, optional): The age of the best output.
     """
     max_output_age: Optional[int]
-    user_message: Optional[str]
-    expected_output: Optional[str]
+    example: Example
     acceptance_criteria: Annotated[Optional[str], last_non_empty]
     system_message: Annotated[Optional[str], last_non_empty]
     output: Optional[str]
@@ -65,11 +67,21 @@ class AgentState(TypedDict):
             dict: A dictionary representation of the state.
         """
         if isinstance(state, BaseModel):
-            return state.model_dump()
+            state_dict = state.model_dump()
+            state_dict.pop('max_output_age', None)
+            state_dict.pop('best_output_age', None)
         elif isinstance(state, dict):
-            return state
+            state_dict = state.copy()
         else:
             raise TypeError("State must be either a TypedDict or a BaseModel instance")
+        
+        # Extract user_message and expected_output from example
+        if 'example' in state_dict:
+            state_dict['user_message'] = state_dict['example'].get('user_message')
+            state_dict['expected_output'] = state_dict['example'].get('expected_output')
+            del state_dict['example']
+        
+        return state_dict
 
 class MetaPromptGraph:
     """
@@ -479,7 +491,7 @@ class MetaPromptGraph:
             "analysis": "",
             "closerOutputID": 0
         })])
-        analysis_dict = chain.invoke(state)
+        analysis_dict = chain.invoke(AgentState.to_dict(state))
 
         logger.debug({
             'node': NODE_OUTPUT_HISTORY_ANALYZER,
@@ -547,7 +559,7 @@ class MetaPromptGraph:
             "Acceptable Differences": [],
             "Unacceptable Differences": []
         })])
-        result = chain.invoke(state)
+        result = chain.invoke(AgentState.to_dict(state))
 
         logger.debug({
             'node': NODE_PROMPT_ANALYZER,

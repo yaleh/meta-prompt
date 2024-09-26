@@ -1,6 +1,6 @@
 __version__ = '0.1.0'
 
-from .meta_prompt import AgentState, MetaPromptGraph
+from .meta_prompt import AgentState, MetaPromptGraph, Example
 from .consts import (
     META_PROMPT_NODES,
     NODE_ACCEPTANCE_CRITERIA_DEVELOPER,

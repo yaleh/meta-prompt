@@ -12,12 +12,6 @@ from app.gradio_meta_prompt_utils import (
     generate_description,
     generate_initial_system_message,
 )
-from meta_prompt import (
-    AgentState, MetaPromptGraph, META_PROMPT_NODES, NODE_ACCEPTANCE_CRITERIA_DEVELOPER,
-    NODE_PROMPT_INITIAL_DEVELOPER, NODE_PROMPT_DEVELOPER, NODE_PROMPT_EXECUTOR,
-    NODE_OUTPUT_HISTORY_ANALYZER, NODE_PROMPT_ANALYZER, NODE_PROMPT_SUGGESTER,
-    DEFAULT_PROMPT_TEMPLATES
-)
 
 
 config_sources = [
