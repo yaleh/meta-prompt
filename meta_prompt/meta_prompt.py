@@ -11,7 +11,7 @@ from langchain_core.output_parsers import JsonOutputParser, StrOutputParser
 from langchain_core.runnables import RunnableLambda
 from openai import BadRequestError
 from pydantic import BaseModel
-from typing import Annotated, Dict, Optional, Union, TypedDict
+from typing import Annotated, Dict, List, Optional, Union, TypedDict
 from .consts import *
 
 def first_non_empty(a, b):
@@ -32,7 +32,8 @@ class AgentState(TypedDict):
 
     Attributes:
         max_output_age (int): The maximum age of the output.
-        example (Example): Contains user_message and expected_output.
+        examples (List[Example]): Contains a list of user_message and expected_output pairs.
+        current_example_index (Optional[int]): The index of the current example being processed.
         acceptance_criteria (str, optional): The acceptance criteria.
         system_message (str, optional): The system message.
         output (str, optional): The output.
@@ -44,7 +45,8 @@ class AgentState(TypedDict):
         best_output_age (int, optional): The age of the best output.
     """
     max_output_age: Optional[int]
-    example: Example
+    examples: List[Example]
+    current_example_index: Optional[int]
     acceptance_criteria: Annotated[Optional[str], last_non_empty]
     system_message: Annotated[Optional[str], last_non_empty]
     output: Optional[str]
@@ -74,12 +76,23 @@ class AgentState(TypedDict):
             state_dict = state.copy()
         else:
             raise TypeError("State must be either a TypedDict or a BaseModel instance")
-        
-        # Extract user_message and expected_output from example
-        if 'example' in state_dict:
-            state_dict['user_message'] = state_dict['example'].get('user_message')
-            state_dict['expected_output'] = state_dict['example'].get('expected_output')
-            del state_dict['example']
+
+        index = (state['current_example_index']
+                 if 'current_example_index' in state
+                 and state['current_example_index'] is not None
+                 else 0)
+        # Extract user_message and expected_output from examples
+        if 'examples' in state_dict and state_dict['examples'] is not None and len(state_dict['examples']) > 0:
+            if index < len(state_dict['examples']):
+                current_example = state_dict['examples'][index]
+                if 'user_message' in current_example:
+                    state_dict['user_message'] = current_example['user_message']
+                if 'expected_output' in current_example:
+                    state_dict['expected_output'] = current_example['expected_output']
+            del state_dict['examples']
+
+        if 'current_example_index' in state_dict:
+            del state_dict['current_example_index']
         
         return state_dict
 

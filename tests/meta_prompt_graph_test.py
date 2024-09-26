@@ -49,7 +49,7 @@ class TestMetaPromptGraph(unittest.TestCase):
 
         graph = MetaPromptGraph(llms=llms)
         state = AgentState(
-            example=Example(user_message="Test message", expected_output="Expected output")
+            examples=[Example(user_message="Test message", expected_output="Expected output")]
         )
         updated_state = graph._prompt_node(
             NODE_PROMPT_INITIAL_DEVELOPER, "output", state
@@ -74,10 +74,10 @@ class TestMetaPromptGraph(unittest.TestCase):
         prompts = {}
         meta_prompt_graph = MetaPromptGraph(llms=llm, prompts=prompts)
         state = AgentState(
-            example=Example(
+            examples=[Example(
                 user_message="How do I reverse a list in Python?",
                 expected_output="Use the `[::-1]` slicing technique or the `list.reverse()` method."
-            ),
+            )],
             output="To reverse a list in Python, you can use the `[::-1]` slicing.",
             system_message="To reverse a list, use slicing or the reverse method.",
             best_output="To reverse a list in Python, use the `reverse()` method.",
@@ -115,8 +115,8 @@ class TestMetaPromptGraph(unittest.TestCase):
         llm.invoke = lambda x, y: "{\"Accept\": \"Yes\"}"
         meta_prompt_graph = MetaPromptGraph(llms=llm)
         state = AgentState(
+            examples=[Example(expected_output="Expected output")],
             output="Test output",
-            example=Example(expected_output="Expected output"),
             acceptance_criteria="Acceptance criteria: ...",
             system_message="System message: ...",
             max_output_age=2
@@ -160,10 +160,10 @@ class TestMetaPromptGraph(unittest.TestCase):
 
         meta_prompt_graph = MetaPromptGraph(llms=llms)
         input_state = AgentState(
-            example=Example(
+            examples=[Example(
                 user_message="How do I reverse a list in Python?",
                 expected_output="Use the `[::-1]` slicing technique or the `list.reverse()` method."
-            ),
+            )],
             acceptance_criteria="Similar in meaning, text length and style.",
             max_output_age=2
         )
@@ -217,10 +217,10 @@ class TestMetaPromptGraph(unittest.TestCase):
 
         meta_prompt_graph = MetaPromptGraph(llms=llms)
         input_state = AgentState(
-            example=Example(
+            examples=[Example(
                 user_message="How do I reverse a list in Python?",
                 expected_output="Use the `[::-1]` slicing technique or the `list.reverse()` method."
-            ),
+            )],
             acceptance_criteria="Similar in meaning, text length and style.",
             max_output_age=2
         )
@@ -268,10 +268,10 @@ class TestMetaPromptGraph(unittest.TestCase):
 
         meta_prompt_graph = MetaPromptGraph(llms=llm)
         input_state = AgentState(
-            example=Example(
+            examples=[Example(
                 user_message="How do I reverse a list in Python?",
                 expected_output="The output should use the `reverse()` method."
-            ),
+            )],
             acceptance_criteria="The output should be correct and efficient.",
             max_output_age=2
         )
@@ -310,10 +310,10 @@ class TestMetaPromptGraph(unittest.TestCase):
 
         meta_prompt_graph = MetaPromptGraph(llms=llm)
         input_state = AgentState(
-            example=Example(
+            examples=[Example(
                 user_message="How do I reverse a list in Python?",
                 expected_output="The output should use the `reverse()` method."
-            ),
+            )],
             acceptance_criteria="The output should be correct and efficient.",
             max_output_age=2
         )
@@ -355,10 +355,10 @@ class TestMetaPromptGraph(unittest.TestCase):
 
         # invoke the workflow
         state = AgentState(
-            example=Example(
+            examples=[Example(
                 user_message="How do I reverse a list in Python?",
                 expected_output="The output should use the `reverse()` method."
-            )
+            )]
         )
         output_state = graph.invoke(state)
 
@@ -382,10 +382,10 @@ class TestMetaPromptGraph(unittest.TestCase):
         llm.invoke = lambda x, y: "{\"Acceptance criteria\": \"Acceptance criteria: ...\"}"
         meta_prompt_graph = MetaPromptGraph(llms=llm)
         state = AgentState(
-            example=Example(
+            examples=[Example(
                 user_message="How do I reverse a list in Python?",
                 expected_output="The output should use the `reverse()` method."
-            )
+            )]
         )
         output_state = meta_prompt_graph.run_node_graph(NODE_ACCEPTANCE_CRITERIA_DEVELOPER, state)
 
@@ -406,7 +406,10 @@ class TestMetaPromptGraph(unittest.TestCase):
         llm.invoke = lambda x, y: "{\"Initial developer prompt\": \"Initial developer prompt: ...\"}"
         meta_prompt_graph = MetaPromptGraph(llms=llm)
         state = AgentState(
-            example=Example(user_message="How do I reverse a list in Python?")
+            examples=[Example(
+                user_message="How do I reverse a list in Python?",
+                expected_output="Use the `reverse()` method."
+            )]
         )
         output_state = meta_prompt_graph.run_node_graph(NODE_PROMPT_INITIAL_DEVELOPER, state)
 
@@ -490,10 +493,10 @@ class TestMetaPromptGraph(unittest.TestCase):
         })
         
         input_state = AgentState(
-            example=Example(
+            examples=[Example(
                 user_message="How do I reverse a list in Python?",
                 expected_output="Use the `reverse()` method."
-            ),
+            )],
             acceptance_criteria="The output should use the `reverse()` method.",
             max_output_age=3
         )
@@ -524,10 +527,10 @@ class TestMetaPromptGraph(unittest.TestCase):
         })
         
         input_state = AgentState(
-            example=Example(
+            examples=[Example(
                 user_message="How do I reverse a list in Python?",
                 expected_output="Use the `reverse()` method."
-            ),
+            )],
             acceptance_criteria="The output should use the `reverse()` method.",
             max_output_age=2
         )
@@ -563,10 +566,10 @@ class TestMetaPromptGraph(unittest.TestCase):
         })
         
         input_state = AgentState(
-            example=Example(
+            examples=[Example(
                 user_message="How do I reverse a list in Python?",
                 expected_output="Use the `reverse()` method."
-            ),
+            )],
             acceptance_criteria="The output should include the `reverse()` method.",
             max_output_age=2
         )
@@ -626,10 +629,10 @@ class TestMetaPromptGraph(unittest.TestCase):
         })
         
         input_state = AgentState(
-            example=Example(
+            examples=[Example(
                 user_message="Explain how to reverse a list in Python.",
                 expected_output="Use the `reverse()` method."
-            ),
+            )],
             acceptance_criteria="The output should include the `reverse()` method.",
             max_output_age=2
         )
@@ -670,10 +673,10 @@ class TestMetaPromptGraph(unittest.TestCase):
         })
         
         input_state = AgentState(
-            example=Example(
+            examples=[Example(
                 user_message="Explain how to reverse a list in Python.",
                 expected_output="Use the `reverse()` method."
-            ),
+            )],
             acceptance_criteria="The output should include the `reverse()` method.",
             max_output_age=2
         )
@@ -701,10 +704,10 @@ class TestMetaPromptGraph(unittest.TestCase):
         })
         
         input_state = AgentState(
-            example=Example(
+            examples=[Example(
                 user_message="Describe the process of list reversal in Python.",
                 expected_output="Use the `reverse()` method."
-            ),
+            )],
             acceptance_criteria="The output should detail the `reverse()` method.",
             max_output_age=2
         )
@@ -767,10 +770,10 @@ class TestMetaPromptGraph(unittest.TestCase):
         })
         
         input_state = AgentState(
-            example=Example(
+            examples=[Example(
                 user_message="Describe the list reversal process in Python.",
                 expected_output="Use the `reverse()` method."
-            ),
+            )],
             acceptance_criteria="The output should clearly explain the `reverse()` method.",
             max_output_age=2
         )
@@ -847,10 +850,10 @@ class TestMetaPromptGraph(unittest.TestCase):
         })
         
         input_state = AgentState(
-            example=Example(
+            examples=[Example(
                 user_message="Explain the list reversal process in Python.",
                 expected_output="Use the `reverse()` method."
-            ),
+            )],
             acceptance_criteria="The output should provide a clear explanation of the `reverse()` method.",
             max_output_age=3
         )

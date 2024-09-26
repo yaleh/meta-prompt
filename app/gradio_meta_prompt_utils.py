@@ -330,10 +330,10 @@ def generate_acceptance_criteria(config, system_message, user_message, expected_
     }, prompts=prompt_templates,
     verbose=config.verbose, logger=logger)
     state = AgentState(
-        example=Example(
+        examples=[Example(
             user_message=user_message,
             expected_output=expected_output
-        ),
+        )],
         system_message=system_message
     )
     output_state = acceptance_criteria_graph.run_node_graph(NODE_ACCEPTANCE_CRITERIA_DEVELOPER, state)
@@ -394,10 +394,10 @@ def generate_initial_system_message(
     )
 
     state = AgentState(
-        example=Example(
+        examples=[Example(
             user_message=user_message,
             expected_output=expected_output
-        )
+        )]
     )
 
     output_state = initial_system_message_graph.run_node_graph(NODE_PROMPT_INITIAL_DEVELOPER, state)
@@ -453,10 +453,10 @@ def process_message_with_models(
         tuple: A tuple containing the best system message, output, analysis, acceptance criteria, and chat log in JSON format.
     """
     input_state = AgentState(
-        example=Example(
+        examples=[Example(
             user_message=user_message,
             expected_output=expected_output
-        ),
+        )],
         acceptance_criteria=acceptance_criteria,
         system_message=initial_system_message,
         max_output_age=max_output_age
@@ -807,7 +807,7 @@ def evaluate_output(
     # Package the required variables into an AgentState dictionary
     state = AgentState(
         acceptance_criteria=acceptance_criteria,
-        example = Example(expected_output=expected_output),
+        examples = [Example(expected_output=expected_output)],
         output=output
     )
 
