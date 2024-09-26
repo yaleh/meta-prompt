@@ -53,6 +53,24 @@ class AgentState(TypedDict):
     best_system_message: Optional[str]
     best_output_age: Optional[int]
 
+    @classmethod
+    def to_dict(cls, state):
+        """
+        Convert the state to a dictionary, handling both TypedDict and BaseModel instances.
+        
+        Args:
+            state: The state object, either a TypedDict or a BaseModel instance.
+        
+        Returns:
+            dict: A dictionary representation of the state.
+        """
+        if isinstance(state, BaseModel):
+            return state.model_dump()
+        elif isinstance(state, dict):
+            return state
+        else:
+            raise TypeError("State must be either a TypedDict or a BaseModel instance")
+
 class MetaPromptGraph:
     """
     This class represents a graph for meta-prompting in a conversational AI system.
@@ -313,7 +331,7 @@ class MetaPromptGraph:
             output_state = graph.invoke(state, config)
             self.logger.debug("Output state: %s", pprint.pformat(output_state))
             return output_state
-        except GraphRecursionError as e:
+        except GraphRecursionError:
             self.logger.info("Recursion limit reached. Returning the best state found so far.")
             checkpoint_states = graph.get_state(config)
 
@@ -388,7 +406,7 @@ class MetaPromptGraph:
         logger = self.logger.getChild(node)
         formatted_messages = (
             self.prompt_templates[node].format_messages(
-                **(state.model_dump() if isinstance(state, BaseModel) else state)
+                **AgentState.to_dict(state)
             )
         )
 
@@ -441,7 +459,7 @@ class MetaPromptGraph:
             return state
 
         prompt = self.prompt_templates[NODE_OUTPUT_HISTORY_ANALYZER].format_messages(
-            **(state.model_dump() if isinstance(state, BaseModel) else state))
+            **AgentState.to_dict(state))
 
         for message in prompt:
             logger.debug({
@@ -508,7 +526,7 @@ class MetaPromptGraph:
         """
         logger = self.logger.getChild(NODE_PROMPT_ANALYZER)
         prompt = self.prompt_templates[NODE_PROMPT_ANALYZER].format_messages(
-            **(state.model_dump() if isinstance(state, BaseModel) else state))
+            **AgentState.to_dict(state))
 
         for message in prompt:
             logger.debug({

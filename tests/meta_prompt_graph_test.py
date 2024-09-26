@@ -628,7 +628,8 @@ class TestMetaPromptGraph(unittest.TestCase):
                 response=Mock(status_code=400, request=Mock()),
                 body=None
             ),
-            "Optimizer response after retry"
+            "Optimizer response after retry",
+            "Optimizer response after retry",
         ]
         mock_optimizer_llm.config_specs = []
 
