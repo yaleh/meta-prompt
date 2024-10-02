@@ -17,6 +17,8 @@ class State:
     output: str = ""
     current_input: str = ""
     code_str: str = ""
+    apply_dynamic_code: bool = True  # New field
+    dynamic_code_success: bool = True  # New field
 
 def on_input_change(e: me.InputBlurEvent):
     state = me.state(State)
@@ -41,6 +43,10 @@ def on_textbox_change(e: me.InputBlurEvent, index: int):
 def on_code_change(e: me.InputBlurEvent):
     state = me.state(State)
     state.code_str = e.value
+
+def on_apply_dynamic_code_change(e: me.CheckboxChangeEvent):
+    state = me.state(State)
+    state.apply_dynamic_code = e.checked
 
 @me.page(path="/")
 def demo():
@@ -71,16 +77,40 @@ def demo():
         on_change=on_mode_change
     )
     
+    # Add checkbox for applying dynamic code
+    me.checkbox(
+        "Apply Dynamic Code",
+        checked=state.apply_dynamic_code,
+        on_change=on_apply_dynamic_code_change
+    )
+    
     # Dynamic component rendering
     with me.box():
         me.text("Dynamic Component Rendering", type="headline-5")
-        local_scope = {}
-        exec(state.code_str, globals(), local_scope)
-        f = local_scope.get("embedded_show_dynamic_components")
-        if f:
-            f(state.input_text, state.display_mode)
+        if state.apply_dynamic_code:
+            local_scope = {}
+            try:
+                exec(state.code_str, globals(), local_scope)
+                f = local_scope.get("embedded_show_dynamic_components")
+                if f:
+                    f(state.input_text, state.display_mode)
+                    state.dynamic_code_success = True
+                else:
+                    me.text("Error: Function 'embedded_show_dynamic_components' not found in the code.")
+                    state.dynamic_code_success = False
+            except Exception as e:
+                me.text(f"Error executing code: {str(e)}")
+                state.dynamic_code_success = False
         else:
-            me.text("Error: Function 'embedded_show_dynamic_components' not found in the code.")
+            me.text("Dynamic code execution is disabled.")
+            state.dynamic_code_success = True
+    
+    # Add readonly checkbox to show dynamic_code_success
+    me.checkbox(
+        "Dynamic Code Execution Success",
+        checked=state.dynamic_code_success,
+        disabled=True
+    )
     
     # Dynamic Textboxes section
     me.text("Dynamic Textboxes", type="headline-5")
