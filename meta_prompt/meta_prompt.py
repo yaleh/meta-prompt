@@ -61,10 +61,10 @@ class AgentState(TypedDict):
     def to_dict(cls, state):
         """
         Convert the state to a dictionary, handling both TypedDict and BaseModel instances.
-        
+
         Args:
             state: The state object, either a TypedDict or a BaseModel instance.
-        
+
         Returns:
             dict: A dictionary representation of the state.
         """
@@ -82,7 +82,8 @@ class AgentState(TypedDict):
                  and state['current_example_index'] is not None
                  else 0)
         # Extract user_message and expected_output from examples
-        if 'examples' in state_dict and state_dict['examples'] is not None and len(state_dict['examples']) > 0:
+        if ('examples' in state_dict and state_dict['examples'] is not None
+                and len(state_dict['examples']) > 0):
             if index < len(state_dict['examples']):
                 current_example = state_dict['examples'][index]
                 if 'user_message' in current_example:
@@ -93,7 +94,7 @@ class AgentState(TypedDict):
 
         if 'current_example_index' in state_dict:
             del state_dict['current_example_index']
-        
+
         return state_dict
 
 class MetaPromptGraph:
@@ -445,7 +446,11 @@ class MetaPromptGraph:
                 }
             )
 
-        chain = self.llms[node] | StrOutputParser()
+        chain = (self.llms[node] | StrOutputParser()).with_retry(
+            retry_if_exception_type=(BadRequestError, TypeError),  # Retry only on ValueError
+            wait_exponential_jitter=True,  # Add jitter to the exponential backoff
+            stop_after_attempt=2  # Try twice
+        )
         response = chain.invoke(formatted_messages)
         logger.debug(
             {
@@ -495,15 +500,19 @@ class MetaPromptGraph:
             })
 
         chain = (
-            self.prompt_templates[NODE_OUTPUT_HISTORY_ANALYZER] | self.llms[NODE_OUTPUT_HISTORY_ANALYZER] | JsonOutputParser()
+            self.prompt_templates[NODE_OUTPUT_HISTORY_ANALYZER]
+            | self.llms[NODE_OUTPUT_HISTORY_ANALYZER]
+            | JsonOutputParser()
         ).with_retry(
-            retry_if_exception_type=(BadRequestError,), # Retry only on ValueError
-            wait_exponential_jitter=True, # Add jitter to the exponential backoff
-            stop_after_attempt=2 # Try twice
-        ).with_fallbacks([RunnableLambda(lambda x: {
-            "analysis": "",
-            "closerOutputID": 0
-        })])
+            retry_if_exception_type=(BadRequestError,),  # Retry only on ValueError
+            wait_exponential_jitter=True,  # Add jitter to the exponential backoff
+            stop_after_attempt=2  # Try twice
+        ).with_fallbacks([
+            RunnableLambda(lambda x: {
+                "analysis": "",
+                "closerOutputID": 0
+            })
+        ])
         analysis_dict = chain.invoke(AgentState.to_dict(state))
 
         logger.debug({
@@ -562,16 +571,20 @@ class MetaPromptGraph:
             })
 
         chain = (
-            self.prompt_templates[NODE_PROMPT_ANALYZER] | self.llms[NODE_PROMPT_ANALYZER] | JsonOutputParser()
+            self.prompt_templates[NODE_PROMPT_ANALYZER]
+            | self.llms[NODE_PROMPT_ANALYZER]
+            | JsonOutputParser()
         ).with_retry(
-            retry_if_exception_type=(BadRequestError,), # Retry only on ValueError
-            wait_exponential_jitter=True, # Add jitter to the exponential backoff
-            stop_after_attempt=2 # Try twice
-        ).with_fallbacks([RunnableLambda(lambda x: {
-            "Accept": "No",
-            "Acceptable Differences": [],
-            "Unacceptable Differences": []
-        })])
+            retry_if_exception_type=(BadRequestError,),  # Retry only on ValueError
+            wait_exponential_jitter=True,  # Add jitter to the exponential backoff
+            stop_after_attempt=2  # Try twice
+        ).with_fallbacks([
+            RunnableLambda(lambda x: {
+                "Accept": "No",
+                "Acceptable Differences": [],
+                "Unacceptable Differences": []
+            })
+        ])
         result = chain.invoke(AgentState.to_dict(state))
 
         logger.debug({

@@ -403,15 +403,19 @@ class TestMetaPromptGraph(unittest.TestCase):
         """
         llm = Mock(spec=BaseLanguageModel)
         llm.config_specs = []
-        llm.invoke = lambda x, y: "{\"Initial developer prompt\": \"Initial developer prompt: ...\"}"
+        llm.invoke = lambda x, y: '{"Initial developer prompt": "Initial developer prompt: ..."}'
         meta_prompt_graph = MetaPromptGraph(llms=llm)
         state = AgentState(
-            examples=[Example(
-                user_message="How do I reverse a list in Python?",
-                expected_output="Use the `reverse()` method."
-            )]
+            examples=[
+                Example(
+                    user_message="How do I reverse a list in Python?",
+                    expected_output="Use the `reverse()` method."
+                )
+            ]
         )
-        output_state = meta_prompt_graph.run_node_graph(NODE_PROMPT_INITIAL_DEVELOPER, state)
+        output_state = meta_prompt_graph.run_node_graph(
+            NODE_PROMPT_INITIAL_DEVELOPER, state
+        )
 
         # Check if the output state contains the initial developer prompt
         self.assertIsNotNone(output_state['system_message'])

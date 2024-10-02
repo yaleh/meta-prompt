@@ -404,10 +404,15 @@ class TestTaskDescriptionGeneratorUpdateDescription(unittest.TestCase):
         input_str = json.dumps({"input": "A cat", "output": "A furry animal"})
         description = "Task Description: Describe a cat."
         suggestions = ["Specify cat breed", "Include cat age"]
-        updated_description = self.generator.update_description(input_str, description, suggestions)
+        updated_description = self.generator.update_description(
+            input_str, description, suggestions
+        )
         self.assertEqual(
             updated_description,
-            {"description": "Updated Task Description: Describe a domestic cat.", "suggestions": []}
+            {
+                "description": "Updated Task Description: Describe a domestic cat.",
+                "suggestions": [],
+            },
         )
 
     @patch.object(ChatOpenAI, "invoke")
@@ -417,10 +422,15 @@ class TestTaskDescriptionGeneratorUpdateDescription(unittest.TestCase):
         input_str = json.dumps({"input": "A cat", "output": "A furry animal"})
         description = "Task Description: Describe a cat."
         suggestions = ["Specify cat breed", "Include cat age"]
-        updated_description = self.generator.update_description(input_str, description, suggestions)
+        updated_description = self.generator.update_description(
+            input_str, description, suggestions
+        )
         self.assertEqual(
             updated_description,
-            {"description": "Updated Task Description: Provide a detailed description of a cat, including breed and age.", "suggestions": []}
+            {
+                "description": "Updated Task Description: Provide a detailed description of a cat, including breed and age.",
+                "suggestions": [],
+            },
         )
 
     @patch.object(ChatOpenAI, "invoke")
@@ -452,7 +462,10 @@ class TestTaskDescriptionGeneratorUpdateDescription(unittest.TestCase):
     @patch.object(ChatOpenAI, "invoke")
     def test_update_description_max_suggestions(self, mock_invoke):
         """Test update_description with maximum allowed suggestions."""
-        mock_invoke.return_value = '{"description": "Updated Task Description: Provide a comprehensive description of a cat, including breed, age, color, and health status."}'
+        mock_invoke.return_value = (
+            '{"description": "Updated Task Description: Provide a comprehensive '
+            'description of a cat, including breed, age, color, and health status."}'
+        )
         input_str = json.dumps({"input": "A cat", "output": "A furry animal"})
         description = "Task Description: Describe a cat."
         suggestions = [
@@ -462,10 +475,17 @@ class TestTaskDescriptionGeneratorUpdateDescription(unittest.TestCase):
             "Detail health status",
             "Mention temperament"
         ]
-        updated_description = self.generator.update_description(input_str, description, suggestions)
+        updated_description = self.generator.update_description(
+            input_str, description, suggestions
+        )
         self.assertEqual(
             updated_description,
-            {"description": "Updated Task Description: Provide a comprehensive description of a cat, including breed, age, color, and health status.", "suggestions": []}
+            {
+                "description": "Updated Task Description: Provide a comprehensive "
+                               "description of a cat, including breed, age, color, "
+                               "and health status.",
+                "suggestions": []
+            }
         )
 
     @patch.object(ChatOpenAI, "invoke")
@@ -567,7 +587,10 @@ class TestTaskDescriptionGeneratorUpdateDescription(unittest.TestCase):
     @patch.object(ChatOpenAI, "invoke")
     def test_update_description_large_input(self, mock_invoke):
         """Test update_description with a large description and extensive suggestions."""
-        mock_invoke.return_value = '{"description": "Updated Task Description: Provide an in-depth description of a cat, covering breed, age, color, health status, behavior, and habitat."}'
+        mock_invoke.return_value = (
+            '{"description": "Updated Task Description: Provide an in-depth description of a cat, '
+            'covering breed, age, color, health status, behavior, and habitat."}'
+        )
         input_str = json.dumps({"input": "A cat", "output": "A furry animal"})
         description = "Task Description: Describe a cat in detail."
         suggestions = [
@@ -585,7 +608,11 @@ class TestTaskDescriptionGeneratorUpdateDescription(unittest.TestCase):
         updated_description = self.generator.update_description(input_str, description, suggestions)
         self.assertEqual(
             updated_description,
-            {"description": "Updated Task Description: Provide an in-depth description of a cat, covering breed, age, color, health status, behavior, and habitat.", "suggestions": []}
+            {
+                "description": "Updated Task Description: Provide an in-depth description of a cat, "
+                               "covering breed, age, color, health status, behavior, and habitat.",
+                "suggestions": []
+            }
         )
 
 
