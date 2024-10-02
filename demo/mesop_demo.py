@@ -1,13 +1,14 @@
 import mesop as me
 import inspect
 
-def embedded_show_dynamic_components(text, display_mode):
+def embedded_show_dynamic_components(input_text: str, display_mode: str):
     if display_mode == "textbox":
-        return me.textarea(value=text, label="Output")
+        me.text(input_text)
     elif display_mode == "button":
-        return me.button(text)
-    else:
-        return me.text("Invalid display mode")
+        me.button(input_text)
+
+# Initialize code_str with the source of embedded_show_dynamic_components
+initial_code = inspect.getsource(embedded_show_dynamic_components)
 
 @me.stateclass
 class State:
@@ -15,6 +16,7 @@ class State:
     display_mode: str = "textbox"
     output: str = ""
     current_input: str = ""
+    code_str: str = ""
 
 def on_input_change(e: me.InputBlurEvent):
     state = me.state(State)
@@ -22,7 +24,8 @@ def on_input_change(e: me.InputBlurEvent):
     state.current_input = e.value
 
 def on_mode_change(e: me.RadioChangeEvent):
-    me.state(State).display_mode = e.value
+    state = me.state(State)
+    state.display_mode = e.value
 
 def on_merge_click(e: me.ClickEvent):
     state = me.state(State)
@@ -35,9 +38,28 @@ def on_textbox_change(e: me.InputBlurEvent, index: int):
         current_input_list[index] = e.value
     state.current_input = ''.join(current_input_list)
 
+def on_code_change(e: me.InputBlurEvent):
+    state = me.state(State)
+    state.code_str = e.value
+
 @me.page(path="/")
 def demo():
     state = me.state(State)
+    
+    # Initialize code_str if it's empty
+    if not state.code_str:
+        state.code_str = initial_code
+
+    # Display source code
+    me.text("Source Code:", type="headline-5")
+    me.textarea(
+        value=state.code_str, 
+        on_blur=on_code_change, 
+        autosize=False, 
+        min_rows=8,
+        style=me.Style(width="100%")
+    )
+    # me.code(state.code_str, language="python")
     
     me.input(label="Enter some text", value=state.input_text, on_blur=on_input_change)
     me.radio(
@@ -50,7 +72,15 @@ def demo():
     )
     
     # Dynamic component rendering
-    embedded_show_dynamic_components(state.input_text, state.display_mode)
+    with me.box():
+        me.text("Dynamic Component Rendering", type="headline-5")
+        local_scope = {}
+        exec(state.code_str, globals(), local_scope)
+        f = local_scope.get("embedded_show_dynamic_components")
+        if f:
+            f(state.input_text, state.display_mode)
+        else:
+            me.text("Error: Function 'embedded_show_dynamic_components' not found in the code.")
     
     # Dynamic Textboxes section
     me.text("Dynamic Textboxes", type="headline-5")
@@ -67,7 +97,3 @@ def demo():
         me.text("Merged Output:", type="headline-6")
         me.text(state.output)
     
-    # Display source code
-    me.text("Source Code:", type="headline-5")
-    code = inspect.getsource(embedded_show_dynamic_components)
-    me.code(code, language="python")
