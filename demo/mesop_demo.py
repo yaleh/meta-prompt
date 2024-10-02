@@ -14,28 +14,26 @@ class State:
     input_text: str = ""
     display_mode: str = "textbox"
     output: str = ""
-    textbox1: str = ""
-    textbox2: str = ""
-    textbox3: str = ""
+    current_input: str = ""
 
 def on_input_change(e: me.InputBlurEvent):
-    me.state(State).input_text = e.value
+    state = me.state(State)
+    state.input_text = e.value
+    state.current_input = e.value
 
 def on_mode_change(e: me.RadioChangeEvent):
     me.state(State).display_mode = e.value
 
 def on_merge_click(e: me.ClickEvent):
     state = me.state(State)
-    state.output = state.textbox1 + state.textbox2 + state.textbox3
+    state.output = state.current_input
 
-def on_textbox_change(e: me.InputBlurEvent, box_number: int):
+def on_textbox_change(e: me.InputBlurEvent, index: int):
     state = me.state(State)
-    if box_number == 1:
-        state.textbox1 = e.value
-    elif box_number == 2:
-        state.textbox2 = e.value
-    elif box_number == 3:
-        state.textbox3 = e.value
+    current_input_list = list(state.current_input)
+    if index < len(current_input_list):
+        current_input_list[index] = e.value
+    state.current_input = ''.join(current_input_list)
 
 @me.page(path="/")
 def demo():
@@ -54,11 +52,15 @@ def demo():
     # Dynamic component rendering
     embedded_show_dynamic_components(state.input_text, state.display_mode)
     
-    # Merge Textboxes section
-    me.text("Merge Textboxes", type="headline-5")
-    me.textarea(label="Textbox 1", value=state.textbox1, on_blur=lambda e: on_textbox_change(e, 1))
-    me.textarea(label="Textbox 2", value=state.textbox2, on_blur=lambda e: on_textbox_change(e, 2))
-    me.textarea(label="Textbox 3", value=state.textbox3, on_blur=lambda e: on_textbox_change(e, 3))
+    # Dynamic Textboxes section
+    me.text("Dynamic Textboxes", type="headline-5")
+    for i, char in enumerate(state.current_input):
+        me.textarea(
+            label=f"Char {i+1}",
+            value=char,
+            on_blur=lambda e, index=i: on_textbox_change(e, index)
+        )
+    
     me.button("Merge Textboxes", on_click=on_merge_click)
     
     if state.output:
