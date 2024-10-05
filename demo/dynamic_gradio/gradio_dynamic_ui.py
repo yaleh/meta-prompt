@@ -6,11 +6,6 @@ from langchain_openai import ChatOpenAI
 from langchain.schema import AIMessage, HumanMessage
 import os
 from gradio.components import ChatMessage
-# from func_timeout import func_timeout, FunctionTimedOut
-
-# Removed: output_blocks = None
-
-# Removed: execute_code function
 
 def auto_update_code(code, auto_update):
     if auto_update:
@@ -110,11 +105,10 @@ with gr.Blocks() as demo:
             auto_update = gr.Checkbox(label="Auto Update", value=False)
             update_button = gr.Button("Update")
 
-    with gr.Accordion():
+    with gr.Accordion(open=False):
         code_to_run = gr.Code(label="Code to run", language="python", interactive=False)
-
-    # Add this inside the gr.Blocks() context, before the code_input
-    timeout_input = gr.Number(label="Execution Timeout (seconds)", value=10, minimum=10, maximum=180, step=5)
+        # Add this inside the gr.Blocks() context, before the code_input
+        timeout_input = gr.Number(label="Execution Timeout (seconds)", value=10, minimum=10, maximum=180, step=5)
 
     # Set up event handlers
     code_input.change(auto_update_code, [code_input, auto_update], [code_to_run])
@@ -126,25 +120,19 @@ with gr.Blocks() as demo:
         if not code:
             return gr.Markdown("## No input provided")
         
+        # Create a StringIO object to capture stdout
+        stdout_capture = StringIO()
+        
         try:
             local_scope = {}
             
-            # def exec_with_scope():
-            #     exec(code, globals(), local_scope)
+            # Redirect stdout to our StringIO object
+            original_stdout = sys.stdout
+            sys.stdout = stdout_capture
             
-            # func_timeout(timeout, exec_with_scope)
-            # exec_with_scope()
             exec(code, globals(), local_scope)
             
             error = ""
-#         except FunctionTimedOut:
-#             error = f"""
-# ## Error: Execution Timeout
-# The code execution was terminated after {timeout} seconds.
-# ```
-# {code}
-# ```
-# """
         except Exception as e:
             tb = traceback.format_exc()
             error = f"""
@@ -161,7 +149,16 @@ with gr.Blocks() as demo:
 </code>
 ```
 """
-
+        finally:
+            # Restore the original stdout
+            sys.stdout = original_stdout
+        
+        # Get the captured output
+        output = stdout_capture.getvalue()
+        
+        # Display the output
+        gr.Textbox(value=output, label="Output", lines=10, interactive=False)
+        
         if error:
             gr.Textbox(value=error, label="Errors", lines=10, interactive=False)
 
