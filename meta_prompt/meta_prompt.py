@@ -13,18 +13,23 @@ from openai import BadRequestError
 from pydantic import BaseModel
 from typing import Annotated, Dict, List, Optional, Union, TypedDict
 from .consts import *
+from meta_prompt.think_tag_remover import ThinkTagRemover
+
 
 def first_non_empty(a, b):
     # return the first non-none value
     return next((s for s in (a, b) if s), None)
 
+
 def last_non_empty(a, b):
     # return the last non-none value
     return next((s for s in (b, a) if s), None)
 
+
 class Example(TypedDict):
     user_message: str
     expected_output: str
+
 
 class AgentState(TypedDict):
     """
@@ -75,7 +80,8 @@ class AgentState(TypedDict):
         elif isinstance(state, dict):
             state_dict = state.copy()
         else:
-            raise TypeError("State must be either a TypedDict or a BaseModel instance")
+            raise TypeError(
+                "State must be either a TypedDict or a BaseModel instance")
 
         index = (state['current_example_index']
                  if 'current_example_index' in state
@@ -96,6 +102,7 @@ class AgentState(TypedDict):
             del state_dict['current_example_index']
 
         return state_dict
+
 
 class MetaPromptGraph:
     """
@@ -135,6 +142,7 @@ class MetaPromptGraph:
         aggressive_exploration: bool = False,
         logger: Optional[logging.Logger] = None,
         verbose: bool = False,
+        thinking_model: bool = False,
     ):
         """
         Initializes the MetaPromptGraph instance.
@@ -145,6 +153,7 @@ class MetaPromptGraph:
             aggressive_exploration: Whether to use aggressive exploration.
             logger: The logger for the graph.
             verbose: Whether to set the logger level to DEBUG.
+            thinking_model: Whether to use the thinking model to remove <think> tags.
 
         Initializes the logger, sets the language models and prompt templates
         for the graph nodes, and updates the prompt templates with custom ones
@@ -163,7 +172,7 @@ class MetaPromptGraph:
         self.prompt_templates.update(prompts)
 
         self.aggressive_exploration = aggressive_exploration
-
+        self.thinking_model = thinking_model
 
     def _create_workflow_for_node(self, node: str) -> StateGraph:
         """Create a workflow state graph for the specified node.
@@ -187,7 +196,6 @@ class MetaPromptGraph:
         workflow.set_entry_point(node)
         return workflow
 
-
     def _get_target_attribute_for_node(self, node: str) -> str:
         """Get the target attribute for the specified node.
 
@@ -208,7 +216,6 @@ class MetaPromptGraph:
             NODE_PROMPT_SUGGESTER: "suggestions"
         }
         return node_to_attribute.get(node, "")
-
 
     def _create_workflow(self) -> StateGraph:
         """
@@ -298,10 +305,10 @@ class MetaPromptGraph:
         workflow.add_edge(START, NODE_PROMPT_INITIAL_DEVELOPER)
         workflow.add_edge(START, NODE_ACCEPTANCE_CRITERIA_DEVELOPER)
         workflow.add_edge(NODE_PROMPT_INITIAL_DEVELOPER, NODE_PROMPT_EXECUTOR)
-        workflow.add_edge(NODE_ACCEPTANCE_CRITERIA_DEVELOPER, NODE_PROMPT_EXECUTOR)
+        workflow.add_edge(NODE_ACCEPTANCE_CRITERIA_DEVELOPER,
+                          NODE_PROMPT_EXECUTOR)
 
         return workflow
-
 
     def run_node_graph(self, node: str, state: AgentState) -> AgentState:
         """Run the graph for the specified node with the given state.
@@ -318,11 +325,12 @@ class MetaPromptGraph:
         memory = MemorySaver()
         graph = workflow.compile(checkpointer=memory)
         config = {"configurable": {"thread_id": "1"}}
-        self.logger.debug(f"Invoking graph for node {node} with state: %s", pprint.pformat(state))
+        self.logger.debug(
+            f"Invoking graph for node {node} with state: %s", pprint.pformat(state))
         output_state = graph.invoke(state, config)
-        self.logger.debug(f"Output state for node {node}: %s", pprint.pformat(output_state))
-        return output_state    
-    
+        self.logger.debug(
+            f"Output state for node {node}: %s", pprint.pformat(output_state))
+        return output_state
 
     def run_meta_prompt_graph(
         self, state: AgentState, recursion_limit: int = 25
@@ -353,21 +361,23 @@ class MetaPromptGraph:
         }
 
         try:
-            self.logger.debug("Invoking graph with state: %s", pprint.pformat(state))
+            self.logger.debug("Invoking graph with state: %s",
+                              pprint.pformat(state))
             output_state = graph.invoke(state, config)
             self.logger.debug("Output state: %s", pprint.pformat(output_state))
             return output_state
         except GraphRecursionError:
-            self.logger.info("Recursion limit reached. Returning the best state found so far.")
+            self.logger.info(
+                "Recursion limit reached. Returning the best state found so far.")
             checkpoint_states = graph.get_state(config)
 
             if checkpoint_states:
                 output_state = checkpoint_states[0]
                 return output_state
             else:
-                self.logger.info("No checkpoint states found. Returning the input state.")
+                self.logger.info(
+                    "No checkpoint states found. Returning the input state.")
                 return state
-
 
     def __call__(
         self, state: AgentState, recursion_limit: int = 25
@@ -382,7 +392,6 @@ class MetaPromptGraph:
             AgentState: The output state of the agent after invoking the workflow.
         """
         return self.run_meta_prompt_graph(state, recursion_limit)
-
 
     def _optional_action(
         self, target_attribute: str, action: RunnableLike, state: AgentState
@@ -410,7 +419,6 @@ class MetaPromptGraph:
             result = action(state)
 
         return result
-    
 
     def _prompt_node(
         self, node: str, target_attribute: str, state: AgentState
@@ -446,8 +454,12 @@ class MetaPromptGraph:
                 }
             )
 
-        chain = (self.llms[node] | StrOutputParser()).with_retry(
-            retry_if_exception_type=(BadRequestError, TypeError),  # Retry only on ValueError
+        chain = (self.llms[node] | StrOutputParser())
+        if self.thinking_model:
+            chain = chain | ThinkTagRemover()
+        chain = chain.with_retry(
+            # Retry only on ValueError
+            retry_if_exception_type=(BadRequestError, TypeError),
             wait_exponential_jitter=True,  # Add jitter to the exponential backoff
             stop_after_attempt=2  # Try twice
         )
@@ -461,7 +473,6 @@ class MetaPromptGraph:
         )
 
         return {target_attribute: response}
-
 
     def _output_history_analyzer(self, state: AgentState) -> AgentState:
         """
@@ -504,7 +515,8 @@ class MetaPromptGraph:
             | self.llms[NODE_OUTPUT_HISTORY_ANALYZER]
             | JsonOutputParser()
         ).with_retry(
-            retry_if_exception_type=(BadRequestError,),  # Retry only on ValueError
+            # Retry only on ValueError
+            retry_if_exception_type=(BadRequestError,),
             wait_exponential_jitter=True,  # Add jitter to the exponential backoff
             stop_after_attempt=2  # Try twice
         ).with_fallbacks([
@@ -525,7 +537,7 @@ class MetaPromptGraph:
 
         if (state["best_output"] is None or
             closer_output_id == 2 or
-            (self.aggressive_exploration and closer_output_id != 1)):
+                (self.aggressive_exploration and closer_output_id != 1)):
             result_dict = {
                 "best_output": state["output"],
                 "best_system_message": state["system_message"],
@@ -543,7 +555,6 @@ class MetaPromptGraph:
                          result_dict["best_output_age"])
 
         return result_dict
-
 
     def _prompt_analyzer(self, state: AgentState) -> AgentState:
         """
@@ -575,7 +586,8 @@ class MetaPromptGraph:
             | self.llms[NODE_PROMPT_ANALYZER]
             | JsonOutputParser()
         ).with_retry(
-            retry_if_exception_type=(BadRequestError,),  # Retry only on ValueError
+            # Retry only on ValueError
+            retry_if_exception_type=(BadRequestError,),
             wait_exponential_jitter=True,  # Add jitter to the exponential backoff
             stop_after_attempt=2  # Try twice
         ).with_fallbacks([
@@ -601,7 +613,6 @@ class MetaPromptGraph:
 
         return result_dict
 
-
     def _should_exit_on_max_age(self, state: AgentState) -> str:
         """
         Determines whether to exit the workflow based on the maximum output age.
@@ -624,7 +635,6 @@ class MetaPromptGraph:
 
         return "continue"
 
-
     def _should_exit_on_acceptable_output(self, state: AgentState) -> str:
         """
         Determines whether to exit the workflow based on the acceptance status of 
@@ -637,4 +647,3 @@ class MetaPromptGraph:
             str: The decision to continue or end the workflow.
         """
         return "continue" if not state["accepted"] else END
-

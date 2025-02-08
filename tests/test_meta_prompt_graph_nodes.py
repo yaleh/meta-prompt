@@ -136,3 +136,25 @@ class TestMetaPromptGraphNodes(unittest.TestCase):
         # Check if the initial developer prompt includes the expected content
         self.assertIn("Initial developer prompt: ...",
                       output_state['system_message'])
+
+    def test_prompt_node_with_thinking_model(self):
+        llm = Mock(spec=BaseLanguageModel)
+        llm.config_specs = []
+        llm.invoke = lambda x, y=None: "<think>Thinking...</think>Mocked response content"
+
+        llms = {
+            NODE_PROMPT_INITIAL_DEVELOPER: llm
+        }
+
+        graph = MetaPromptGraph(llms=llms, thinking_model=True)
+        state = AgentState(
+            examples=[Example(user_message="Test message",
+                              expected_output="Expected output")]
+        )
+        updated_state = graph._prompt_node(
+            NODE_PROMPT_INITIAL_DEVELOPER, "output", state
+        )
+
+        assert (
+            updated_state['output'] == "Mocked response content"
+        ), "The output attribute should be updated with the mocked response content"

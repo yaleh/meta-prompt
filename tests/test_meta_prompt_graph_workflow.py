@@ -453,3 +453,23 @@ class TestMetaPromptGraphWorkflow(unittest.TestCase):
         output_state = meta_prompt_graph.run_meta_prompt_graph(input_state)
         self.assertEqual(output_state['best_output'], "Final executor output.")
         self.assertTrue(output_state['accepted'])
+
+    def test_workflow_execution_with_thinking_model(self):
+        llm = Mock(spec=BaseLanguageModel)
+        llm.config_specs = []
+        llm.invoke = lambda x, y=None: "<think>Thinking...</think>Response without think tags."
+
+        meta_prompt_graph = MetaPromptGraph(llms=llm, thinking_model=True)
+        input_state = AgentState(
+            examples=[Example(
+                user_message="Test message",
+                expected_output="Expected output"
+            )],
+            acceptance_criteria="The output should be correct.",
+            max_output_age=2
+        )
+
+        output_state = meta_prompt_graph(input_state)
+
+        self.assertEqual(output_state['best_output'],
+                         "Response without think tags.")
