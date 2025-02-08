@@ -2,147 +2,17 @@ import json
 import os
 import pprint
 import unittest
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock
 
 from langchain_core.language_models import BaseLanguageModel
 from langchain_openai import ChatOpenAI
-from langgraph.errors import GraphRecursionError
-from langgraph.graph import END
-from openai import BadRequestError
 
 from meta_prompt import *
-from meta_prompt.consts import NODE_ACCEPTANCE_CRITERIA_DEVELOPER
+from meta_prompt.consts import NODE_PROMPT_INITIAL_DEVELOPER, NODE_ACCEPTANCE_CRITERIA_DEVELOPER, NODE_PROMPT_DEVELOPER, NODE_PROMPT_EXECUTOR, NODE_OUTPUT_HISTORY_ANALYZER, NODE_PROMPT_ANALYZER, NODE_PROMPT_SUGGESTER
 
 
-class TestMetaPromptGraph(unittest.TestCase):
-    def setUp(self):
-        # Initialize common mocks and objects for the tests
-        self.mock_llm = Mock(spec=BaseLanguageModel)
-        self.mock_llm.invoke = MagicMock(
-            return_value="Mocked response content")
-        self.mock_llm.config_specs = []  # Add this line to fix the iteration error
-
-        self.meta_prompt_graph = MetaPromptGraph(llms={
-            NODE_PROMPT_INITIAL_DEVELOPER: self.mock_llm,
-            NODE_ACCEPTANCE_CRITERIA_DEVELOPER: self.mock_llm,
-            NODE_PROMPT_DEVELOPER: self.mock_llm,
-            NODE_PROMPT_EXECUTOR: self.mock_llm,
-            NODE_OUTPUT_HISTORY_ANALYZER: self.mock_llm,
-            NODE_PROMPT_ANALYZER: self.mock_llm,
-            NODE_PROMPT_SUGGESTER: self.mock_llm,
-        })
-
-    def test_prompt_node(self):
-        """
-        Test the _prompt_node method of MetaPromptGraph.
-
-        This test case sets up a mock language model that returns a response content
-        and verifies that the updated state has the output attribute updated with
-        the mocked response content.
-        """
-        llm = Mock(spec=BaseLanguageModel)
-        llm.config_specs = []
-        llm.invoke = lambda x, y=None: "Mocked response content"
-
-        llms = {
-            NODE_PROMPT_INITIAL_DEVELOPER: llm
-        }
-
-        graph = MetaPromptGraph(llms=llms)
-        state = AgentState(
-            examples=[Example(user_message="Test message",
-                              expected_output="Expected output")]
-        )
-        updated_state = graph._prompt_node(
-            NODE_PROMPT_INITIAL_DEVELOPER, "output", state
-        )
-
-        assert (
-            updated_state['output'] == "Mocked response content"
-        ), "The output attribute should be updated with the mocked response content"
-
-    def test_output_history_analyzer(self):
-        """
-        Test the _output_history_analyzer method of MetaPromptGraph.
-
-        This test case sets up a mock language model that returns an analysis
-        response and verifies that the updated state has the best output, best
-        system message, and best output age updated correctly.
-        """
-        llm = Mock(spec=BaseLanguageModel)
-        llm.config_specs = []
-        llm.invoke = lambda x, y: '{"closerOutputID": 2, "analysis": "The output should use the `reverse()` method."}'
-        prompts = {}
-        meta_prompt_graph = MetaPromptGraph(llms=llm, prompts=prompts)
-        state = AgentState(
-            examples=[Example(
-                user_message="How do I reverse a list in Python?",
-                expected_output="Use the `[::-1]` slicing technique or the `list.reverse()` method."
-            )],
-            output="To reverse a list in Python, you can use the `[::-1]` slicing.",
-            system_message="To reverse a list, use slicing or the reverse method.",
-            best_output="To reverse a list in Python, use the `reverse()` method.",
-            best_system_message="To reverse a list, use the `reverse()` method.",
-            acceptance_criteria="The output should correctly describe how to reverse a list in Python.",
-        )
-
-        updated_state = meta_prompt_graph._output_history_analyzer(state)
-
-        assert (
-            updated_state['best_output'] == state['output']
-        ), "Best output should be updated to the current output."
-        assert (
-            updated_state['best_system_message'] == state['system_message']
-        ), "Best system message should be updated to the current system message."
-        assert (
-            updated_state['best_output_age'] == 0
-        ), "Best output age should be reset to 0."
-
-    def test_prompt_analyzer_accept(self):
-        """
-        Test the _prompt_analyzer method of MetaPromptGraph when the prompt analyzer
-        accepts the output.
-
-        This test case sets up a mock language model that returns an acceptance
-        response and verifies that the updated state has the accepted attribute
-        set to True.
-        """
-        # llms = {
-        #     NODE_PROMPT_ANALYZER: lambda prompt: "{\"Accept\": \"Yes\"}"
-        # }
-        llm = Mock(spec=BaseLanguageModel)
-        llm.config_specs = []
-        llm.invoke = lambda x, y: "{\"Accept\": \"Yes\"}"
-        meta_prompt_graph = MetaPromptGraph(llms=llm)
-        state = AgentState(
-            examples=[Example(expected_output="Expected output")],
-            output="Test output",
-            acceptance_criteria="Acceptance criteria: ...",
-            system_message="System message: ...",
-            max_output_age=2
-        )
-        updated_state = meta_prompt_graph._prompt_analyzer(state)
-        assert updated_state['accepted'] is True
-
-    def test_get_node_names(self):
-        """
-        Test the get_node_names method of MetaPromptGraph.
-
-        This test case verifies that the get_node_names method returns the
-        correct list of node names.
-        """
-        graph = MetaPromptGraph()
-        node_names = graph.get_node_names()
-        self.assertEqual(node_names, META_PROMPT_NODES)
-
+class TestMetaPromptGraphWorkflow(unittest.TestCase):
     def test_workflow_execution(self):
-        """
-        Test the workflow execution of the MetaPromptGraph.
-
-        This test case sets up a MetaPromptGraph with a single language model and
-        executes it with a given input state. It then verifies that the output
-        state contains the expected keys and values.
-        """
         model_name = os.getenv("TEST_MODEL_NAME_EXECUTOR")
         raw_llm = ChatOpenAI(model_name=model_name)
 
@@ -190,13 +60,6 @@ class TestMetaPromptGraph(unittest.TestCase):
         print(result.content)
 
     def test_workflow_execution_with_llms(self):
-        """
-        Test the workflow execution of the MetaPromptGraph with multiple LLMs.
-
-        This test case sets up a MetaPromptGraph with multiple language models and
-        executes it with a given input state. It then verifies that the output
-        state contains the expected keys and values.
-        """
         optimizer_llm = ChatOpenAI(
             model_name=os.getenv("TEST_MODEL_NAME_OPTIMIZER"), temperature=0.5
         )
@@ -248,14 +111,6 @@ class TestMetaPromptGraph(unittest.TestCase):
         print(result.content)
 
     def test_simple_workflow_execution(self):
-        """
-        Test the simple workflow execution of the MetaPromptGraph.
-
-        This test case sets up a MetaPromptGraph with a mock LLM and executes it
-        with a given input state. It then verifies that the output state contains
-        the expected keys and values.
-        """
-        # Create a mock LLM that returns predefined responses based on the input messages
         llm = Mock(spec=BaseLanguageModel)
         llm.config_specs = []
         responses = [
@@ -263,7 +118,6 @@ class TestMetaPromptGraph(unittest.TestCase):
             "Here's one way: `my_list[::-1]`",  # NODE_PROMPT_EXECUTOR
             "{\"Accept\": \"Yes\"}",  # NODE_PPROMPT_ANALYZER
         ]
-        # everytime llm.invoke was called, it returns a item in responses
         llm.invoke = lambda x, y=None: responses.pop(0)
 
         meta_prompt_graph = MetaPromptGraph(llms=llm)
@@ -284,15 +138,6 @@ class TestMetaPromptGraph(unittest.TestCase):
         pprint.pp(output_state["best_output"])
 
     def test_iterated_workflow_execution(self):
-        """
-        Test the iterated workflow execution of the MetaPromptGraph.
-
-        This test case sets up a MetaPromptGraph with a mock LLM and executes it
-        with a given input state. It then verifies that the output state contains
-        the expected keys and values. The test case simulates an iterated workflow
-        where the LLM provides multiple responses based on the input messages.
-        """
-        # Create a mock LLM that returns predefined responses based on the input messages
         llm = Mock(spec=BaseLanguageModel)
         llm.config_specs = []
         responses = [
@@ -326,113 +171,7 @@ class TestMetaPromptGraph(unittest.TestCase):
 
         pprint.pp(output_state["best_output"])
 
-    def test_create_acceptance_criteria_workflow(self):
-        """
-        Test the _create_acceptance_criteria_workflow method of MetaPromptGraph.
-
-        This test case verifies that the workflow created by the
-        _create_acceptance_criteria_workflow method contains the correct node and edge.
-        """
-
-        llms = {
-            NODE_ACCEPTANCE_CRITERIA_DEVELOPER: ChatOpenAI(
-                model_name=os.getenv(
-                    "TEST_MODEL_NAME_ACCEPTANCE_CRITERIA_DEVELOPER")
-            )
-        }
-        meta_prompt_graph = MetaPromptGraph(llms=llms)
-        workflow = meta_prompt_graph._create_workflow_for_node(
-            NODE_ACCEPTANCE_CRITERIA_DEVELOPER
-        )
-
-        # Check if the workflow contains the correct node
-        self.assertIn(NODE_ACCEPTANCE_CRITERIA_DEVELOPER, workflow.nodes)
-
-        # Check if the workflow contains the correct edge
-        self.assertIn((NODE_ACCEPTANCE_CRITERIA_DEVELOPER, END),
-                      workflow.edges)
-
-        # compile the workflow
-        graph = workflow.compile()
-        print(graph)
-
-        # invoke the workflow
-        state = AgentState(
-            examples=[Example(
-                user_message="How do I reverse a list in Python?",
-                expected_output="The output should use the `reverse()` method."
-            )]
-        )
-        output_state = graph.invoke(state)
-
-        # check if the output state contains the acceptance criteria
-        self.assertIsNotNone(output_state['acceptance_criteria'])
-
-        # check if the acceptance criteria includes string '`reverse()`'
-        self.assertIn('`reverse()`', output_state['acceptance_criteria'])
-
-        pprint.pp(output_state["acceptance_criteria"])
-
-    def test_run_acceptance_criteria_graph(self):
-        """Test the run_acceptance_criteria_graph method of MetaPromptGraph.
-
-        This test case verifies that the run_acceptance_criteria_graph method
-        returns a state with acceptance criteria.
-        """
-        llm = Mock(spec=BaseLanguageModel)
-        llm.config_specs = []
-        llm.invoke = lambda x, y: "{\"Acceptance criteria\": \"Acceptance criteria: ...\"}"
-        meta_prompt_graph = MetaPromptGraph(llms=llm)
-        state = AgentState(
-            examples=[Example(
-                user_message="How do I reverse a list in Python?",
-                expected_output="The output should use the `reverse()` method."
-            )]
-        )
-        output_state = meta_prompt_graph.run_node_graph(
-            NODE_ACCEPTANCE_CRITERIA_DEVELOPER, state)
-
-        # Check if the output state contains the acceptance criteria
-        self.assertIsNotNone(output_state["acceptance_criteria"])
-
-        # Check if the acceptance criteria includes the expected content
-        self.assertIn("Acceptance criteria: ...",
-                      output_state["acceptance_criteria"])
-
-    def test_run_prompt_initial_developer_graph(self):
-        """Test the run_prompt_initial_developer_graph method of MetaPromptGraph.
-
-        This test case verifies that the run_prompt_initial_developer_graph method
-        returns a state with an initial developer prompt.
-        """
-        llm = Mock(spec=BaseLanguageModel)
-        llm.config_specs = []
-        llm.invoke = lambda x, y: '{"Initial developer prompt": "Initial developer prompt: ..."}'
-        meta_prompt_graph = MetaPromptGraph(llms=llm)
-        state = AgentState(
-            examples=[
-                Example(
-                    user_message="How do I reverse a list in Python?",
-                    expected_output="Use the `reverse()` method."
-                )
-            ]
-        )
-        output_state = meta_prompt_graph.run_node_graph(
-            NODE_PROMPT_INITIAL_DEVELOPER, state
-        )
-
-        # Check if the output state contains the initial developer prompt
-        self.assertIsNotNone(output_state['system_message'])
-
-        # Check if the initial developer prompt includes the expected content
-        self.assertIn("Initial developer prompt: ...",
-                      output_state['system_message'])
-
     def test_workflow_execution_multiple_iterations(self):
-        """
-        Simulate multiple iterations to reach an acceptable output with separate mocks for each node.
-        """
-        # Create separate mocks for each node
         mock_initial_developer = Mock(spec=BaseLanguageModel)
         mock_initial_developer.invoke.side_effect = [
             "Initial response",
@@ -515,90 +254,7 @@ class TestMetaPromptGraph(unittest.TestCase):
         self.assertEqual(output_state['best_output'],
                          "Final executor response.")
 
-    def test_workflow_execution_error_handling(self):
-        """
-        Simulate LLM errors and verify that the workflow handles them gracefully.
-        """
-        mock_llm = Mock(spec=BaseLanguageModel)
-
-        # Use a function to simulate the error and retry
-        def invoke_side_effect(*args, **kwargs):
-            if invoke_side_effect.call_count == 0:
-                invoke_side_effect.call_count += 1
-                raise BadRequestError("Bad request", response=Mock(
-                    status_code=400, request=Mock()), body=None)
-            else:
-                return "Valid response after retry"
-        invoke_side_effect.call_count = 0
-
-        mock_llm.invoke = MagicMock(side_effect=invoke_side_effect)
-        mock_llm.config_specs = []
-
-        meta_prompt_graph = MetaPromptGraph(llms={
-            NODE_PROMPT_INITIAL_DEVELOPER: mock_llm,
-            NODE_ACCEPTANCE_CRITERIA_DEVELOPER: mock_llm,
-            NODE_PROMPT_DEVELOPER: mock_llm,
-            NODE_PROMPT_EXECUTOR: mock_llm,
-            NODE_OUTPUT_HISTORY_ANALYZER: mock_llm,
-            NODE_PROMPT_ANALYZER: mock_llm,
-            NODE_PROMPT_SUGGESTER: mock_llm,
-        })
-
-        input_state = AgentState(
-            examples=[Example(
-                user_message="How do I reverse a list in Python?",
-                expected_output="Use the `reverse()` method."
-            )],
-            acceptance_criteria="The output should use the `reverse()` method.",
-            max_output_age=2
-        )
-
-        # Remove the patch and GraphRecursionError as it's not relevant to this test
-        # The test should pass if BadRequestError is handled correctly
-        try:
-            output_state = meta_prompt_graph.run_meta_prompt_graph(input_state)
-            self.assertEqual(output_state['output'],
-                             "Valid response after retry")
-        except BadRequestError as e:
-            self.assertEqual(str(e), "Bad request")
-        except Exception as e:
-            self.fail(f"Unexpected exception: {e}")
-
-    def test_workflow_execution_output_quality(self):
-        """
-        Implement a basic output quality check and verify that the final output meets criteria.
-        """
-        mock_llm = Mock(spec=BaseLanguageModel)
-        mock_llm.invoke = MagicMock(
-            return_value="Reverse list using reverse() method.")
-        mock_llm.config_specs = []
-        meta_prompt_graph = MetaPromptGraph(llms={
-            NODE_PROMPT_INITIAL_DEVELOPER: mock_llm,
-            NODE_ACCEPTANCE_CRITERIA_DEVELOPER: mock_llm,
-            NODE_PROMPT_DEVELOPER: mock_llm,
-            NODE_PROMPT_EXECUTOR: mock_llm,
-            NODE_OUTPUT_HISTORY_ANALYZER: mock_llm,
-            NODE_PROMPT_ANALYZER: mock_llm,
-            NODE_PROMPT_SUGGESTER: mock_llm,
-        })
-
-        input_state = AgentState(
-            examples=[Example(
-                user_message="How do I reverse a list in Python?",
-                expected_output="Use the `reverse()` method."
-            )],
-            acceptance_criteria="The output should include the `reverse()` method.",
-            max_output_age=2
-        )
-
-        output_state = meta_prompt_graph.run_meta_prompt_graph(input_state)
-        self.assertIn("reverse()", output_state['best_output'])
-
-    # New Test Cases for test_workflow_execution_with_llms
     def test_workflow_execution_with_llms_various_scenarios(self):
-        """
-        Test workflow execution with various LLM configurations and responses.
-        """
         mock_initial_developer = Mock(spec=BaseLanguageModel)
         mock_initial_developer.invoke.return_value = "Initial developer prompt response."
         mock_initial_developer.config_specs = []
@@ -659,88 +315,7 @@ class TestMetaPromptGraph(unittest.TestCase):
                          "Executor output response.")
         self.assertTrue(output_state['accepted'])
 
-    def test_workflow_execution_with_llms_error_handling(self):
-        """
-        Simulate LLM errors in a multi-LLM setup and verify graceful handling.
-        """
-        mock_optimizer_success_llm = Mock(spec=BaseLanguageModel)
-        mock_optimizer_success_llm.invoke.return_value = "Optimizer response."
-        mock_optimizer_success_llm.config_specs = []
-
-        mock_optimizer_error_llm = Mock(spec=BaseLanguageModel)
-        mock_optimizer_error_llm.invoke.side_effect = \
-            BadRequestError(
-                "Bad request",
-                response=Mock(status_code=400, request=Mock()),
-                body=None
-            )
-        mock_optimizer_error_llm.config_specs = []
-
-        mock_executor_llm = Mock(spec=BaseLanguageModel)
-        mock_executor_llm.invoke.return_value = "Executor response."
-        mock_executor_llm.config_specs = []
-
-        meta_prompt_graph = MetaPromptGraph(llms={
-            NODE_PROMPT_INITIAL_DEVELOPER: mock_optimizer_error_llm,
-            NODE_ACCEPTANCE_CRITERIA_DEVELOPER: mock_optimizer_success_llm,
-            NODE_PROMPT_DEVELOPER: mock_optimizer_success_llm,
-            NODE_PROMPT_EXECUTOR: mock_executor_llm,
-            NODE_OUTPUT_HISTORY_ANALYZER: mock_optimizer_success_llm,
-            NODE_PROMPT_ANALYZER: mock_optimizer_success_llm,
-            NODE_PROMPT_SUGGESTER: mock_optimizer_success_llm,
-        })
-
-        input_state = AgentState(
-            examples=[Example(
-                user_message="Explain how to reverse a list in Python.",
-                expected_output="Use the `reverse()` method."
-            )],
-            acceptance_criteria="The output should include the `reverse()` method.",
-            max_output_age=2
-        )
-
-        with self.assertRaises(BadRequestError):
-            meta_prompt_graph.run_meta_prompt_graph(input_state)
-
-    def test_workflow_execution_with_llms_recursion_limit(self):
-        """
-        Verify recursion limit handling in multi-LLM setup.
-        """
-        mock_llm = Mock(spec=BaseLanguageModel)
-        # TODO: update the response to be a more complex response that can be used to test the recursion limit
-        mock_llm.invoke.side_effect = [
-            "Response"] * 30  # Exceed recursion limit
-        mock_llm.config_specs = []
-
-        meta_prompt_graph = MetaPromptGraph(llms={
-            NODE_PROMPT_INITIAL_DEVELOPER: mock_llm,
-            NODE_ACCEPTANCE_CRITERIA_DEVELOPER: mock_llm,
-            NODE_PROMPT_DEVELOPER: mock_llm,
-            NODE_PROMPT_EXECUTOR: mock_llm,
-            NODE_OUTPUT_HISTORY_ANALYZER: mock_llm,
-            NODE_PROMPT_ANALYZER: mock_llm,
-            NODE_PROMPT_SUGGESTER: mock_llm,
-        })
-
-        input_state = AgentState(
-            examples=[Example(
-                user_message="Describe the process of list reversal in Python.",
-                expected_output="Use the `reverse()` method."
-            )],
-            acceptance_criteria="The output should detail the `reverse()` method.",
-            max_output_age=2
-        )
-
-        # with self.assertRaises(GraphRecursionError):
-        output_state = meta_prompt_graph.run_meta_prompt_graph(
-            input_state, recursion_limit=5)
-        self.assertIsNotNone(output_state['best_output'])
-
     def test_workflow_execution_with_llms_output_quality(self):
-        """
-        Verify that the output from different LLMs meets quality criteria.
-        """
-        # Create separate mocks for each node
         mock_initial_developer = Mock(spec=BaseLanguageModel)
         mock_initial_developer.invoke.return_value = "Initial prompt response."
         mock_initial_developer.config_specs = []
@@ -803,10 +378,6 @@ class TestMetaPromptGraph(unittest.TestCase):
         self.assertTrue(output_state['accepted'])
 
     def test_workflow_execution_with_llms_state_persistence(self):
-        """
-        Verify that the agent state is correctly maintained throughout the workflow.
-        """
-        # Create separate mocks for each node
         mock_initial_developer = Mock(spec=BaseLanguageModel)
         mock_initial_developer.invoke.side_effect = ["Initial prompt."]
         mock_initial_developer.config_specs = []
@@ -836,7 +407,7 @@ class TestMetaPromptGraph(unittest.TestCase):
             json.dumps({
                 "Accept": "Yes",
                 "Acceptable Differences": [],
-                "Unacceptable Differences": []
+                "Unacceptable Differences": [],
             })
         ]
         mock_analyzer.config_specs = []
@@ -882,7 +453,3 @@ class TestMetaPromptGraph(unittest.TestCase):
         output_state = meta_prompt_graph.run_meta_prompt_graph(input_state)
         self.assertEqual(output_state['best_output'], "Final executor output.")
         self.assertTrue(output_state['accepted'])
-
-
-if __name__ == '__main__':
-    unittest.main()
