@@ -1075,6 +1075,16 @@ test-full = ["adlfs", "aiohttp (!=4.0.0a0,!=4.0.0a1)", "cloudpickle", "dask", "d
 tqdm = ["tqdm"]
 
 [[package]]
+name = "func-timeout"
+version = "4.3.5"
+description = "Python module which allows you to specify timeouts when calling any existing function. Also provides support for stoppable-threads"
+optional = false
+python-versions = "*"
+files = [
+    {file = "func_timeout-4.3.5.tar.gz", hash = "sha256:74cd3c428ec94f4edfba81f9b2f14904846d5ffccc27c92433b8b5939b5575dd"},
+]
+
+[[package]]
 name = "gitdb"
 version = "4.0.11"
 description = "Git Object Database"
@@ -1108,21 +1118,21 @@ test = ["coverage[toml]", "ddt (>=1.1.1,!=1.4.3)", "mock", "mypy", "pre-commit",
 
 [[package]]
 name = "gradio"
-version = "4.37.2"
+version = "4.44.1"
 description = "Python library for easily interacting with trained machine learning models"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "gradio-4.37.2-py3-none-any.whl", hash = "sha256:dede8c9429fe9d543f3516b0bb1fc3efa4c34a6ef34635cf8adf3f524a5d615a"},
-    {file = "gradio-4.37.2.tar.gz", hash = "sha256:94132754ad402c91fd12367c5a57fcced34004ba7b4b256cef96457968346a08"},
+    {file = "gradio-4.44.1-py3-none-any.whl", hash = "sha256:c908850c638e4a176b22f95a758ce6a63ffbc2a7a5a74b23186ceeeedc23f4d9"},
+    {file = "gradio-4.44.1.tar.gz", hash = "sha256:a68a52498ac6b63f8864ef84bf7866a70e7d07ebe913edf921e1d2a3708ad5ae"},
 ]
 
 [package.dependencies]
 aiofiles = ">=22.0,<24.0"
-altair = ">=4.2.0,<6.0"
-fastapi = "*"
+anyio = ">=3.0,<5.0"
+fastapi = "<1.0"
 ffmpy = "*"
-gradio-client = "1.0.2"
+gradio-client = "1.3.0"
 httpx = ">=0.24.1"
 huggingface-hub = ">=0.19.3"
 importlib-resources = ">=1.3,<7.0"
@@ -1151,13 +1161,13 @@ oauth = ["authlib", "itsdangerous"]
 
 [[package]]
 name = "gradio-client"
-version = "1.0.2"
+version = "1.3.0"
 description = "Python library for easily interacting with trained machine learning models"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "gradio_client-1.0.2-py3-none-any.whl", hash = "sha256:f0af3fc39e7459b0703e6b3e9d59b6f7db0f2353b3f5e162a01d94d3bfcd5d97"},
-    {file = "gradio_client-1.0.2.tar.gz", hash = "sha256:3c88136ff64eb9747342efdc706f378ce863396750b463f27e5e114e47052b68"},
+    {file = "gradio_client-1.3.0-py3-none-any.whl", hash = "sha256:20c40cb4d56e18de1a025ccf58079f08a304e4fb2dfbcf7c2352815b2cb31091"},
+    {file = "gradio_client-1.3.0.tar.gz", hash = "sha256:d904afeae4f5682add0a6a263542c10e7669ff6c9de0a53a5c2fc9b719a24bb8"},
 ]
 
 [package.dependencies]
@@ -1166,7 +1176,7 @@ httpx = ">=0.24.1"
 huggingface-hub = ">=0.19.3"
 packaging = "*"
 typing-extensions = ">=4.0,<5.0"
-websockets = ">=10.0,<12.0"
+websockets = ">=10.0,<13.0"
 
 [[package]]
 name = "greenlet"
@@ -4691,4 +4701,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "ec239a0c085c6b79278795f34565890b8feb6c95e5e223fdfc3f3f514b3c09cc"
+content-hash = "16f55afb8e0d61eec422eb9045b7982590a8bb10afc00c1d196edcc3d0be6e11"

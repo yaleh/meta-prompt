@@ -63,6 +63,10 @@ llm = ChatOpenAI(temperature=1.0, model="github/gpt-4o-mini")
 
 with gr.Blocks() as demo:
 
+    # Add this near the top of the file, after the imports
+    stderr_capture = StringIO()
+    sys.stderr = stderr_capture
+
     gr.Markdown("## ChatGPT Interface with Custom Chatbot")
 
     last_ai_message = gr.State("")
@@ -107,8 +111,18 @@ with gr.Blocks() as demo:
 
     with gr.Accordion(open=False):
         code_to_run = gr.Code(label="Code to run", language="python", interactive=False)
-        # Add this inside the gr.Blocks() context, before the code_input
         timeout_input = gr.Number(label="Execution Timeout (seconds)", value=10, minimum=10, maximum=180, step=5)
+        stderr_output = gr.Textbox(label="STDERR Output", lines=5, interactive=False)
+
+    # Add this function to update the STDERR output
+    def update_stderr_output():
+        stderr_content = stderr_capture.getvalue()
+        stderr_capture.truncate(0)
+        stderr_capture.seek(0)
+        return stderr_content
+
+    # Add a timer to update the STDERR output every second
+    gr.Timer(1).tick(update_stderr_output, outputs=[stderr_output])
 
     # Set up event handlers
     code_input.change(auto_update_code, [code_input, auto_update], [code_to_run])
@@ -171,3 +185,6 @@ with gr.Blocks() as demo:
 
 if __name__ == "__main__":
     demo.launch()
+
+# Restore the original stderr when the script exits
+sys.stderr = sys.__stderr__
