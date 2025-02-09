@@ -17,7 +17,7 @@ from gradio_client import utils as client_utils
 from confz import BaseConfig
 from langchain_core.language_models import BaseLanguageModel
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI # Don't remove this import
+from langchain_openai import ChatOpenAI  # Don't remove this import
 from langchain_core.runnables import RunnableLambda
 from langchain_core.output_parsers import StrOutputParser
 from openai import BadRequestError
@@ -26,6 +26,7 @@ from pythonjsonlogger import jsonlogger
 from app.config import MetaPromptConfig, RoleMessage
 from meta_prompt import *
 from meta_prompt.sample_generator import TaskDescriptionGenerator
+
 
 def prompt_templates_confz2langchain(
     prompt_templates: Dict[str, Dict[str, List[RoleMessage]]]
@@ -57,6 +58,7 @@ def prompt_templates_confz2langchain(
         for node, role_messages in prompt_templates.items()
     }
 
+
 class SimplifiedCSVLogger(CSVLogger):
     """
     A subclass of CSVLogger that logs only the components data to a CSV file,
@@ -85,7 +87,8 @@ class SimplifiedCSVLogger(CSVLogger):
             if utils.is_prop_update(sample):
                 csv_data.append(str(sample))
             else:
-                data = component.flag(sample, flag_dir=save_dir) if sample is not None else ""
+                data = component.flag(
+                    sample, flag_dir=save_dir) if sample is not None else ""
                 if self.simplify_file_data:
                     data = utils.simplify_file_data_in_str(data)
                 csv_data.append(data)
@@ -175,22 +178,23 @@ def chat_log_2_chatbot_list(chat_log: str) -> List[List[str]]:
             print(line)
     return chatbot_list
 
+
 def on_prompt_model_tab_state_change(config, model_tab_select_state,
-                              simple_model_name, advanced_optimizer_model_name, advanced_executor_model_name,
-                              expert_prompt_initial_developer_model_name,
-                              expert_prompt_initial_developer_temperature,
-                              expert_prompt_acceptance_criteria_developer_model_name,
-                              expert_prompt_acceptance_criteria_temperature,
-                              expert_prompt_developer_model_name,
-                              expert_prompt_developer_temperature,
-                              expert_prompt_executor_model_name,
-                              expert_prompt_executor_temperature,
-                              expert_prompt_history_analyzer_model_name,
-                              expert_prompt_history_analyzer_temperature,
-                              expert_prompt_analyzer_model_name,
-                              expert_prompt_analyzer_temperature,
-                              expert_prompt_suggester_model_name,
-                              expert_prompt_suggester_temperature):
+                                     simple_model_name, advanced_optimizer_model_name, advanced_executor_model_name,
+                                     expert_prompt_initial_developer_model_name,
+                                     expert_prompt_initial_developer_temperature,
+                                     expert_prompt_acceptance_criteria_developer_model_name,
+                                     expert_prompt_acceptance_criteria_temperature,
+                                     expert_prompt_developer_model_name,
+                                     expert_prompt_developer_temperature,
+                                     expert_prompt_executor_model_name,
+                                     expert_prompt_executor_temperature,
+                                     expert_prompt_history_analyzer_model_name,
+                                     expert_prompt_history_analyzer_temperature,
+                                     expert_prompt_analyzer_model_name,
+                                     expert_prompt_analyzer_temperature,
+                                     expert_prompt_suggester_model_name,
+                                     expert_prompt_suggester_temperature):
     if model_tab_select_state == 'Simple':
         return simple_model_name, \
             config.default_llm_temperature, \
@@ -237,10 +241,13 @@ def on_prompt_model_tab_state_change(config, model_tab_select_state,
             expert_prompt_suggester_model_name, \
             expert_prompt_suggester_temperature
     else:
-        raise ValueError(f"Invalid model tab selected: {model_tab_select_state}")
+        raise ValueError(
+            f"Invalid model tab selected: {model_tab_select_state}")
+
 
 def on_model_tab_select(event: gr.SelectData):
     return event.value
+
 
 def evaluate_system_message(config, system_message, user_message, executor_model_name, executor_temperature):
     """
@@ -262,7 +269,8 @@ def evaluate_system_message(config, system_message, user_message, executor_model
         gr.Error: If there is a Gradio-specific error during the execution of
             this function.
     """
-    llm = initialize_llm(config, executor_model_name, {'temperature': executor_temperature})
+    llm = initialize_llm(config, executor_model_name, {
+                         'temperature': executor_temperature})
     template = ChatPromptTemplate.from_messages([
         ("system", "{system_message}"),
         ("human", "{user_message}")
@@ -296,6 +304,7 @@ def generate_acceptance_criteria(config, system_message, user_message, expected_
     to generate acceptance criteria.
 
     Args:
+        config (MetaPromptConfig | dict): The configuration object or dictionary.
         system_message (str): The system message to use when generating acceptance criteria.
         user_message (str): The user's input message.
         expected_output (str): The anticipated response or outcome from the language
@@ -308,18 +317,25 @@ def generate_acceptance_criteria(config, system_message, user_message, expected_
     Returns:
         tuple: A tuple containing the generated acceptance criteria and the chat log.
     """
+    # Convert config to MetaPromptConfig if it's a dictionary
+    if isinstance(config, dict):
+        from app.config import MetaPromptConfig
+        config = MetaPromptConfig(**config)
 
     log_stream = io.StringIO()
-    logger = logging.getLogger(MetaPromptGraph.__name__) if config.verbose else None
+    logger = logging.getLogger(
+        MetaPromptGraph.__name__) if config.verbose else None
     log_handler = logging.StreamHandler(log_stream) if logger else None
 
     if log_handler:
         log_handler.setFormatter(
-            jsonlogger.JsonFormatter('%(asctime)s %(name)s %(levelname)s %(message)s')
+            jsonlogger.JsonFormatter(
+                '%(asctime)s %(name)s %(levelname)s %(message)s')
         )
         logger.addHandler(log_handler)
 
-    llm = initialize_llm(config, acceptance_criteria_model_name, {'temperature': acceptance_criteria_temperature})
+    llm = initialize_llm(config, acceptance_criteria_model_name, {
+                         'temperature': acceptance_criteria_temperature})
     if prompt_template_group is None:
         prompt_template_group = 'default'
     prompt_templates = prompt_templates_confz2langchain(
@@ -328,7 +344,7 @@ def generate_acceptance_criteria(config, system_message, user_message, expected_
     acceptance_criteria_graph = MetaPromptGraph(llms={
         NODE_ACCEPTANCE_CRITERIA_DEVELOPER: llm
     }, prompts=prompt_templates,
-    verbose=config.verbose, logger=logger)
+        verbose=config.verbose, logger=logger)
     state = AgentState(
         examples=[Example(
             user_message=user_message,
@@ -336,7 +352,8 @@ def generate_acceptance_criteria(config, system_message, user_message, expected_
         )],
         system_message=system_message
     )
-    output_state = acceptance_criteria_graph.run_node_graph(NODE_ACCEPTANCE_CRITERIA_DEVELOPER, state)
+    output_state = acceptance_criteria_graph.run_node_graph(
+        NODE_ACCEPTANCE_CRITERIA_DEVELOPER, state)
 
     if log_handler:
         log_handler.close()
@@ -358,6 +375,7 @@ def generate_initial_system_message(
     Generate an initial system message based on the user message and expected output.
 
     Args:
+        config (MetaPromptConfig | dict): The configuration object or dictionary.
         user_message (str): The user's input message.
         expected_output (str): The anticipated response or outcome from the language model.
         initial_developer_model_name (str): The name of the initial developer model to use.
@@ -367,18 +385,25 @@ def generate_initial_system_message(
     Returns:
         tuple: A tuple containing the initial system message and the chat log.
     """
+    # Convert config to MetaPromptConfig if it's a dictionary
+    if isinstance(config, dict):
+        from app.config import MetaPromptConfig
+        config = MetaPromptConfig(**config)
 
     log_stream = io.StringIO()
-    logger = logging.getLogger(MetaPromptGraph.__name__) if config.verbose else None
+    logger = logging.getLogger(
+        MetaPromptGraph.__name__) if config.verbose else None
     log_handler = logging.StreamHandler(log_stream) if logger else None
 
     if log_handler:
         log_handler.setFormatter(
-            jsonlogger.JsonFormatter('%(asctime)s %(name)s %(levelname)s %(message)s')
+            jsonlogger.JsonFormatter(
+                '%(asctime)s %(name)s %(levelname)s %(message)s')
         )
         logger.addHandler(log_handler)
 
-    llm = initialize_llm(config, initial_developer_model_name, {'temperature': initial_developer_temperature})
+    llm = initialize_llm(config, initial_developer_model_name, {
+                         'temperature': initial_developer_temperature})
 
     if prompt_template_group is None:
         prompt_template_group = 'default'
@@ -400,7 +425,8 @@ def generate_initial_system_message(
         )]
     )
 
-    output_state = initial_system_message_graph.run_node_graph(NODE_PROMPT_INITIAL_DEVELOPER, state)
+    output_state = initial_system_message_graph.run_node_graph(
+        NODE_PROMPT_INITIAL_DEVELOPER, state)
 
     if log_handler:
         log_handler.close()
@@ -433,6 +459,7 @@ def process_message_with_models(
     and extracts the best system message, output, and analysis from the output state of the MetaPromptGraph.
 
     Args:
+        config (MetaPromptConfig | dict): The configuration object or dictionary.
         user_message (str): The user's input message to be processed by the language model(s).
         expected_output (str): The anticipated response or outcome from the language model(s) based on the user's message.
         acceptance_criteria (str): Criteria that determines whether the output is acceptable or not.
@@ -452,6 +479,11 @@ def process_message_with_models(
     Returns:
         tuple: A tuple containing the best system message, output, analysis, acceptance criteria, and chat log in JSON format.
     """
+    # Convert config to MetaPromptConfig if it's a dictionary
+    if isinstance(config, dict):
+        from app.config import MetaPromptConfig
+        config = MetaPromptConfig(**config)
+
     input_state = AgentState(
         examples=[Example(
             user_message=user_message,
@@ -463,7 +495,8 @@ def process_message_with_models(
     )
 
     log_stream = io.StringIO()
-    logger = logging.getLogger(MetaPromptGraph.__name__) if config.verbose else None
+    logger = logging.getLogger(
+        MetaPromptGraph.__name__) if config.verbose else None
     log_handler = logging.StreamHandler(log_stream) if logger else None
     if log_handler:
         log_handler.setFormatter(jsonlogger.JsonFormatter(
@@ -472,7 +505,8 @@ def process_message_with_models(
 
     if prompt_template_group is None:
         prompt_template_group = 'default'
-    prompt_templates = prompt_templates_confz2langchain(config.prompt_templates[prompt_template_group])
+    prompt_templates = prompt_templates_confz2langchain(
+        config.prompt_templates[prompt_template_group])
     llms = {
         NODE_PROMPT_INITIAL_DEVELOPER: initialize_llm(config, initial_developer_model_name, {'temperature': initial_developer_temperature}),
         NODE_ACCEPTANCE_CRITERIA_DEVELOPER: initialize_llm(config, acceptance_criteria_model_name, {'temperature': acceptance_criteria_temperature}),
@@ -480,11 +514,13 @@ def process_message_with_models(
         NODE_PROMPT_EXECUTOR: initialize_llm(config, executor_model_name, {'temperature': executor_temperature}),
         NODE_OUTPUT_HISTORY_ANALYZER: initialize_llm(config, history_analyzer_model_name, {'temperature': history_analyzer_temperature}),
         NODE_PROMPT_ANALYZER: initialize_llm(config, analyzer_model_name, {'temperature': analyzer_temperature}),
-        NODE_PROMPT_SUGGESTER: initialize_llm(config, suggester_model_name, {'temperature': suggester_temperature})
+        NODE_PROMPT_SUGGESTER: initialize_llm(config, suggester_model_name, {
+                                              'temperature': suggester_temperature})
     }
 
     # Bind response_format to llm here
-    nodes_to_bind = [NODE_OUTPUT_HISTORY_ANALYZER, NODE_PROMPT_ANALYZER, NODE_PROMPT_SUGGESTER] 
+    nodes_to_bind = [NODE_OUTPUT_HISTORY_ANALYZER,
+                     NODE_PROMPT_ANALYZER, NODE_PROMPT_SUGGESTER]
     for node in nodes_to_bind:
         llms[node] = llms[node].bind(response_format={"type": "json_object"})
 
@@ -492,12 +528,13 @@ def process_message_with_models(
                                         aggressive_exploration=aggressive_exploration,
                                         verbose=config.verbose, logger=logger)
     try:
-        output_state = meta_prompt_graph(input_state, recursion_limit=recursion_limit)
+        output_state = meta_prompt_graph(
+            input_state, recursion_limit=recursion_limit)
     except Exception as e:
         if isinstance(e, gr.Error):
             raise e
         else:
-            raise gr.Error(f"Error: {e}")           
+            raise gr.Error(f"Error: {e}")
 
     if log_handler:
         log_handler.close()
@@ -553,7 +590,8 @@ def initialize_llm(config: MetaPromptConfig, model_name: str, model_config: Opti
 
         return LLMModelFactory().create(model_type, **dumped_config)
     except KeyError:
-        raise KeyError(f"No configuration exists for the model name: {model_name}")
+        raise KeyError(
+            f"No configuration exists for the model name: {model_name}")
     except NotImplementedError:
         raise NotImplementedError(
             f"Unrecognized type configured for the language model: {model_type}"
@@ -569,6 +607,7 @@ def convert_examples_to_json(examples):
     pd_examples.columns = pd_examples.columns.str.lower()
     return pd_examples.to_json(orient="records")
 
+
 def process_json_data(
     config,
     examples, model_name, generating_batch_size, temperature
@@ -577,7 +616,8 @@ def process_json_data(
         # Convert the gradio dataframe into a JSON array
         input_json = convert_examples_to_json(examples)
 
-        model = initialize_llm(config, model_name, {'temperature': temperature, 'max_retries': 3})
+        model = initialize_llm(config, model_name, {
+                               'temperature': temperature, 'max_retries': 3})
         generator = TaskDescriptionGenerator(model)
         result = generator.process(input_json, generating_batch_size)
 
@@ -608,12 +648,14 @@ def process_json_data(
         )
     except Exception as e:
         raise gr.Error(f"An error occurred: {str(e)}")
-    
+
+
 def generate_description(config, examples, model_name, temperature):
     try:
         input_json = convert_examples_to_json(examples)
 
-        model = initialize_llm(config, model_name, {'temperature': temperature, 'max_retries': 3})
+        model = initialize_llm(config, model_name, {
+                               'temperature': temperature, 'max_retries': 3})
         generator = TaskDescriptionGenerator(model)
         result = generator.generate_description(input_json)
         description = result["description"]
@@ -622,20 +664,24 @@ def generate_description(config, examples, model_name, temperature):
     except Exception as e:
         raise gr.Error(f"An error occurred: {str(e)}")
 
+
 def analyze_input_data(config, description, model_name, temperature):
     try:
-        model = initialize_llm(config, model_name, {'temperature': temperature, 'max_retries': 3})
+        model = initialize_llm(config, model_name, {
+                               'temperature': temperature, 'max_retries': 3})
         generator = TaskDescriptionGenerator(model)
         input_analysis = generator.analyze_input(description)
         return input_analysis
     except Exception as e:
         raise gr.Error(f"An error occurred: {str(e)}")
-    
+
+
 def generate_example_briefs(
     config, description, input_analysis, generating_batch_size, model_name, temperature
 ):
     try:
-        model = initialize_llm(config, model_name, {'temperature': temperature, 'max_retries': 3})
+        model = initialize_llm(config, model_name, {
+                               'temperature': temperature, 'max_retries': 3})
         generator = TaskDescriptionGenerator(model)
         briefs = generator.generate_briefs(
             description, input_analysis, generating_batch_size
@@ -650,7 +696,8 @@ def generate_examples_using_briefs(
 ):
     try:
         input_json = convert_examples_to_json(examples)
-        model = initialize_llm(config, model_name, {'temperature': temperature, 'max_retries': 3})
+        model = initialize_llm(config, model_name, {
+                               'temperature': temperature, 'max_retries': 3})
         generator = TaskDescriptionGenerator(model)
         result = generator.generate_examples_from_briefs(
             description, new_example_briefs, input_json, generating_batch_size
@@ -670,7 +717,8 @@ def generate_examples_from_description(
 ):
     try:
         input_json = convert_examples_to_json(raw_example)
-        model = initialize_llm(config, model_name, {'temperature': temperature, 'max_retries': 3})
+        model = initialize_llm(config, model_name, {
+                               'temperature': temperature, 'max_retries': 3})
         generator = TaskDescriptionGenerator(model)
         result = generator.generate_examples_directly(
             description, input_json, generating_batch_size
@@ -682,11 +730,13 @@ def generate_examples_from_description(
     except Exception as e:
         raise gr.Error(f"An error occurred: {str(e)}")
 
+
 def format_selected_input_example_dataframe(evt: gr.SelectData, examples):
     if evt.index[0] < len(examples):
         selected_example = examples.iloc[evt.index[0]]
         return "update", evt.index[0]+1, selected_example.iloc[0], selected_example.iloc[1]
     return None, None, None, None
+
 
 def format_selected_example(evt: gr.SelectData, examples):
     if evt.index[0] < len(examples):
@@ -699,25 +749,28 @@ def format_selected_example(evt: gr.SelectData, examples):
         )
     return None, None, None, None
 
+
 def import_json_data(file, input_dataframe):
     if file is not None:
         df = pd.read_json(file.name)
         # Uppercase the first letter of each column name
         df.columns = df.columns.str.title()
-        
+
         # Validate that the DataFrame includes 'Input' and 'Output' columns
         if not {'Input', 'Output'}.issubset(df.columns):
-            raise gr.Error("Invalid JSON format. The file must contain 'input' and 'output' columns.")
-        
+            raise gr.Error(
+                "Invalid JSON format. The file must contain 'input' and 'output' columns.")
+
         return df
     return input_dataframe
+
 
 def export_json_data(dataframe):
     if dataframe is not None and not dataframe.empty:
         # Copy the dataframe and lowercase the column names
         df_copy = dataframe.copy()
         df_copy.columns = df_copy.columns.str.lower()
-        
+
         json_str = df_copy.to_json(orient="records", indent=2)
 
         # create a temporary file with the json string
@@ -734,9 +787,11 @@ def append_example_to_input_dataframe(
 ):
     try:
         if input_dataframe.empty or (input_dataframe.iloc[-1] == ['', '']).all():
-            input_dataframe = pd.DataFrame([[new_example_input, new_example_output]], columns=["Input", "Output"])
+            input_dataframe = pd.DataFrame(
+                [[new_example_input, new_example_output]], columns=["Input", "Output"])
         else:
-            input_dataframe = pd.concat([input_dataframe, pd.DataFrame([[new_example_input, new_example_output]], columns=["Input", "Output"])], ignore_index=True)
+            input_dataframe = pd.concat([input_dataframe, pd.DataFrame(
+                [[new_example_input, new_example_output]], columns=["Input", "Output"])], ignore_index=True)
         return input_dataframe, None, None, None, None
     except KeyError:
         raise gr.Error("Invalid input or output")
@@ -775,25 +830,31 @@ def input_dataframe_change(
         selected_group_output,
     )
 
+
 def generate_suggestions(config, description, examples, model_name, temperature):
     try:
         input_json = convert_examples_to_json(examples)
-        model = initialize_llm(config, model_name, {'temperature': temperature, 'max_retries': 3})
+        model = initialize_llm(config, model_name, {
+                               'temperature': temperature, 'max_retries': 3})
         generator = TaskDescriptionGenerator(model)
         result = generator.generate_suggestions(input_json, description)
         return gr.update(choices=result["suggestions"])
     except Exception as e:
         raise gr.Error(f"An error occurred: {str(e)}")
 
+
 def apply_suggestions(config, description, suggestions, examples, model_name, temperature):
     try:
         input_json = convert_examples_to_json(examples)
-        model = initialize_llm(config, model_name, {'temperature': temperature, 'max_retries': 3})
+        model = initialize_llm(config, model_name, {
+                               'temperature': temperature, 'max_retries': 3})
         generator = TaskDescriptionGenerator(model)
-        result = generator.update_description(input_json, description, suggestions)
+        result = generator.update_description(
+            input_json, description, suggestions)
         return result["description"], gr.update(choices=result["suggestions"], value=[])
     except Exception as e:
         raise gr.Error(f"An error occurred: {str(e)}")
+
 
 def evaluate_output(
     config,
@@ -807,12 +868,13 @@ def evaluate_output(
     # Package the required variables into an AgentState dictionary
     state = AgentState(
         acceptance_criteria=acceptance_criteria,
-        examples = [Example(expected_output=expected_output)],
+        examples=[Example(expected_output=expected_output)],
         output=output
     )
 
     # Initialize the acceptance criteria model
-    llm = initialize_llm(config, prompt_analyzer_model_name, {'temperature': prompt_analyzer_temperature}).bind(response_format={"type": "json_object"})
+    llm = initialize_llm(config, prompt_analyzer_model_name, {
+                         'temperature': prompt_analyzer_temperature}).bind(response_format={"type": "json_object"})
 
     # Get the prompt templates
     if prompt_template_group is None:
@@ -829,10 +891,12 @@ def evaluate_output(
     )
 
     # Run the node graph for evaluation
-    output_state = acceptance_criteria_graph.run_node_graph(NODE_PROMPT_ANALYZER, state)
+    output_state = acceptance_criteria_graph.run_node_graph(
+        NODE_PROMPT_ANALYZER, state)
 
     # Return the evaluation result
     return output_state.get('analysis', "Error: The output state does not contain a valid 'analysis'")
+
 
 def compare_outputs(expected_output, actual_output):
     d = Differ()
