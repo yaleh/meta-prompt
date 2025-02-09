@@ -195,6 +195,11 @@ def on_prompt_model_tab_state_change(config, model_tab_select_state,
                                      expert_prompt_analyzer_temperature,
                                      expert_prompt_suggester_model_name,
                                      expert_prompt_suggester_temperature):
+    # Convert config to MetaPromptConfig if it's a dictionary
+    if isinstance(config, dict):
+        from app.config import MetaPromptConfig
+        config = MetaPromptConfig(**config)
+
     if model_tab_select_state == 'Simple':
         return simple_model_name, \
             config.default_llm_temperature, \
