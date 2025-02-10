@@ -160,7 +160,8 @@ with gr.Blocks(title='Meta Prompt') as demo:
                     gr.update(visible=(mode == "append")),
                 ],
                 inputs=[selected_group_mode],
-                outputs=[selected_input_group, selected_row_index, update_row_button, delete_row_button, append_example_button],
+                outputs=[selected_input_group, selected_row_index,
+                         update_row_button, delete_row_button, append_example_button],
             )
 
             selected_group_index.change(
@@ -174,7 +175,8 @@ with gr.Blocks(title='Meta Prompt') as demo:
         with gr.Tab("Scope"):
 
             with gr.Row():
-                scope_submit_button = gr.Button("Generate", variant="primary", interactive=False)
+                scope_submit_button = gr.Button(
+                    "Generate", variant="primary", interactive=False)
                 scope_clear_button = gr.ClearButton(
                     [
                     ],
@@ -285,7 +287,8 @@ with gr.Blocks(title='Meta Prompt') as demo:
         with gr.Tab("Prompt"):
 
             with gr.Row():
-                prompt_submit_button = gr.Button(value="Submit", variant="primary", interactive=False)
+                prompt_submit_button = gr.Button(
+                    value="Submit", variant="primary", interactive=False)
                 prompt_clear_button = gr.ClearButton(value='Clear Output')
 
             with gr.Row():
@@ -365,6 +368,11 @@ with gr.Blocks(title='Meta Prompt') as demo:
                                     label="Model Name",
                                     choices=config.llms.keys(),
                                     value=list(config.llms.keys())[0],
+                                )
+                                thinking_model_checkbox = gr.Checkbox(
+                                    label="Thinking Model",
+                                    value=False,
+                                    info="Enable thinking model to remove <think> tags"
                                 )
                             with gr.Tab('Advanced') as advanced_llm_tab:
                                 advanced_optimizer_model_name_input = gr.Dropdown(
@@ -536,7 +544,8 @@ with gr.Blocks(title='Meta Prompt') as demo:
     )
 
     clear_inputs_button.add(
-        [selected_group_input, selected_example_output, selected_group_index, selected_group_mode]
+        [selected_group_input, selected_example_output,
+            selected_group_index, selected_group_mode]
     )
 
     # set up event handlers for the scope tab
@@ -545,7 +554,7 @@ with gr.Blocks(title='Meta Prompt') as demo:
         return not x.empty and not x.isnull().any().any() and not x.eq('').any().any()
 
     input_dataframe.change(
-        fn=valid_input_dataframe, # input_dataframe has at least 1 data row and no NaN values
+        fn=valid_input_dataframe,  # input_dataframe has at least 1 data row and no NaN values
         inputs=[input_dataframe],
         outputs=[scope_inputs_ready_state],
     )
@@ -615,7 +624,8 @@ with gr.Blocks(title='Meta Prompt') as demo:
 
     analyze_input_button.click(
         fn=analyze_input_data,
-        inputs=[config_state, description_output, scope_model_name, temperature],
+        inputs=[config_state, description_output,
+                scope_model_name, temperature],
         outputs=[input_analysis_output],
     )
 
@@ -709,7 +719,8 @@ with gr.Blocks(title='Meta Prompt') as demo:
 
     generate_suggestions_button.click(
         fn=generate_suggestions,
-        inputs=[config_state, description_output, input_dataframe, scope_model_name, temperature],
+        inputs=[config_state, description_output,
+                input_dataframe, scope_model_name, temperature],
         outputs=[suggestions_output],
     )
 
@@ -828,11 +839,12 @@ with gr.Blocks(title='Meta Prompt') as demo:
 
     generate_acceptance_criteria_button.click(
         generate_acceptance_criteria,
-        inputs=[config_state, initial_system_message_input, 
+        inputs=[config_state, initial_system_message_input,
                 selected_example_input, selected_example_output,
                 model_name_states["acceptance_criteria"],
                 model_temperature_states["acceptance_criteria"],
-                prompt_template_group],
+                prompt_template_group,
+                thinking_model_checkbox],
         outputs=[acceptance_criteria_input, logs_chatbot]
     )
     evaluate_acceptance_criteria_input_button.click(
@@ -844,7 +856,8 @@ with gr.Blocks(title='Meta Prompt') as demo:
             acceptance_criteria_input,
             model_name_states["analyzer"],
             model_temperature_states["analyzer"],
-            prompt_template_group
+            prompt_template_group,
+            thinking_model_checkbox
         ],
         outputs=[analysis_output]
     )
@@ -857,7 +870,8 @@ with gr.Blocks(title='Meta Prompt') as demo:
             acceptance_criteria_output,
             model_name_states["analyzer"],
             model_temperature_states["analyzer"],
-            prompt_template_group
+            prompt_template_group,
+            thinking_model_checkbox
         ],
         outputs=[analysis_output]
     )
@@ -867,7 +881,8 @@ with gr.Blocks(title='Meta Prompt') as demo:
         inputs=[config_state, selected_example_input, selected_example_output,
                 model_name_states["initial_developer"],
                 model_temperature_states["initial_developer"],
-                prompt_template_group],
+                prompt_template_group,
+                thinking_model_checkbox],
         outputs=[initial_system_message_input, logs_chatbot]
     )
 
@@ -915,9 +930,9 @@ with gr.Blocks(title='Meta Prompt') as demo:
         api_name="compare_outputs"
     )
     prompt_clear_button.add([
-                             acceptance_criteria_input, initial_system_message_input, 
-                             system_message_output, output_output,
-                             acceptance_criteria_output, analysis_output, logs_chatbot])
+        acceptance_criteria_input, initial_system_message_input,
+        system_message_output, output_output,
+        acceptance_criteria_output, analysis_output, logs_chatbot])
 
     prompt_submit_button.click(
         process_message_with_models,
@@ -944,13 +959,14 @@ with gr.Blocks(title='Meta Prompt') as demo:
             model_name_states["suggester"],
             model_temperature_states["suggester"],
             prompt_template_group,
-            aggressive_exploration
+            aggressive_exploration,
+            thinking_model_checkbox
         ],
         outputs=[
             system_message_output,
             output_output,
-            analysis_output,
             acceptance_criteria_output,
+            analysis_output,
             logs_chatbot
         ]
     )

@@ -301,7 +301,7 @@ def evaluate_system_message(config, system_message, user_message, executor_model
         raise gr.Error(f"Error: {e}")
 
 
-def generate_acceptance_criteria(config, system_message, user_message, expected_output, acceptance_criteria_model_name, acceptance_criteria_temperature, prompt_template_group):
+def generate_acceptance_criteria(config, system_message, user_message, expected_output, acceptance_criteria_model_name, acceptance_criteria_temperature, prompt_template_group, thinking_model: bool = False):
     """
     Generate acceptance criteria based on the system message, user message, and expected output.
 
@@ -318,6 +318,7 @@ def generate_acceptance_criteria(config, system_message, user_message, expected_
         acceptance_criteria_temperature (float): The temperature to use for the acceptance criteria model.
         prompt_template_group (Optional[str], optional): The group of prompt templates
             to use. Defaults to None.
+        thinking_model (bool, optional): Whether to use thinking model. Defaults to False.
 
     Returns:
         tuple: A tuple containing the generated acceptance criteria and the chat log.
@@ -349,7 +350,8 @@ def generate_acceptance_criteria(config, system_message, user_message, expected_
     acceptance_criteria_graph = MetaPromptGraph(llms={
         NODE_ACCEPTANCE_CRITERIA_DEVELOPER: llm
     }, prompts=prompt_templates,
-        verbose=config.verbose, logger=logger)
+        verbose=config.verbose, logger=logger,
+        thinking_model=thinking_model)
     state = AgentState(
         examples=[Example(
             user_message=user_message,
@@ -374,7 +376,8 @@ def generate_initial_system_message(
     expected_output: str,
     initial_developer_model_name: str,
     initial_developer_temperature: float,
-    prompt_template_group: Optional[str] = None
+    prompt_template_group: Optional[str] = None,
+    thinking_model: bool = False
 ) -> tuple:
     """
     Generate an initial system message based on the user message and expected output.
@@ -386,6 +389,7 @@ def generate_initial_system_message(
         initial_developer_model_name (str): The name of the initial developer model to use.
         prompt_template_group (Optional[str], optional):
             The group of prompt templates to use. Defaults to None.
+        thinking_model (bool, optional): Whether to use thinking model. Defaults to False.
 
     Returns:
         tuple: A tuple containing the initial system message and the chat log.
@@ -420,7 +424,8 @@ def generate_initial_system_message(
         llms={NODE_PROMPT_INITIAL_DEVELOPER: llm},
         prompts=prompt_templates,
         verbose=config.verbose,
-        logger=logger
+        logger=logger,
+        thinking_model=thinking_model
     )
 
     state = AgentState(
@@ -455,7 +460,8 @@ def process_message_with_models(
     analyzer_model_name: str, analyzer_temperature: float,
     suggester_model_name: str, suggester_temperature: float,
     prompt_template_group: Optional[str] = None,
-    aggressive_exploration: bool = False
+    aggressive_exploration: bool = False,
+    thinking_model: bool = False
 ) -> tuple:
     """
     Process a user message by executing the MetaPromptGraph with provided language models and input state.
@@ -480,6 +486,7 @@ def process_message_with_models(
         suggester_model_name (str): The name of the suggester model to use.
         prompt_template_group (Optional[str], optional): The group of prompt templates to use. Defaults to None.
         aggressive_exploration (bool, optional): Whether to use aggressive exploration. Defaults to False.
+        thinking_model (bool, optional): Whether to use thinking model. Defaults to False.
 
     Returns:
         tuple: A tuple containing the best system message, output, analysis, acceptance criteria, and chat log in JSON format.
@@ -531,7 +538,8 @@ def process_message_with_models(
 
     meta_prompt_graph = MetaPromptGraph(llms=llms, prompts=prompt_templates,
                                         aggressive_exploration=aggressive_exploration,
-                                        verbose=config.verbose, logger=logger)
+                                        verbose=config.verbose, logger=logger,
+                                        thinking_model=thinking_model)
     try:
         output_state = meta_prompt_graph(
             input_state, recursion_limit=recursion_limit)
@@ -868,7 +876,8 @@ def evaluate_output(
     acceptance_criteria: str,
     prompt_analyzer_model_name: str,
     prompt_analyzer_temperature: float,
-    prompt_template_group: Optional[str] = None
+    prompt_template_group: Optional[str] = None,
+    thinking_model: bool = False
 ) -> str:
     # Package the required variables into an AgentState dictionary
     state = AgentState(
@@ -892,7 +901,8 @@ def evaluate_output(
     acceptance_criteria_graph = MetaPromptGraph(
         llms={NODE_PROMPT_ANALYZER: llm},
         prompts=prompt_templates,
-        verbose=config.verbose
+        verbose=config.verbose,
+        thinking_model=thinking_model
     )
 
     # Run the node graph for evaluation
