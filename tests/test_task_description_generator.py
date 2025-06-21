@@ -6,14 +6,13 @@ from unittest.mock import Mock, patch
 from langchain_openai import ChatOpenAI
 from openai import BadRequestError
 from meta_prompt.sample_generator import TaskDescriptionGenerator
+from tests.test_config_utils import get_test_llm, skip_if_no_api_key
 
 class TestTaskDescriptionGeneratorBasic(unittest.TestCase):
     """Basic test cases for TaskDescriptionGenerator."""
 
     def setUp(self):
-        self.model = ChatOpenAI(
-            model="llama3-70b-8192", temperature=1.0, max_retries=3
-        )
+        self.model = get_test_llm()
         self.generator = TaskDescriptionGenerator(self.model)
 
     @patch.object(ChatOpenAI, "invoke")
@@ -45,9 +44,7 @@ class TestTaskDescriptionGeneratorExamples(unittest.TestCase):
     """Test cases for TaskDescriptionGenerator focusing on examples."""
 
     def setUp(self):
-        self.model = ChatOpenAI(
-            model="llama3-70b-8192", temperature=1.0, max_retries=3
-        )
+        self.model = get_test_llm()
         self.generator = TaskDescriptionGenerator(self.model)
 
     @patch.object(ChatOpenAI, "invoke")
@@ -126,7 +123,7 @@ class TestTaskDescriptionGeneratorExamples(unittest.TestCase):
 class TestTaskDescriptionGeneratorSuggestions(unittest.TestCase):
 
     def setUp(self):
-        self.model = ChatOpenAI(model="llama3-70b-8192", temperature=1.0, max_retries=3)
+        self.model = get_test_llm()
         self.generator = TaskDescriptionGenerator(self.model)
 
     @patch.object(ChatOpenAI, "invoke")
@@ -233,7 +230,7 @@ class TestTaskDescriptionGeneratorSuggestions(unittest.TestCase):
 class TestLoadAndValidateInput(unittest.TestCase):
 
     def setUp(self):
-        self.model = ChatOpenAI(model="llama3-70b-8192", temperature=1.0, max_retries=3)
+        self.model = get_test_llm()
         self.generator = TaskDescriptionGenerator(self.model)
 
     def test_valid_json_single_example(self):
@@ -392,9 +389,7 @@ class TestTaskDescriptionGeneratorUpdateDescription(unittest.TestCase):
     """Test cases for the update_description method of TaskDescriptionGenerator."""
 
     def setUp(self):
-        self.model = ChatOpenAI(
-            model="llama3-70b-8192", temperature=1.0, max_retries=3
-        )
+        self.model = get_test_llm()
         self.generator = TaskDescriptionGenerator(self.model)
 
     @patch.object(ChatOpenAI, "invoke")

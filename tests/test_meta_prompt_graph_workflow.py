@@ -9,22 +9,13 @@ from langchain_openai import ChatOpenAI
 
 from meta_prompt import *
 from meta_prompt.consts import NODE_PROMPT_INITIAL_DEVELOPER, NODE_ACCEPTANCE_CRITERIA_DEVELOPER, NODE_PROMPT_DEVELOPER, NODE_PROMPT_EXECUTOR, NODE_OUTPUT_HISTORY_ANALYZER, NODE_PROMPT_ANALYZER, NODE_PROMPT_SUGGESTER
+from tests.test_config_utils import get_test_llm, get_test_llms_dict, skip_if_no_api_key
 
 
 class TestMetaPromptGraphWorkflow(unittest.TestCase):
+    @skip_if_no_api_key
     def test_workflow_execution(self):
-        model_name = os.getenv("TEST_MODEL_NAME_EXECUTOR")
-        raw_llm = ChatOpenAI(model_name=model_name)
-
-        llms = {
-            NODE_PROMPT_INITIAL_DEVELOPER: raw_llm,
-            NODE_ACCEPTANCE_CRITERIA_DEVELOPER: raw_llm,
-            NODE_PROMPT_DEVELOPER: raw_llm,
-            NODE_PROMPT_EXECUTOR: raw_llm,
-            NODE_OUTPUT_HISTORY_ANALYZER: raw_llm,
-            NODE_PROMPT_ANALYZER: raw_llm,
-            NODE_PROMPT_SUGGESTER: raw_llm,
-        }
+        llms = get_test_llms_dict()
 
         meta_prompt_graph = MetaPromptGraph(llms=llms)
         input_state = AgentState(
@@ -53,29 +44,18 @@ class TestMetaPromptGraphWorkflow(unittest.TestCase):
         user_message = "How can I create a list of numbers in Python?"
         messages = [("system", output_state["best_system_message"]),
                     ("human", user_message)]
-        result = raw_llm.invoke(messages)
+        test_llm = get_test_llm()
+        result = test_llm.invoke(messages)
 
         assert hasattr(
             result, "content"), "The result should have the attribute 'content'"
         print(result.content)
 
+    @skip_if_no_api_key
     def test_workflow_execution_with_llms(self):
-        optimizer_llm = ChatOpenAI(
-            model_name=os.getenv("TEST_MODEL_NAME_OPTIMIZER"), temperature=0.5
-        )
-        executor_llm = ChatOpenAI(
-            model_name=os.getenv("TEST_MODEL_NAME_EXECUTOR"), temperature=0.01
-        )
-
-        llms = {
-            NODE_PROMPT_INITIAL_DEVELOPER: optimizer_llm,
-            NODE_ACCEPTANCE_CRITERIA_DEVELOPER: optimizer_llm,
-            NODE_PROMPT_DEVELOPER: optimizer_llm,
-            NODE_PROMPT_EXECUTOR: executor_llm,
-            NODE_OUTPUT_HISTORY_ANALYZER: optimizer_llm,
-            NODE_PROMPT_ANALYZER: optimizer_llm.bind(response_format={"type": "json_object"}),
-            NODE_PROMPT_SUGGESTER: optimizer_llm,
-        }
+        llms = get_test_llms_dict()
+        # Bind JSON response format for prompt analyzer
+        llms[NODE_PROMPT_ANALYZER] = llms[NODE_PROMPT_ANALYZER].bind(response_format={"type": "json_object"})
 
         meta_prompt_graph = MetaPromptGraph(llms=llms)
         input_state = AgentState(
@@ -104,7 +84,8 @@ class TestMetaPromptGraphWorkflow(unittest.TestCase):
         user_message = "How can I create a list of numbers in Python?"
         messages = [("system", output_state["best_system_message"]),
                     ("human", user_message)]
-        result = executor_llm.invoke(messages)
+        test_llm = get_test_llm()
+        result = test_llm.invoke(messages)
 
         assert hasattr(
             result, "content"), "The result should have the attribute 'content'"
