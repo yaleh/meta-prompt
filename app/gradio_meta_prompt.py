@@ -2,19 +2,13 @@ import gradio as gr
 from gradio import Button, utils
 from gradio.flagging import FlagMethod
 
-from confz import CLArgSource, EnvSource, FileSource
+from confz import CLArgSource, EnvSource, FileSource, BaseConfig
 from app.config import MetaPromptConfig
 from meta_prompt import *
 from app.gradio_meta_prompt_utils import *
 
-pre_config_sources = [
-    EnvSource(prefix='METAPROMPT_', allow_all=True),
-    CLArgSource()
-]
-pre_config = FileConfig(config_sources=pre_config_sources)
-
 config_sources = [
-    FileSource(file=pre_config.config_file, optional=True),
+    FileSource(file="config.yml", optional=True),
     EnvSource(prefix='METAPROMPT_', allow_all=True),
     CLArgSource()
 ]
@@ -1006,4 +1000,5 @@ with gr.Blocks(title='Meta Prompt') as demo:
 flagging_callback.setup(flagging_inputs, config.examples_path)
 
 # Launch the Gradio app
-demo.launch(server_name=config.server_name, server_port=config.server_port)
+if __name__ == "__main__":
+    demo.launch(server_name=config.server_name, server_port=config.server_port)

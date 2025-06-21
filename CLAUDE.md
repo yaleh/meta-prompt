@@ -19,8 +19,6 @@ cp example_config.yml config.yml  # Edit with your API keys
 # Primary Gradio web interface
 poetry run python app/gradio_meta_prompt.py
 
-# Alternative Streamlit interface  
-poetry run streamlit run app/streamlit_tab_app.py
 
 # Docker deployment
 docker run -p 7860:7860 yaleh/meta-prompt
@@ -76,7 +74,6 @@ poetry shell
 
 ### Application Layer (`app/`)
 - **Gradio Interface**: Primary web UI with Scope Tab (task generation) and Prompt Tab (optimization)
-- **Streamlit Interface**: Alternative dashboard-style UI
 - **Utilities**: Helper functions for UI operations and config handling
 
 ### Configuration System
@@ -110,7 +107,6 @@ poetry shell
 
 ### UI Entry Points
 - `app/gradio_meta_prompt.py`: Primary web interface
-- `app/streamlit_tab_app.py`: Alternative interface
 - `demo/`: Jupyter notebooks for experimentation
 
 ### Configuration
