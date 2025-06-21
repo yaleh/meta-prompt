@@ -611,5 +611,49 @@ class TestTaskDescriptionGeneratorUpdateDescription(unittest.TestCase):
         )
 
 
+class TestTaskDescriptionGeneratorProcess(unittest.TestCase):
+    """Test the direct process method of TaskDescriptionGenerator."""
+    
+    def setUp(self):
+        self.model = get_test_llm()
+        self.generator = TaskDescriptionGenerator(self.model)
+    
+    def test_process_method_direct_call(self):
+        """Test the process method calls chain.invoke correctly"""
+        with patch.object(self.generator, 'chain') as mock_chain:
+            mock_chain.invoke.return_value = {
+                "description": "Generated task description",
+                "suggestions": ["suggestion1", "suggestion2"]
+            }
+            
+            input_str = '{"input": "test input", "output": "test output"}'
+            generating_batch_size = 5
+            
+            result = self.generator.process(input_str, generating_batch_size)
+            
+            expected_input = {
+                "input_str": input_str,
+                "generating_batch_size": generating_batch_size
+            }
+            mock_chain.invoke.assert_called_once_with(expected_input)
+            self.assertEqual(result["description"], "Generated task description")
+            self.assertEqual(result["suggestions"], ["suggestion1", "suggestion2"])
+    
+    def test_process_method_with_default_batch_size(self):
+        """Test process method with default generating_batch_size"""
+        with patch.object(self.generator, 'chain') as mock_chain:
+            mock_chain.invoke.return_value = {"description": "test", "suggestions": []}
+            
+            input_str = '{"input": "test", "output": "result"}'
+            
+            result = self.generator.process(input_str)
+            
+            expected_input = {
+                "input_str": input_str,
+                "generating_batch_size": 3  # default value
+            }
+            mock_chain.invoke.assert_called_once_with(expected_input)
+
+
 if __name__ == '__main__':
     unittest.main()
