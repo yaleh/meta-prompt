@@ -8,7 +8,7 @@ from langgraph.errors import GraphRecursionError
 
 from meta_prompt import MetaPromptGraph, AgentState, Example
 from meta_prompt.meta_prompt import first_non_empty, last_non_empty
-from tests.test_config_utils import get_test_llm, skip_if_no_api_key
+from tests.unit.utils.test_config_utils import get_test_llm, skip_if_no_api_key
 
 
 class TestHelperFunctions(unittest.TestCase):

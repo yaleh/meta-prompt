@@ -9,7 +9,7 @@ from langchain_openai import ChatOpenAI
 
 from meta_prompt import *
 from meta_prompt.consts import NODE_PROMPT_INITIAL_DEVELOPER, NODE_ACCEPTANCE_CRITERIA_DEVELOPER, NODE_PROMPT_DEVELOPER, NODE_PROMPT_EXECUTOR, NODE_OUTPUT_HISTORY_ANALYZER, NODE_PROMPT_ANALYZER, NODE_PROMPT_SUGGESTER
-from tests.test_config_utils import get_test_llm, get_test_llms_dict, skip_if_no_api_key
+from tests.unit.utils.test_config_utils import get_test_llm, get_test_llms_dict, skip_if_no_api_key
 
 
 class TestMetaPromptGraphWorkflow(unittest.TestCase):

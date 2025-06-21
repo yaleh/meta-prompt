@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 from langchain_openai import ChatOpenAI
 from openai import BadRequestError
 from meta_prompt.sample_generator import TaskDescriptionGenerator
-from tests.test_config_utils import get_test_llm, skip_if_no_api_key
+from tests.unit.utils.test_config_utils import get_test_llm, skip_if_no_api_key
 
 class TestTaskDescriptionGeneratorBasic(unittest.TestCase):
     """Basic test cases for TaskDescriptionGenerator."""

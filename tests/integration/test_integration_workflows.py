@@ -7,7 +7,7 @@ from langchain_core.language_models import BaseLanguageModel
 
 from meta_prompt import MetaPromptGraph, AgentState, Example
 from meta_prompt.consts import *
-from tests.test_config_utils import get_test_llm, skip_if_no_api_key
+from tests.unit.utils.test_config_utils import get_test_llm, skip_if_no_api_key
 
 
 class TestWorkflowIntegration(unittest.TestCase):
@@ -318,7 +318,7 @@ class TestLiveWorkflowIntegration(unittest.TestCase):
     @skip_if_no_api_key
     def test_live_simple_workflow(self):
         """Test simple workflow with real LLM."""
-        from tests.test_config_utils import get_test_llms_dict
+        from tests.unit.utils.test_config_utils import get_test_llms_dict
         
         llms = get_test_llms_dict()
         graph = MetaPromptGraph(llms=llms)
