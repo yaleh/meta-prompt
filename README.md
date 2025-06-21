@@ -35,6 +35,8 @@ To use this demo, please follow these steps:
 1. Clone the repository: `git clone https://github.com/yaleh/meta-prompt.git`
 2. Change into the project directory: `cd meta-prompt`
 3. Install the required dependencies: `pip install -r requirements.txt`
+4. Copy the example configuration: `cp example_config.yml config.yml`
+5. **Important:** Open `config.yml` and replace the placeholder `fake-sk-...` API keys with your actual LLM service API keys.
 
 Please note that you need to have Python and pip installed on your system.
 
