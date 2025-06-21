@@ -5,3 +5,5 @@ __pycache__
 config.yml.debug
 debug.yml
 dist
+config_transformer.yml
+config.yml

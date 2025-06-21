@@ -274,6 +274,11 @@ def evaluate_system_message(config, system_message, user_message, executor_model
         gr.Error: If there is a Gradio-specific error during the execution of
             this function.
     """
+    # Convert config to MetaPromptConfig if it's a dictionary
+    if isinstance(config, dict):
+        from app.config import MetaPromptConfig
+        config = MetaPromptConfig(**config)
+
     llm = initialize_llm(config, executor_model_name, {
                          'temperature': executor_temperature})
     template = ChatPromptTemplate.from_messages([
@@ -593,6 +598,10 @@ def initialize_llm(config: MetaPromptConfig, model_name: str, model_config: Opti
             because the LLMModelFactory class checks and validates the type when
             creating a new language model.
     """
+    # Package the required variables into an AgentState dictionary
+    if isinstance(config, dict):
+        from app.config import MetaPromptConfig
+        config = MetaPromptConfig(**config)
     try:
         llm_config = config.llms[model_name]
         model_type = llm_config.type
@@ -879,6 +888,11 @@ def evaluate_output(
     prompt_template_group: Optional[str] = None,
     thinking_model: bool = False
 ) -> str:
+    # Package the required variables into an AgentState dictionary
+    if isinstance(config, dict):
+        from app.config import MetaPromptConfig
+        config = MetaPromptConfig(**config)
+
     # Package the required variables into an AgentState dictionary
     state = AgentState(
         acceptance_criteria=acceptance_criteria,

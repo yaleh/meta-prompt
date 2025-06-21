@@ -43,8 +43,8 @@ Spain:
 2019: $1,430.38 billion
 ","Year,Germany,France,United Kingdom,Italy,Spain
 2016-2015,2.96%,1.71%,-7.35%,2.02%,3.04%
-2017-2016,5.08%,4.78%,-1.07%,4.61%,6.23%
-2018-2017,7.48%,7.99%,7.89%,7.10%,8.58%
+2017-2016,6.06%,4.78%,-1.07%,4.61%,6.23%
+2018-2017,7.48%,7.99%,7.89%,7.02%,8.58%
 2019-2018,-2.56%,-2.59%,0.01%,-4.11%,0.30%
 ","",""
 "Gene sequence: ATGGCCATGGCGCCCAGAACTGAGATCAATAGTACCCGTATTAACGGGTGA
@@ -292,3 +292,19 @@ x₁ = (10 + √104) / 2 ≈ 5 + √26 ≈ 10.1
 x₂ = (10 - √104) / 2 ≈ 5 - √26 ≈ -0.1
 
 因此,方程的解为: x₁ ≈ 10.1 或 x₂ ≈ -0.1","",
+Adapt the passage 'It does not do to dwell on dreams and forget to live' from 'Harry Potter and the Philosopher's Stone' into rap lyrics.,"Hogwarts, the magic's real But don't get caught up, in the dream, it's not the deal Live in the moment, don't forget to thrive ain't no substitute, for the life you gotta live","# Acceptance Criteria
+
+* The output should be a rap lyrics adaptation of the given passage, conveying the same message and theme.
+
+* Unacceptable differences (compared with EO):
+  * The output does not convey the message of living in the moment and not getting caught up in dreams.
+  * The output does not have a similar tone and style to the EO.
+  * The output includes irrelevant or unrelated themes or ideas.
+  * The output does not have a consistent rhythm or flow.
+  * The output is not written in a rap style (e.g. lacks rhyme, meter, or lyrical structure).
+
+* Acceptable differences (compared with EO):
+  * The output uses different wording or phrasing to convey the same message.
+  * The output has a slightly different tone or emphasis, while still conveying the same theme.
+  * The output uses different rhyme schemes or lyrical structures, while still maintaining a rap style.
+  * The output has minor variations in punctuation or capitalization.",

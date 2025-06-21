@@ -26,6 +26,7 @@ pytest = "^8.2.2"
 datasets = "^2.20.0"
 streamlit = "^1.37.1"
 ipykernel = "^6.29.5"
+ruff = "^0.12.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
