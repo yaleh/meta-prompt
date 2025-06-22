@@ -1,0 +1,5 @@
+examples:
+  - user_message: "Explain recursion in programming"
+    expected_output: "Recursion is a programming technique where a function calls itself to solve a problem by breaking it down into smaller, similar subproblems. Each recursive call should work on a smaller version of the original problem, and there must be a base case to stop the recursion."
+  - user_message: "What is object-oriented programming?"
+    expected_output: "Object-oriented programming (OOP) is a programming paradigm based on the concept of objects, which contain data (attributes) and code (methods). OOP focuses on creating reusable code through concepts like encapsulation, inheritance, and polymorphism."

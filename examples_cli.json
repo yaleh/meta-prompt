@@ -1,0 +1,10 @@
+[
+  {
+    "user_message": "What is the capital of France?",
+    "expected_output": "The capital of France is Paris."
+  },
+  {
+    "user_message": "What is the capital of Italy?", 
+    "expected_output": "The capital of Italy is Rome."
+  }
+]
